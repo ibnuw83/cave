@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { FirestorePermissionError } from '@/lib/errors';
 
 export default function UsersClient({ initialUsers }: { initialUsers: UserProfile[] }) {
   const [users, setUsers] = useState(initialUsers);
@@ -21,8 +22,13 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserProfil
       setUsers(users.map(u => u.uid === uid ? { ...u, role: newRole } : u));
       toast({ title: "Berhasil", description: "Peran pengguna berhasil diperbarui." });
     } catch (error) {
-       // Error is handled by global listener
-       console.error("Failed to update user role:", error);
+       if (!(error instanceof FirestorePermissionError)) {
+            toast({
+                variant: 'destructive',
+                title: 'Gagal',
+                description: 'Terjadi kesalahan saat memperbarui peran pengguna.',
+            });
+       }
     } finally {
       setLoadingStates((prev) => ({ ...prev, [uid]: false }));
     }

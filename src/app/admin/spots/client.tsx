@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { deleteSpot } from "@/lib/firestore";
 import { SpotForm } from "./spot-form";
+import { FirestorePermissionError } from '@/lib/errors';
 
 export default function SpotsClient({ initialSpots, caves }: { initialSpots: Spot[]; caves: Cave[] }) {
   const [spots, setSpots] = useState(initialSpots);
@@ -43,17 +44,24 @@ export default function SpotsClient({ initialSpots, caves }: { initialSpots: Spo
         setSpots(spots.filter((s) => s.id !== id));
         toast({ title: "Berhasil", description: "Spot berhasil dihapus." });
     } catch (error) {
-        // Error is handled by global listener
-        console.error("Failed to delete spot:", error);
+        if (!(error instanceof FirestorePermissionError)) {
+            toast({
+                variant: 'destructive',
+                title: 'Gagal',
+                description: 'Terjadi kesalahan saat menghapus spot.',
+            });
+        }
     }
   };
 
   const filteredSpots = useMemo(() => {
-    const filtered = filterCaveId === 'all'
-      ? spots
-      : spots.filter((spot) => spot.caveId === filterCaveId);
+    if (filterCaveId === 'all') {
+      return [...spots].sort((a, b) => a.order - b.order);
+    }
+    const filtered = spots.filter((spot) => spot.caveId === filterCaveId);
     return filtered.sort((a, b) => a.order - b.order);
   }, [spots, filterCaveId]);
+
 
   const getCaveName = (caveId: string) => {
     return caves.find(c => c.id === caveId)?.name || 'Gua tidak ditemukan';
