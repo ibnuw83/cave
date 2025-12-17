@@ -14,7 +14,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { FileUploader } from '@/components/ui/file-uploader';
-import { FirestorePermissionError } from '@/lib/errors';
 
 const spotSchema = z.object({
   caveId: z.string().min(1, 'Gua harus dipilih.'),
@@ -80,13 +79,9 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
         onSave({ id: newSpotId, ...spotData });
       }
     } catch (error) {
-      if (!(error instanceof FirestorePermissionError)) {
-          toast({
-            variant: 'destructive',
-            title: 'Gagal',
-            description: 'Terjadi kesalahan saat menyimpan data spot.',
-          });
-      }
+        // Errors are now thrown and handled by the global listener
+        // We re-throw to ensure it's caught by the top-level boundary
+        throw error;
     }
   };
 
