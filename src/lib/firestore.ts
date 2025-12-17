@@ -153,14 +153,13 @@ export async function getCave(id: string): Promise<Cave | null> {
 }
 
 export async function addCave(caveData: Omit<Cave, 'id'>): Promise<string> {
-    const cavesRef = collection(db, 'caves');
     try {
-        const docRef = await addDoc(cavesRef, caveData);
+        const docRef = await addDoc(collection(db, 'caves'), caveData);
         return docRef.id;
     } catch (error: any) {
         if (error.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
-              path: cavesRef.path,
+              path: 'caves',
               operation: 'create',
               requestResourceData: caveData,
             });
@@ -218,7 +217,8 @@ export async function getSpots(caveId: string): Promise<Spot[]> {
   const spotsRef = collection(db, 'spots');
   const q = query(
     spotsRef,
-    where('caveId', '==', caveId)
+    where('caveId', '==', caveId),
+    orderBy('order')
   );
   try {
     const querySnapshot = await getDocs(q);
@@ -232,7 +232,7 @@ export async function getSpots(caveId: string): Promise<Spot[]> {
 export async function getAllSpots(): Promise<Spot[]> {
     const spotsRef = collection(db, 'spots');
      try {
-        const q = query(spotsRef);
+        const q = query(spotsRef, orderBy('order'));
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Spot));
     } catch (error) {
@@ -256,14 +256,13 @@ export async function getSpot(id: string): Promise<Spot | null> {
 }
 
 export async function addSpot(spotData: Omit<Spot, 'id'>): Promise<string> {
-    const spotsRef = collection(db, 'spots');
     try {
-        const docRef = await addDoc(spotsRef, spotData);
+        const docRef = await addDoc(collection(db, 'spots'), spotData);
         return docRef.id;
     } catch (error: any) {
         if (error.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
-              path: spotsRef.path,
+              path: 'spots',
               operation: 'create',
               requestResourceData: spotData,
             });
