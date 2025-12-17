@@ -1,16 +1,20 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Cave, Spot } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Lock, ChevronLeft, Zap, Info } from 'lucide-react';
+import { Lock, ChevronLeft, Download, WifiOff, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { saveCaveForOffline, isCaveAvailableOffline } from '@/lib/offline';
+import { useToast } from '@/hooks/use-toast';
 
-function SpotCard({ spot, isLocked }: { spot: Spot; isLocked: boolean }) {
+
+function SpotCard({ spot, isLocked, isOffline }: { spot: Spot; isLocked: boolean, isOffline: boolean }) {
   const content = (
     <Card className={`overflow-hidden transition-all duration-300 ${isLocked ? 'bg-muted/30 border-dashed' : 'hover:shadow-lg hover:border-primary/50 hover:scale-105'}`}>
       <CardHeader className="p-0">
@@ -20,11 +24,16 @@ function SpotCard({ spot, isLocked }: { spot: Spot; isLocked: boolean }) {
             alt={spot.title}
             fill
             className={`object-cover ${isLocked ? 'opacity-50' : 'group-hover:scale-110 transition-transform duration-300'}`}
-             data-ai-hint="cave interior"
+            data-ai-hint="cave interior"
           />
           {isLocked && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/50">
               <Lock className="h-8 w-8 text-accent" />
+            </div>
+          )}
+           {isOffline && (
+            <div className="absolute top-2 right-2 flex items-center justify-center bg-black/50 p-1 rounded-full">
+              <WifiOff className="h-4 w-4 text-white" />
             </div>
           )}
         </div>
@@ -62,6 +71,33 @@ function SpotCard({ spot, isLocked }: { spot: Spot; isLocked: boolean }) {
 
 export default function CaveClient({ cave, spots }: { cave: Cave; spots: Spot[];}) {
   const { userProfile, loading } = useAuth();
+  const [isOffline, setIsOffline] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    async function checkOfflineStatus() {
+      const offline = await isCaveAvailableOffline(cave.id);
+      setIsOffline(offline);
+    }
+    checkOfflineStatus();
+  }, [cave.id]);
+
+  const handleDownload = async () => {
+    setIsDownloading(true);
+    toast({ title: 'Mengunduh...', description: `Konten untuk ${cave.name} sedang disimpan untuk mode offline.` });
+    try {
+      await saveCaveForOffline(cave, spots);
+      setIsOffline(true);
+      toast({ title: 'Berhasil!', description: `${cave.name} telah tersedia untuk mode offline.` });
+    } catch (error) {
+      console.error('Failed to save for offline:', error);
+      toast({ variant: 'destructive', title: 'Gagal', description: 'Gagal menyimpan konten untuk mode offline.' });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -78,6 +114,7 @@ export default function CaveClient({ cave, spots }: { cave: Cave; spots: Spot[];
   }
 
   const role = userProfile?.role || 'free';
+  const isPro = role === 'pro' || role === 'admin';
 
   return (
     <div className="container mx-auto min-h-screen max-w-5xl p-4 md:p-8">
@@ -94,14 +131,41 @@ export default function CaveClient({ cave, spots }: { cave: Cave; spots: Spot[];
           <h1 className="font-headline absolute bottom-4 left-4 text-3xl font-bold text-white md:text-4xl">
             {cave.name}
           </h1>
+           {isOffline && (
+            <div className="absolute top-4 right-4 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1 text-sm text-white backdrop-blur-sm">
+              <WifiOff className="h-4 w-4" />
+              <span>Offline Ready</span>
+            </div>
+          )}
         </div>
       </header>
 
       <main>
-        <h2 className="mb-6 text-xl font-semibold md:text-2xl">Spot Penjelajahan</h2>
+        <div className="mb-6 flex flex-col md:flex-row justify-between md:items-center gap-4">
+            <h2 className="text-xl font-semibold md:text-2xl">Spot Penjelajahan</h2>
+            {isPro && (
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div>
+                                <Button onClick={handleDownload} disabled={isDownloading || isOffline}>
+                                    {isDownloading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {isOffline ? 'Tersimpan Offline' : 'Simpan Offline'}
+                                    {!isDownloading && !isOffline && <Download className="ml-2 h-4 w-4" />}
+                                </Button>
+                             </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                           <p>{isOffline ? 'Konten gua ini sudah bisa diakses offline.' : 'Unduh semua spot di gua ini untuk akses offline.'}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            )}
+        </div>
+
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {spots.map((spot) => (
-            <SpotCard key={spot.id} spot={spot} isLocked={spot.isPro && role === 'free'} />
+            <SpotCard key={spot.id} spot={spot} isLocked={spot.isPro && role === 'free'} isOffline={isOffline} />
           ))}
         </div>
       </main>

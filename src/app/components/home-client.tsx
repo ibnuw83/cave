@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { Mountain, LogIn, LogOut, User } from 'lucide-react';
+import { Mountain, LogIn, LogOut, User, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,10 +20,26 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getCaves } from '@/lib/firestore';
+import { clearOfflineCache } from '@/lib/offline';
+import { useToast } from '@/hooks/use-toast';
 
 
 const AuthSection = () => {
   const { user, userProfile, loading, signOut } = useAuth();
+  const { toast } = useToast();
+
+  const handleClearCache = async () => {
+    if (!confirm('Anda yakin ingin menghapus semua konten offline? Ini tidak dapat diurungkan.')) {
+      return;
+    }
+    try {
+      await clearOfflineCache();
+      toast({ title: 'Berhasil', description: 'Semua konten offline telah dihapus.' });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Gagal', description: 'Gagal menghapus cache offline.' });
+    }
+  };
+
 
   if (loading) {
     return <Skeleton className="h-10 w-24" />;
@@ -64,6 +80,15 @@ const AuthSection = () => {
                 <DropdownMenuSeparator />
              </>
            )}
+            {userProfile.role !== 'free' && (
+             <>
+                <DropdownMenuItem onClick={handleClearCache}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  <span>Hapus Cache Offline</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+             </>
+           )}
           <DropdownMenuItem onClick={signOut}>
             <LogOut className="mr-2 h-4 w-4" />
             <span>Logout</span>
@@ -90,20 +115,24 @@ export default function HomeClient() {
 
   useEffect(() => {
     async function fetchCaves() {
+      // We only fetch caves if there's a user profile, to ensure auth state is settled
       if (userProfile) {
         setLoadingCaves(true);
         try {
-          const cavesData = await getCaves();
+          // Pass `false` to only get active caves
+          const cavesData = await getCaves(false);
           setCaves(cavesData);
         } catch (error) {
           console.error("Failed to fetch caves:", error);
+          // Optionally, show a toast or error message to the user
         } finally {
           setLoadingCaves(false);
         }
       }
     }
     fetchCaves();
-  }, [userProfile]);
+  }, [userProfile]); // Rerun when userProfile changes
+
 
   return (
     <div className="container mx-auto min-h-screen max-w-4xl p-4 md:p-8">

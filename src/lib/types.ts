@@ -18,7 +18,7 @@ export interface Cave {
 }
 
 export interface Spot {
-  id: string;
+  id:string;
   caveId: string;
   order: number;
   title: string;
@@ -29,6 +29,12 @@ export interface Spot {
   effects?: {
     vibrationPattern?: number[];
   };
+}
+
+export interface OfflineCaveData {
+    cave: Cave;
+    spots: Spot[];
+    timestamp: number;
 }
 
 export interface RegisterData {
