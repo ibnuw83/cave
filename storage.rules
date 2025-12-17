@@ -1,0 +1,38 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && getUserData().role == 'admin';
+    }
+
+    // Allow anyone to read any file.
+    // This is important for displaying images and playing audio in the app.
+    match /{allPaths=**} {
+      allow read: if true;
+    }
+
+    // Only admins can write to the 'caves' folder.
+    match /caves/{caveId}/{fileName} {
+      allow write: if isAdmin();
+    }
+
+    // Only admins can write to the 'spots' folder.
+    match /spots/{spotId}/{fileName} {
+      allow write: if isAdmin();
+    }
+  }
+}

@@ -13,13 +13,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { FileUploader } from '@/components/ui/file-uploader';
 
 const spotSchema = z.object({
   caveId: z.string().min(1, 'Gua harus dipilih.'),
   order: z.coerce.number().min(0, 'Urutan tidak boleh negatif.'),
   title: z.string().min(1, 'Judul tidak boleh kosong.'),
   description: z.string().min(1, 'Deskripsi tidak boleh kosong.'),
-  imageUrl: z.string().url('URL gambar tidak valid.'),
+  imageUrl: z.string().url('URL gambar tidak valid.').min(1, 'Gambar spot harus diunggah.'),
   audioUrl: z.string().url('URL audio tidak valid.').optional().or(z.literal('')),
   isPro: z.boolean(),
   vibrationPattern: z.string().optional().refine(
@@ -57,6 +58,7 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
   });
   
   const isSubmitting = form.formState.isSubmitting;
+  const spotId = spot?.id || 'new_spot';
 
   const onSubmit = async (values: SpotFormValues) => {
     const spotData: Omit<Spot, 'id'> = {
@@ -71,7 +73,7 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
     try {
       if (spot) {
         await updateSpot(spot.id, spotData);
-        onSave({ ...spot, ...spotData });
+        onSave({ id: spot.id, ...spotData });
       } else {
         const newSpotId = await addSpot(spotData);
         onSave({ id: newSpotId, ...spotData });
@@ -167,10 +169,17 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
             name="imageUrl"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>URL Gambar</FormLabel>
-                <FormControl>
-                  <Input placeholder="https://..." {...field} />
-                </FormControl>
+                 <FileUploader 
+                    label="Gambar Spot"
+                    filePath={`spots/${spotId}`}
+                    currentFileUrl={field.value}
+                    onUploadSuccess={(url) => {
+                        form.setValue('imageUrl', url);
+                        toast({ title: 'Berhasil', description: 'Gambar spot telah diunggah.' });
+                    }}
+                    allowedTypes={['image/jpeg', 'image/png', 'image/webp']}
+                    maxSizeMB={3}
+                />
                 <FormMessage />
               </FormItem>
             )}
@@ -181,10 +190,17 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
             name="audioUrl"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>URL Audio (Opsional)</FormLabel>
-                <FormControl>
-                  <Input placeholder="https://.../suara.mp3" {...field} />
-                </FormControl>
+                 <FileUploader 
+                    label="Audio Narasi (Opsional)"
+                    filePath={`spots/${spotId}`}
+                    currentFileUrl={field.value}
+                    onUploadSuccess={(url) => {
+                        form.setValue('audioUrl', url);
+                        toast({ title: 'Berhasil', description: 'Audio narasi telah diunggah.' });
+                    }}
+                    allowedTypes={['audio/mpeg', 'audio/mp3']}
+                    maxSizeMB={10}
+                />
                 <FormMessage />
               </FormItem>
             )}
