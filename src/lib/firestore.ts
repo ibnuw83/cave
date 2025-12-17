@@ -183,33 +183,28 @@ export function updateCave(id: string, caveData: Partial<Cave>) {
     });
 }
 
-export function deleteCave(id: string): Promise<void> {
+export async function deleteCave(id: string): Promise<void> {
     const caveDocRef = doc(db, 'caves', id);
     const spotsQuery = query(collection(db, 'spots'), where('caveId', '==', id));
     
-    return new Promise(async (resolve, reject) => {
-        try {
-            const spotsSnapshot = await getDocs(spotsQuery);
-            const batch = writeBatch(db);
-            spotsSnapshot.forEach(spotDoc => {
-              batch.delete(spotDoc.ref);
-            });
-            batch.delete(caveDocRef);
-            await batch.commit();
-            resolve();
-        } catch (error: any) {
-            if (error.code === 'permission-denied') {
-                const permissionError = new FirestorePermissionError({
-                    path: `batch write (delete cave: ${id})`,
-                    operation: 'delete',
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            } else {
-                 console.error("Batch delete failed:", error);
-            }
-            reject(error); // reject promise for the UI to handle
-        }
-    });
+    // Note: This operation is not atomic in terms of security rules.
+    // Each operation in the batch is evaluated against the rules independently.
+    // For this to work, the admin must have permission to delete from 'caves' and 'spots'.
+
+    try {
+        const spotsSnapshot = await getDocs(spotsQuery);
+        const batch = writeBatch(db);
+        spotsSnapshot.forEach(spotDoc => {
+          batch.delete(spotDoc.ref);
+        });
+        batch.delete(caveDocRef);
+        await batch.commit();
+    } catch (error: any) {
+        // We rethrow the error to be caught by the calling component,
+        // which will then emit the contextual error.
+        console.error("Batch delete failed in firestore.ts:", error);
+        throw error;
+    }
 }
 
 

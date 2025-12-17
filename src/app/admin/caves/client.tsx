@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from "react";
@@ -20,6 +21,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { deleteCave } from "@/lib/firestore";
 import { CaveForm } from "./cave-form";
+import { FirestorePermissionError } from "@/lib/errors";
+import { errorEmitter } from "@/lib/error-emitter";
 
 export default function CavesClient({ initialCaves }: { initialCaves: Cave[] }) {
   const [caves, setCaves] = useState(initialCaves);
@@ -44,15 +47,23 @@ export default function CavesClient({ initialCaves }: { initialCaves: Cave[] }) 
     setIsFormOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    deleteCave(id).then(() => {
+  const handleDelete = async (id: string) => {
+    try {
+        await deleteCave(id);
         setCaves(caves.filter((c) => c.id !== id));
         toast({ title: "Berhasil", description: "Gua dan semua spot di dalamnya berhasil dihapus." });
-    }).catch(error => {
-        // The permission error is handled globally. 
-        // We only toast for generic failures here if it's not a permission error.
-        // Since FirestorePermissionError is thrown, we don't display a generic toast.
-    });
+    } catch (error: any) {
+        if (error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: `batch write (delete cave: ${id})`,
+                operation: 'delete',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else if (!(error instanceof FirestorePermissionError)) {
+            // Only toast for generic errors, not permission errors which are handled globally
+            toast({ variant: 'destructive', title: 'Gagal', description: 'Terjadi kesalahan saat menghapus gua.' });
+        }
+    }
   };
 
   if (isFormOpen) {
