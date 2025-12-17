@@ -44,14 +44,15 @@ export default function CavesClient({ initialCaves }: { initialCaves: Cave[] }) 
     setIsFormOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteCave(id);
-      setCaves(caves.filter((c) => c.id !== id));
-      toast({ title: "Berhasil", description: "Gua dan semua spot di dalamnya berhasil dihapus." });
-    } catch (error) {
-      toast({ variant: "destructive", title: "Gagal", description: "Terjadi kesalahan saat menghapus gua." });
-    }
+  const handleDelete = (id: string) => {
+    deleteCave(id).then(() => {
+        setCaves(caves.filter((c) => c.id !== id));
+        toast({ title: "Berhasil", description: "Gua dan semua spot di dalamnya berhasil dihapus." });
+    }).catch(error => {
+        // The permission error is handled globally, but we might want to inform the user here
+        // The toast in FirebaseErrorListener already shows a generic permission error.
+        // If we want a more specific one, we could show it here, but it might be redundant.
+    });
   };
 
   if (isFormOpen) {

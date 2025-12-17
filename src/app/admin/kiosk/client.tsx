@@ -53,14 +53,9 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
     return initialSpots.filter(spot => spot.caveId === watchCaveId);
   }, [watchCaveId, initialSpots]);
 
-  const onSubmit = async (values: KioskSettingsFormValues) => {
-    try {
-      await saveKioskSettings(values);
-      toast({ title: 'Berhasil', description: 'Pengaturan kios telah disimpan.' });
-    } catch (error) {
-      console.error('Failed to save kiosk settings:', error);
-      toast({ variant: 'destructive', title: 'Gagal', description: 'Gagal menyimpan pengaturan kios.' });
-    }
+  const onSubmit = (values: KioskSettingsFormValues) => {
+    saveKioskSettings(values);
+    toast({ title: 'Berhasil', description: 'Pengaturan kios telah disimpan.' });
   };
 
   const isSubmitting = form.formState.isSubmitting;

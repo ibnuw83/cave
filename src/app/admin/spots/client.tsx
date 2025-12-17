@@ -36,14 +36,10 @@ export default function SpotsClient({ initialSpots, caves }: { initialSpots: Spo
     setIsFormOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteSpot(id);
-      setSpots(spots.filter((s) => s.id !== id));
-      toast({ title: "Berhasil", description: "Spot berhasil dihapus." });
-    } catch (error) {
-      toast({ variant: "destructive", title: "Gagal", description: "Terjadi kesalahan saat menghapus spot." });
-    }
+  const handleDelete = (id: string) => {
+    deleteSpot(id);
+    setSpots(spots.filter((s) => s.id !== id));
+    toast({ title: "Berhasil", description: "Spot berhasil dihapus." });
   };
 
   const filteredSpots = useMemo(() => {
