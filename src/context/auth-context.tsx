@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { onAuthStateChanged, User, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth';
+import { onAuthStateChanged, User, GoogleAuthProvider, signInWithRedirect, signOut as firebaseSignOut, getRedirectResult } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { UserProfile } from '@/lib/types';
 import { getUserProfile, createUserProfile } from '@/lib/firestore';
@@ -34,23 +34,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         setUserProfile(profile);
       } else {
-        setUser(null);
-        setUserProfile(null);
+        // Check for redirect result
+        try {
+          const result = await getRedirectResult(auth);
+          if (result) {
+            // This is the successfully redirected user.
+            const user = result.user;
+            setUser(user);
+            let profile = await getUserProfile(user.uid);
+            if (!profile) {
+              profile = await createUserProfile(user);
+            }
+            setUserProfile(profile);
+            toast({
+              title: "Login Berhasil",
+              description: "Selamat datang kembali!",
+            });
+          }
+        } catch (error) {
+           console.error("Error getting redirect result: ", error);
+        } finally {
+            setUser(null);
+            setUserProfile(null);
+        }
       }
       setLoading(false);
     });
 
+    // Handle initial redirect result check
+    getRedirectResult(auth).then(async (result) => {
+        if (result) {
+            const user = result.user;
+            setUser(user);
+            let profile = await getUserProfile(user.uid);
+            if (!profile) {
+              profile = await createUserProfile(user);
+            }
+            setUserProfile(profile);
+             toast({
+              title: "Login Berhasil",
+              description: "Selamat datang kembali!",
+            });
+        }
+        setLoading(false);
+    }).catch(error => {
+        console.error("Error on initial redirect check:", error);
+        setLoading(false);
+    });
+
+
     return () => unsubscribe();
-  }, []);
+  }, [toast]);
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      toast({
-        title: "Login Berhasil",
-        description: "Selamat datang kembali!",
-      });
+      await signInWithRedirect(auth, provider);
     } catch (error) {
       console.error("Error signing in with Google: ", error);
       toast({
@@ -68,6 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Logout Berhasil",
         description: "Anda telah keluar dari akun.",
       });
+      setUser(null);
+      setUserProfile(null);
     } catch (error) {
       console.error("Error signing out: ", error);
       toast({
