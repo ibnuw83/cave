@@ -231,8 +231,9 @@ export async function getSpots(caveId: string): Promise<Spot[]> {
 
 export async function getAllSpots(): Promise<Spot[]> {
     const spotsRef = collection(db, 'spots');
-    try {
-        const querySnapshot = await getDocs(spotsRef);
+     try {
+        const q = query(spotsRef);
+        const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Spot));
     } catch (error) {
         handleGetDocsError(error, spotsRef);
