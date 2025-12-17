@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Cave } from '@/lib/types';
 import { useAuth } from '@/context/auth-context';
@@ -19,7 +18,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getCaves } from '@/lib/firestore';
 import { clearOfflineCache } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
 
@@ -42,7 +40,7 @@ const AuthSection = () => {
 
 
   if (loading) {
-    return <Skeleton className="h-10 w-24" />;
+    return <Skeleton className="h-10 w-10 rounded-full" />;
   }
 
   if (user && userProfile) {
@@ -108,32 +106,9 @@ const AuthSection = () => {
 };
 
 
-export default function HomeClient() {
-  const [caves, setCaves] = useState<Cave[]>([]);
-  const [loadingCaves, setLoadingCaves] = useState(true);
-  const { userProfile } = useAuth();
-
-  useEffect(() => {
-    async function fetchCaves() {
-      // We only fetch caves if there's a user profile, to ensure auth state is settled
-      if (userProfile) {
-        setLoadingCaves(true);
-        try {
-          // Pass `false` to only get active caves
-          const cavesData = await getCaves(false);
-          setCaves(cavesData);
-        } catch (error) {
-          console.error("Failed to fetch caves:", error);
-          // Optionally, show a toast or error message to the user
-        } finally {
-          setLoadingCaves(false);
-        }
-      }
-    }
-    fetchCaves();
-  }, [userProfile]); // Rerun when userProfile changes
-
-
+export default function HomeClient({ caves }: { caves: Cave[] }) {
+  const { loading: authLoading } = useAuth();
+  
   return (
     <div className="container mx-auto min-h-screen max-w-4xl p-4 md:p-8">
       <header className="flex items-center justify-between pb-8">
@@ -148,7 +123,7 @@ export default function HomeClient() {
 
       <main>
         <h2 className="mb-6 text-xl font-semibold text-foreground/90 md:text-2xl">Gua yang Tersedia</h2>
-        {loadingCaves ? (
+        {authLoading ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             <Skeleton className="h-64 w-full" />
             <Skeleton className="h-64 w-full" />
