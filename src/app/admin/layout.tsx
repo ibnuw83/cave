@@ -16,6 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { cn } from '@/lib/utils';
 
 function AdminProtection({ children }: { children: ReactNode }) {
   const { user, userProfile, loading, signOut } = useAuth();
@@ -92,15 +93,15 @@ function AdminNavLink({ href, icon, label }: { href: string; icon: React.ReactNo
   const isActive = pathname === href;
   
   return (
-    <Link href={href} legacyBehavior>
-      <a
-        className={`flex flex-col items-center justify-center rounded-md p-2 text-xs font-medium transition-colors md:flex-row md:justify-start md:gap-3 md:text-sm md:px-3 md:py-2 ${
-          isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-        }`}
-      >
-        {icon}
-        <span className="mt-1 md:mt-0">{label}</span>
-      </a>
+    <Link 
+      href={href}
+      className={cn(
+        'flex flex-col items-center justify-center rounded-md p-2 text-xs font-medium transition-colors md:flex-row md:justify-start md:gap-3 md:text-sm md:px-3 md:py-2',
+        isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+      )}
+    >
+      {icon}
+      <span className="mt-1 md:mt-0">{label}</span>
     </Link>
   );
 }
