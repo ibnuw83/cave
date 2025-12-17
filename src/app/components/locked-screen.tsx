@@ -1,0 +1,43 @@
+'use client';
+
+import { Spot } from '@/lib/types';
+import Image from 'next/image';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Lock, ArrowLeft, Gem } from 'lucide-react';
+
+export default function LockedScreen({ spot }: { spot: Spot }) {
+  return (
+    <div className="relative h-screen w-screen overflow-hidden">
+      <Image
+        src={spot.imageUrl}
+        alt={spot.title}
+        fill
+        className="object-cover z-0"
+        quality={100}
+        data-ai-hint="blurry cave"
+      />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-md z-10"></div>
+      
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 z-20 text-white">
+        <Lock className="h-16 w-16 text-accent mb-6" />
+        <h1 className="text-3xl font-bold font-headline mb-2">Spot Khusus PRO</h1>
+        <p className="max-w-md text-lg text-white/80 mb-8">
+          Upgrade akun Anda ke PRO untuk mengakses spot eksklusif ini dan semua fitur premium lainnya.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
+            <Gem className="mr-2 h-5 w-5" />
+            Upgrade ke PRO
+          </Button>
+          <Button size="lg" variant="outline" className="border-accent text-accent hover:bg-accent hover:text-accent-foreground" asChild>
+            <Link href={`/cave/${spot.caveId}`}>
+              <ArrowLeft className="mr-2 h-5 w-5" />
+              Kembali ke Gua
+            </Link>
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
