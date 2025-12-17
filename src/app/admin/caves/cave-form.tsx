@@ -15,6 +15,7 @@ import { Loader2 } from 'lucide-react';
 import { FileUploader } from '@/components/ui/file-uploader';
 import { errorEmitter } from '@/lib/error-emitter';
 import { FirestorePermissionError } from '@/lib/errors';
+import { auth } from '@/lib/firebase';
 
 const caveSchema = z.object({
   name: z.string().min(1, { message: 'Nama gua tidak boleh kosong.' }),
@@ -47,6 +48,14 @@ export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
   const caveId = cave?.id || 'new_cave';
 
   const onSubmit = async (values: CaveFormValues) => {
+    if (!auth.currentUser) {
+        toast({
+            variant: 'destructive',
+            title: 'Belum login',
+            description: 'Silakan login sebagai admin.',
+        });
+        return;
+    }
     try {
       if (cave) {
         const updatedCaveData = { ...cave, ...values };
