@@ -5,27 +5,34 @@ import { getCaves } from '@/lib/firestore';
 import { Cave } from '@/lib/types';
 import HomeClient from '@/app/components/home-client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/context/auth-context';
 
 export default function Home() {
   const [caves, setCaves] = useState<Cave[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingCaves, setLoadingCaves] = useState(true);
+  const { loading: authLoading } = useAuth();
 
   useEffect(() => {
     async function fetchCaves() {
-      try {
-        const cavesData = await getCaves();
-        setCaves(cavesData);
-      } catch (error) {
-        console.error("Failed to fetch caves:", error);
-        // Error is handled by the global FirebaseErrorListener
-      } finally {
-        setLoading(false);
+      // Hanya fetch data jika proses auth sudah selesai
+      if (!authLoading) {
+        setLoadingCaves(true);
+        try {
+          const cavesData = await getCaves();
+          setCaves(cavesData);
+        } catch (error) {
+          console.error("Failed to fetch caves:", error);
+          // Error is handled by the global FirebaseErrorListener
+        } finally {
+          setLoadingCaves(false);
+        }
       }
     }
     fetchCaves();
-  }, []);
+  }, [authLoading]); // Tambahkan authLoading sebagai dependency
 
-  if (loading) {
+  // Tampilkan skeleton jika data gua atau status auth sedang loading
+  if (loadingCaves || authLoading) {
      return (
        <div className="container mx-auto min-h-screen max-w-4xl p-4 md:p-8">
         <header className="flex items-center justify-between pb-8">
