@@ -1,7 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Cave, UserProfile } from '@/lib/types';
+import { Cave } from '@/lib/types';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getCaves } from '@/lib/firestore';
 
 
 const AuthSection = () => {
@@ -81,7 +83,28 @@ const AuthSection = () => {
 };
 
 
-export default function HomeClient({ caves }: { caves: Cave[] }) {
+export default function HomeClient() {
+  const [caves, setCaves] = useState<Cave[]>([]);
+  const [loadingCaves, setLoadingCaves] = useState(true);
+  const { userProfile } = useAuth();
+
+  useEffect(() => {
+    async function fetchCaves() {
+      if (userProfile) {
+        setLoadingCaves(true);
+        try {
+          const cavesData = await getCaves();
+          setCaves(cavesData);
+        } catch (error) {
+          console.error("Failed to fetch caves:", error);
+        } finally {
+          setLoadingCaves(false);
+        }
+      }
+    }
+    fetchCaves();
+  }, [userProfile]);
+
   return (
     <div className="container mx-auto min-h-screen max-w-4xl p-4 md:p-8">
       <header className="flex items-center justify-between pb-8">
@@ -96,7 +119,13 @@ export default function HomeClient({ caves }: { caves: Cave[] }) {
 
       <main>
         <h2 className="mb-6 text-xl font-semibold text-foreground/90 md:text-2xl">Gua yang Tersedia</h2>
-        {caves.length > 0 ? (
+        {loadingCaves ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-64 w-full" />
+          </div>
+        ) : caves.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {caves.map((cave) => (
               <Link href={`/cave/${cave.id}`} key={cave.id} className="group">
