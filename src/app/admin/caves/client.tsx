@@ -49,9 +49,9 @@ export default function CavesClient({ initialCaves }: { initialCaves: Cave[] }) 
         setCaves(caves.filter((c) => c.id !== id));
         toast({ title: "Berhasil", description: "Gua dan semua spot di dalamnya berhasil dihapus." });
     }).catch(error => {
-        // The permission error is handled globally, but we might want to inform the user here
-        // The toast in FirebaseErrorListener already shows a generic permission error.
-        // If we want a more specific one, we could show it here, but it might be redundant.
+        // The permission error is handled globally. 
+        // We only toast for generic failures here if it's not a permission error.
+        // Since FirestorePermissionError is thrown, we don't display a generic toast.
     });
   };
 

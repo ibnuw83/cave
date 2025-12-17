@@ -36,10 +36,10 @@ const handleGetDocError = (error: any, docRef: DocumentReference) => {
     throw error;
 }
 
-const handleGetDocsError = (error: any, collRef: CollectionReference) => {
+const handleGetDocsError = (error: any, collRef: CollectionReference | query) => {
      if (error.code === 'permission-denied') {
         const permissionError = new FirestorePermissionError({
-            path: collRef.path,
+            path: (collRef as CollectionReference).path || "complex query", // a bit of a hack for queries
             operation: 'list',
         });
         errorEmitter.emit('permission-error', permissionError);
@@ -183,29 +183,33 @@ export function updateCave(id: string, caveData: Partial<Cave>) {
     });
 }
 
-export async function deleteCave(id: string): Promise<void> {
+export function deleteCave(id: string): Promise<void> {
     const caveDocRef = doc(db, 'caves', id);
     const spotsQuery = query(collection(db, 'spots'), where('caveId', '==', id));
     
-    try {
-        const spotsSnapshot = await getDocs(spotsQuery);
-        const batch = writeBatch(db);
-        spotsSnapshot.forEach(spotDoc => {
-          batch.delete(spotDoc.ref);
-        });
-        batch.delete(caveDocRef);
-        await batch.commit();
-    } catch (error: any) {
-        if (error.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: caveDocRef.path,
-                operation: 'delete',
+    return new Promise(async (resolve, reject) => {
+        try {
+            const spotsSnapshot = await getDocs(spotsQuery);
+            const batch = writeBatch(db);
+            spotsSnapshot.forEach(spotDoc => {
+              batch.delete(spotDoc.ref);
             });
-            errorEmitter.emit('permission-error', permissionError);
-        } else {
-             throw error;
+            batch.delete(caveDocRef);
+            await batch.commit();
+            resolve();
+        } catch (error: any) {
+            if (error.code === 'permission-denied') {
+                const permissionError = new FirestorePermissionError({
+                    path: `batch write (delete cave: ${id})`,
+                    operation: 'delete',
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            } else {
+                 console.error("Batch delete failed:", error);
+            }
+            reject(error); // reject promise for the UI to handle
         }
-    }
+    });
 }
 
 
@@ -222,7 +226,7 @@ export async function getSpots(caveId: string): Promise<Spot[]> {
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Spot));
   } catch (error) {
-    handleGetDocsError(error, spotsRef);
+    handleGetDocsError(error, q);
     return [];
   }
 }
@@ -230,7 +234,8 @@ export async function getSpots(caveId: string): Promise<Spot[]> {
 export async function getAllSpots(): Promise<Spot[]> {
     const spotsRef = collection(db, 'spots');
     try {
-        const querySnapshot = await getDocs(query(spotsRef, orderBy('caveId'), orderBy('order')));
+        const q = query(spotsRef, orderBy('caveId'), orderBy('order'));
+        const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Spot));
     } catch (error) {
         handleGetDocsError(error, spotsRef);
