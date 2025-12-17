@@ -3,8 +3,14 @@
 import HomeClient from '@/app/components/home-client';
 import { useAuth } from '@/context/auth-context';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useEffect, useState } from 'react';
 
 export default function Home() {
+  const [caves, setCaves] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Since HomeClient now fetches its own data, we can simplify this page.
+  // We'll keep the top-level loading skeleton based on auth state for a better initial load experience.
   const { loading: authLoading } = useAuth();
 
   if (authLoading) {

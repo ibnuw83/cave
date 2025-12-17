@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 import { errorEmitter } from '@/lib/error-emitter';
 import { FirestorePermissionError } from '@/lib/errors';
+import { usePermissionErrorListener } from '@/components/FirebaseErrorListener';
 
 
 interface AuthContextType {
@@ -41,6 +42,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const router = useRouter();
+
+  // Initialize the global permission error listener
+  usePermissionErrorListener();
 
   const processAuth = useCallback(async (user: User) => {
     setUser(user);
