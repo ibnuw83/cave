@@ -60,7 +60,7 @@ function SpotCard({ spot, isLocked }: { spot: Spot; isLocked: boolean }) {
   );
 }
 
-export default function CaveClient({ cave, spots, ambienceDescription }: { cave: Cave; spots: Spot[]; ambienceDescription: string; }) {
+export default function CaveClient({ cave, spots }: { cave: Cave; spots: Spot[];}) {
   const { userProfile, loading } = useAuth();
 
   if (loading) {
@@ -95,15 +95,6 @@ export default function CaveClient({ cave, spots, ambienceDescription }: { cave:
             {cave.name}
           </h1>
         </div>
-         <Card className="mt-4 bg-primary/10 border-primary/20">
-          <CardHeader className="flex flex-row items-center gap-4 space-y-0 p-4">
-             <Zap className="w-6 h-6 text-accent" />
-            <CardTitle className="text-lg text-accent-foreground">Suasana Gua (AI)</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <p className="text-foreground/90">{ambienceDescription}</p>
-          </CardContent>
-        </Card>
       </header>
 
       <main>
