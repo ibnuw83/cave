@@ -29,3 +29,9 @@ export interface Spot {
     vibrationPattern?: number[];
   };
 }
+
+export interface RegisterData {
+  name: string;
+  email: string;
+  password: any;
+}

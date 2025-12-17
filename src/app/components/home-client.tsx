@@ -7,34 +7,74 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { Mountain, LogIn, LogOut } from 'lucide-react';
+import { Mountain, LogIn, LogOut, User } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 
 const AuthSection = () => {
-  const { user, userProfile, loading, signInWithGoogle, signOut } = useAuth();
+  const { user, userProfile, loading, signOut } = useAuth();
 
   if (loading) {
-    return <div className="h-10 w-48 animate-pulse rounded-md bg-muted/50"></div>;
+    return <div className="h-10 w-24 animate-pulse rounded-md bg-muted/50"></div>;
   }
 
   if (user && userProfile) {
     return (
-      <div className="flex items-center gap-4">
-        <div className="text-right">
-          <p className="font-semibold">{userProfile.displayName}</p>
-          <Badge variant={userProfile.role === 'pro' ? 'default' : 'secondary'} className="uppercase">
-            {userProfile.role}
-          </Badge>
-        </div>
-        <Button variant="outline" size="icon" onClick={signOut}>
-          <LogOut className="h-4 w-4" />
-        </Button>
-      </div>
+       <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={user.photoURL || ''} alt={userProfile.displayName || 'User'} />
+              <AvatarFallback>{userProfile.displayName?.charAt(0) || 'U'}</AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56" align="end" forceMount>
+          <DropdownMenuLabel className="font-normal">
+            <div className="flex flex-col space-y-1">
+              <p className="text-sm font-medium leading-none">{userProfile.displayName}</p>
+              <p className="text-xs leading-none text-muted-foreground">
+                {userProfile.email}
+              </p>
+            </div>
+             <Badge variant={userProfile.role === 'pro' ? 'default' : 'secondary'} className="uppercase mt-2">
+                {userProfile.role}
+            </Badge>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+           {userProfile.role === 'admin' && (
+             <>
+                <DropdownMenuItem asChild>
+                  <Link href="/admin">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Admin Panel</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+             </>
+           )}
+          <DropdownMenuItem onClick={signOut}>
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Logout</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     );
   }
 
   return (
-    <Button onClick={signInWithGoogle}>
-      <LogIn className="mr-2 h-4 w-4" /> Masuk dengan Google
+    <Button asChild>
+      <Link href="/login">
+        <LogIn className="mr-2 h-4 w-4" /> Masuk
+      </Link>
     </Button>
   );
 };

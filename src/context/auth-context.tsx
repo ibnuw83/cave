@@ -1,17 +1,33 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { onAuthStateChanged, User, GoogleAuthProvider, signInWithRedirect, signOut as firebaseSignOut, getRedirectResult } from 'firebase/auth';
+import { 
+  onAuthStateChanged, 
+  User, 
+  GoogleAuthProvider, 
+  signInWithRedirect, 
+  signOut as firebaseSignOut, 
+  getRedirectResult,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
+  updateProfile
+} from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { UserProfile } from '@/lib/types';
+import { UserProfile, RegisterData } from '@/lib/types';
 import { getUserProfile, createUserProfile } from '@/lib/firestore';
 import { useToast } from "@/hooks/use-toast";
+import { useRouter } from 'next/navigation';
+
 
 interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, pass: string) => Promise<void>;
+  registerWithEmail: (data: RegisterData) => Promise<void>;
+  sendPasswordResetEmail: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -22,50 +38,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
-    // Handle the redirect result from Google Sign-In
-    getRedirectResult(auth)
-      .then(async (result) => {
+    const processAuth = async (user: User) => {
+      setUser(user);
+      let profile = await getUserProfile(user.uid);
+      if (!profile) {
+        profile = await createUserProfile(user);
+      }
+      setUserProfile(profile);
+      return profile;
+    };
+
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
         if (result) {
           setLoading(true);
-          const user = result.user;
-          setUser(user);
-          let profile = await getUserProfile(user.uid);
-          if (!profile) {
-            profile = await createUserProfile(user);
-          }
-          setUserProfile(profile);
+          await processAuth(result.user);
           toast({
             title: "Login Berhasil",
             description: "Selamat datang kembali!",
           });
-          setLoading(false);
+          router.push('/');
         }
-      })
-      .catch((error) => {
+      } catch (error: any) {
         console.error("Error getting redirect result: ", error);
-        if (error.code === 'auth/unauthorized-domain') {
-           toast({
-            title: "Login Gagal",
-            description: "Domain aplikasi tidak diizinkan. Mohon periksa konfigurasi Firebase Anda.",
-            variant: "destructive",
-          });
-        }
-      });
+        toast({
+          title: "Login Gagal",
+          description: error.message || "Terjadi kesalahan saat login.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    // Listen for auth state changes
+    handleRedirectResult();
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setLoading(true);
       if (user) {
-        setUser(user);
-        // Only fetch/create profile if it's not already loaded
         if (!userProfile || user.uid !== userProfile.uid) {
-            let profile = await getUserProfile(user.uid);
-            if (!profile) {
-            profile = await createUserProfile(user);
-            }
-            setUserProfile(profile);
+           await processAuth(user);
         }
       } else {
         setUser(null);
@@ -75,27 +90,102 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [toast, userProfile]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     try {
+      setLoading(true);
       await signInWithRedirect(auth, provider);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error signing in with Google: ", error);
       toast({
         title: "Login Gagal",
-        description: "Terjadi kesalahan saat mencoba login.",
+        description: error.message || "Terjadi kesalahan saat mencoba login.",
         variant: "destructive",
+      });
+      setLoading(false);
+    }
+  };
+  
+  const signInWithEmail = async (email: string, pass: string) => {
+    setLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+      router.push('/');
+       toast({
+        title: "Login Berhasil",
+        description: "Selamat datang kembali!",
+      });
+    } catch (error: any) {
+      console.error("Error signing in with email: ", error);
+       toast({
+        title: "Login Gagal",
+        description: "Email atau password salah.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const registerWithEmail = async (data: RegisterData) => {
+    setLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      await updateProfile(userCredential.user, { displayName: data.name });
+      
+      // reload user to get displayName
+      await userCredential.user.reload();
+      const updatedUser = auth.currentUser;
+
+      if(updatedUser){
+        await createUserProfile(updatedUser);
+      }
+      
+      router.push('/');
+       toast({
+        title: "Pendaftaran Berhasil",
+        description: "Selamat datang di Penjelajah Gua!",
+      });
+
+    } catch (error: any) {
+       console.error("Error registering with email: ", error);
+       toast({
+        title: "Pendaftaran Gagal",
+        description: error.code === 'auth/email-already-in-use' ? 'Email ini sudah terdaftar.' : 'Terjadi kesalahan saat pendaftaran.',
+        variant: "destructive",
+      });
+    } finally {
+        setLoading(false);
+    }
+  }
+  
+  const sendPasswordResetEmail = async (email: string) => {
+    try {
+      await firebaseSendPasswordResetEmail(auth, email);
+      toast({
+        title: 'Email Reset Password Terkirim',
+        description: 'Silakan periksa kotak masuk email Anda untuk instruksi lebih lanjut.',
+      });
+    } catch (error: any) {
+      console.error("Error sending password reset email: ", error);
+      toast({
+        variant: 'destructive',
+        title: 'Gagal Mengirim Email',
+        description: 'Gagal mengirim email reset password. Pastikan email yang Anda masukkan benar.',
       });
     }
   };
+
 
   const signOut = async () => {
     try {
       await firebaseSignOut(auth);
       setUser(null);
       setUserProfile(null);
+      router.push('/login');
       toast({
         title: "Logout Berhasil",
         description: "Anda telah keluar dari akun.",
@@ -111,7 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, userProfile, loading, signInWithGoogle, signInWithEmail, registerWithEmail, sendPasswordResetEmail, signOut }}>
       {children}
     </AuthContext.Provider>
   );
