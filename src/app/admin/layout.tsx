@@ -2,7 +2,7 @@
 
 import { useEffect, useState, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { getUserProfile } from '@/lib/firestore';
 import { Loader2, Mountain, MapPin, Users, Home, LogOut, ArrowLeft, Airplay } from 'lucide-react';
@@ -12,6 +12,7 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 
 function AdminSidebar() {
@@ -82,6 +83,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     const router = useRouter();
     const [isAuthorized, setIsAuthorized] = useState(false);
     const [loading, setLoading] = useState(true);
+    const { toast } = useToast();
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -91,6 +93,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     if (profile && profile.role === 'admin') {
                         setIsAuthorized(true);
                     } else {
+                        toast({
+                            variant: 'destructive',
+                            title: 'Akses Ditolak',
+                            description: 'Halaman ini khusus untuk admin.',
+                        });
                         router.replace('/');
                     }
                 } catch (error) {
@@ -104,7 +111,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         });
 
         return () => unsubscribe();
-    }, [router]);
+    }, [router, toast]);
 
     if (loading) {
         return (
