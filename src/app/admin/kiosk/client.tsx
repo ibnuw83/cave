@@ -14,6 +14,8 @@ import { Trash2, Plus, GripVertical, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { saveKioskSettings } from '@/lib/firestore';
 import Link from 'next/link';
+import { FirestorePermissionError } from '@/lib/errors';
+import { errorEmitter } from '@/lib/error-emitter';
 
 const kioskSettingsSchema = z.object({
   caveId: z.string().min(1, 'Gua harus dipilih.'),
@@ -57,10 +59,16 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
     try {
         await saveKioskSettings(values);
         toast({ title: 'Berhasil', description: 'Pengaturan kios telah disimpan.' });
-    } catch (error) {
-        // Error is handled by the global listener, no need to toast here
-        // for permission errors. We can add generic error handling if needed.
-        console.error("Failed to save kiosk settings:", error);
+    } catch (error: any) {
+        // This is handled by the global error listener now
+        if (!(error instanceof FirestorePermissionError)) {
+          console.error("Failed to save kiosk settings:", error);
+           toast({
+            variant: 'destructive',
+            title: 'Gagal',
+            description: 'Terjadi kesalahan saat menyimpan pengaturan kios.',
+          });
+        }
     }
   };
 
