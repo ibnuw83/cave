@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { FileUploader } from '@/components/ui/file-uploader';
+import { errorEmitter } from '@/lib/error-emitter';
+import { FirestorePermissionError } from '@/lib/errors';
 
 const spotSchema = z.object({
   caveId: z.string().min(1, 'Gua harus dipilih.'),
@@ -78,10 +80,22 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
         const newSpotId = await addSpot(spotData);
         onSave({ id: newSpotId, ...spotData });
       }
-    } catch (error) {
-        // Errors are now thrown and handled by the global listener
-        // We re-throw to ensure it's caught by the top-level boundary
-        throw error;
+    } catch (error: any) {
+        if (error.code === 'permission-denied') {
+            const operation = spot ? 'update' : 'create';
+            const permissionError = new FirestorePermissionError({
+                path: spot ? `spots/${spot.id}` : 'spots',
+                operation,
+                requestResourceData: spotData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+             toast({
+                variant: 'destructive',
+                title: 'Gagal',
+                description: `Terjadi kesalahan: ${error.message}`,
+            });
+        }
     }
   };
 

@@ -59,8 +59,7 @@ export default function CavesClient({ initialCaves }: { initialCaves: Cave[] }) 
                 operation: 'delete',
             });
             errorEmitter.emit('permission-error', permissionError);
-        } else if (!(error instanceof FirestorePermissionError)) {
-            // Only toast for generic errors, not permission errors which are handled globally
+        } else {
             toast({ variant: 'destructive', title: 'Gagal', description: 'Terjadi kesalahan saat menghapus gua.' });
         }
     }

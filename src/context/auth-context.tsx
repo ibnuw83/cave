@@ -18,6 +18,8 @@ import { UserProfile, RegisterData } from '@/lib/types';
 import { getUserProfile, createUserProfile } from '@/lib/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
+import { errorEmitter } from '@/lib/error-emitter';
+import { FirestorePermissionError } from '@/lib/errors';
 
 
 interface AuthContextType {
@@ -42,14 +44,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const processAuth = useCallback(async (user: User) => {
     setUser(user);
-    let profile = await getUserProfile(user.uid);
-    if (!profile) {
-      console.log('Creating new user profile for:', user.uid);
-      profile = await createUserProfile(user);
+    try {
+        let profile = await getUserProfile(user.uid);
+        if (!profile) {
+            console.log('Creating new user profile for:', user.uid);
+            profile = await createUserProfile(user);
+        }
+        setUserProfile(profile);
+        return profile;
+    } catch (error: any) {
+        if (error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: `users/${user.uid}`,
+                operation: 'get',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+             toast({
+                variant: 'destructive',
+                title: 'Gagal Memuat Profil',
+                description: 'Terjadi kesalahan saat mengambil data profil Anda.',
+            });
+        }
+        // Sign out if profile can't be fetched or created
+        await firebaseSignOut(auth);
+        setUser(null);
+        setUserProfile(null);
+        return null;
     }
-    setUserProfile(profile);
-    return profile;
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     const handleRedirect = async () => {
@@ -149,12 +172,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
     } catch (error: any) {
-       console.error("Error registering with email: ", error);
-       toast({
-        title: "Pendaftaran Gagal",
-        description: error.code === 'auth/email-already-in-use' ? 'Email ini sudah terdaftar.' : 'Terjadi kesalahan saat pendaftaran.',
-        variant: "destructive",
-      });
+       if (error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: 'users',
+                operation: 'create',
+                requestResourceData: { email: data.email, name: data.name },
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+            toast({
+                title: "Pendaftaran Gagal",
+                description: error.code === 'auth/email-already-in-use' ? 'Email ini sudah terdaftar.' : 'Terjadi kesalahan saat pendaftaran.',
+                variant: "destructive",
+            });
+        }
     } finally {
         setLoading(false);
     }

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { errorEmitter } from '@/lib/error-emitter';
 import { FirestorePermissionError } from '@/lib/errors';
 
 export default function UsersClient({ initialUsers }: { initialUsers: UserProfile[] }) {
@@ -21,8 +22,15 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserProfil
       await updateUserRole(uid, newRole);
       setUsers(users.map(u => u.uid === uid ? { ...u, role: newRole } : u));
       toast({ title: "Berhasil", description: "Peran pengguna berhasil diperbarui." });
-    } catch (error) {
-       if (!(error instanceof FirestorePermissionError)) {
+    } catch (error: any) {
+       if (error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: `users/${uid}`,
+                operation: 'update',
+                requestResourceData: { role: newRole },
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
             toast({
                 variant: 'destructive',
                 title: 'Gagal',

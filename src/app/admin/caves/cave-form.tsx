@@ -13,6 +13,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { FileUploader } from '@/components/ui/file-uploader';
+import { errorEmitter } from '@/lib/error-emitter';
+import { FirestorePermissionError } from '@/lib/errors';
 
 const caveSchema = z.object({
   name: z.string().min(1, { message: 'Nama gua tidak boleh kosong.' }),
@@ -55,10 +57,22 @@ export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
         const newCaveId = await addCave(newCaveData);
         onSave({ id: newCaveId, ...newCaveData });
       }
-    } catch (error) {
-      // Errors are now thrown and handled by the global listener
-      // We re-throw to ensure it's caught by the top-level boundary
-      throw error;
+    } catch (error: any) {
+        if (error.code === 'permission-denied') {
+            const operation = cave ? 'update' : 'create';
+            const permissionError = new FirestorePermissionError({
+                path: cave ? `caves/${cave.id}` : 'caves',
+                operation,
+                requestResourceData: values,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Gagal',
+                description: `Terjadi kesalahan: ${error.message}`,
+            });
+        }
     }
   };
 

@@ -60,9 +60,14 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
         await saveKioskSettings(values);
         toast({ title: 'Berhasil', description: 'Pengaturan kios telah disimpan.' });
     } catch (error: any) {
-        // This is handled by the global error listener now
-        if (!(error instanceof FirestorePermissionError)) {
-          console.error("Failed to save kiosk settings:", error);
+        if (error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: 'kioskSettings/main',
+                operation: 'update',
+                requestResourceData: values,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
            toast({
             variant: 'destructive',
             title: 'Gagal',

@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { deleteSpot } from "@/lib/firestore";
 import { SpotForm } from "./spot-form";
+import { errorEmitter } from '@/lib/error-emitter';
 import { FirestorePermissionError } from '@/lib/errors';
 
 export default function SpotsClient({ initialSpots, caves }: { initialSpots: Spot[]; caves: Cave[] }) {
@@ -43,8 +44,14 @@ export default function SpotsClient({ initialSpots, caves }: { initialSpots: Spo
         await deleteSpot(id);
         setSpots(spots.filter((s) => s.id !== id));
         toast({ title: "Berhasil", description: "Spot berhasil dihapus." });
-    } catch (error) {
-        if (!(error instanceof FirestorePermissionError)) {
+    } catch (error: any) {
+        if (error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: `spots/${id}`,
+                operation: 'delete',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
             toast({
                 variant: 'destructive',
                 title: 'Gagal',
@@ -55,10 +62,11 @@ export default function SpotsClient({ initialSpots, caves }: { initialSpots: Spo
   };
 
   const filteredSpots = useMemo(() => {
+    const spotsToSort = [...spots];
     if (filterCaveId === 'all') {
-      return [...spots].sort((a, b) => a.order - b.order);
+      return spotsToSort.sort((a, b) => a.order - b.order);
     }
-    const filtered = spots.filter((spot) => spot.caveId === filterCaveId);
+    const filtered = spotsToSort.filter((spot) => spot.caveId === filterCaveId);
     return filtered.sort((a, b) => a.order - b.order);
   }, [spots, filterCaveId]);
 
