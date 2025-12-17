@@ -42,3 +42,14 @@ export interface RegisterData {
   email: string;
   password: any;
 }
+
+export interface KioskPlaylistItem {
+  spotId: string;
+  duration: number; // in seconds
+}
+
+export interface KioskSettings {
+  id: string; // Should be a singleton, e.g., 'main'
+  caveId: string;
+  playlist: KioskPlaylistItem[];
+}

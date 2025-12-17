@@ -1,0 +1,25 @@
+import { getCaves, getAllSpots, getKioskSettings } from "@/lib/firestore";
+import KioskClient from "./client";
+
+export default async function KioskSettingsPage() {
+  // Fetch all necessary data in parallel
+  const [caves, spots, kioskSettings] = await Promise.all([
+    getCaves(true),      // include inactive caves for selection
+    getAllSpots(),
+    getKioskSettings()
+  ]);
+
+  return (
+    <div className="p-4 md:p-8">
+      <header className="mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold">Pengaturan Mode Kios</h1>
+        <p className="text-muted-foreground">Atur konten yang akan ditampilkan secara otomatis di halaman kios.</p>
+      </header>
+      <KioskClient 
+        initialCaves={caves}
+        initialSpots={spots}
+        initialSettings={kioskSettings}
+      />
+    </div>
+  );
+}

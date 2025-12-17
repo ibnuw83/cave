@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
 import { db } from './firebase';
-import type { UserProfile, Cave, Spot } from './types';
+import type { UserProfile, Cave, Spot, KioskSettings } from './types';
 
 // User Profile Functions
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
@@ -133,4 +133,21 @@ export async function updateSpot(id: string, spotData: Partial<Omit<Spot, 'id'>>
 export async function deleteSpot(id: string): Promise<void> {
     const docRef = doc(db, 'spots', id);
     await deleteDoc(docRef);
+}
+
+// Kiosk Settings Functions
+const KIOSK_SETTINGS_ID = 'main';
+
+export async function getKioskSettings(): Promise<KioskSettings | null> {
+  const docRef = doc(db, 'kioskSettings', KIOSK_SETTINGS_ID);
+  const docSnap = await getDoc(docRef);
+  if (docSnap.exists()) {
+    return { id: docSnap.id, ...docSnap.data() } as KioskSettings;
+  }
+  return null;
+}
+
+export async function saveKioskSettings(settings: Omit<KioskSettings, 'id'>): Promise<void> {
+  const docRef = doc(db, 'kioskSettings', KIOSK_SETTINGS_ID);
+  await setDoc(docRef, settings, { merge: true });
 }

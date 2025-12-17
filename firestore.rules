@@ -44,5 +44,13 @@ service cloud.firestore {
         // Only admins can create, update, or delete spots
         allow create, update, delete: if isAdmin();
     }
+
+     // Rules for the 'kioskSettings' collection
+    match /kioskSettings/{settingId} {
+        // Anyone can read kiosk settings for the public /kios page
+        allow read: if true;
+        // Only admins can change kiosk settings
+        allow write: if isAdmin();
+    }
   }
 }

@@ -3,7 +3,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
-import { Home, Mountain, MapPin, Users, Loader2, LogOut, ArrowLeft } from 'lucide-react';
+import { Home, Mountain, MapPin, Users, Loader2, LogOut, ArrowLeft, Airplay } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -50,11 +50,12 @@ function AdminProtection({ children }: { children: ReactNode }) {
            <Mountain className="h-6 w-6 text-primary" />
            <h2 className="text-xl font-bold font-headline">Admin Panel</h2>
         </div>
-        <nav className="grid grid-cols-4 gap-2 md:flex md:flex-col md:gap-1 md:p-4">
+        <nav className="grid grid-cols-5 gap-1 md:flex md:flex-col md:gap-1 md:p-4">
           <AdminNavLink href="/admin" icon={<Home />} label="Dashboard" />
           <AdminNavLink href="/admin/caves" icon={<Mountain />} label="Gua" />
           <AdminNavLink href="/admin/spots" icon={<MapPin />} label="Spot" />
           <AdminNavLink href="/admin/users" icon={<Users />} label="Pengguna" />
+          <AdminNavLink href="/admin/kiosk" icon={<Airplay />} label="Kios" />
         </nav>
         
         {/* User menu is shown only on desktop sidebar, not on mobile */}
