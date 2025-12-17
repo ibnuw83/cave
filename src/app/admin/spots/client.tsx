@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -48,10 +49,10 @@ export default function SpotsClient({ initialSpots, caves }: { initialSpots: Spo
   };
 
   const filteredSpots = useMemo(() => {
-    if (filterCaveId === 'all') {
-      return spots;
-    }
-    return spots.filter((spot) => spot.caveId === filterCaveId);
+    const filtered = filterCaveId === 'all'
+      ? spots
+      : spots.filter((spot) => spot.caveId === filterCaveId);
+    return filtered.sort((a, b) => a.order - b.order);
   }, [spots, filterCaveId]);
 
   const getCaveName = (caveId: string) => {
@@ -83,7 +84,7 @@ export default function SpotsClient({ initialSpots, caves }: { initialSpots: Spo
       </div>
 
       <div className="space-y-4">
-        {filteredSpots.sort((a, b) => a.order - b.order).map((spot) => (
+        {filteredSpots.map((spot) => (
           <Card key={spot.id}>
             <CardHeader>
               <div className="flex justify-between items-start">

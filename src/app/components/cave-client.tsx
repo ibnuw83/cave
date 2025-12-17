@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -115,6 +116,7 @@ export default function CaveClient({ cave, spots }: { cave: Cave; spots: Spot[];
 
   const role = userProfile?.role || 'free';
   const isPro = role === 'pro' || role === 'admin';
+  const sortedSpots = [...spots].sort((a, b) => a.order - b.order);
 
   return (
     <div className="container mx-auto min-h-screen max-w-5xl p-4 md:p-8">
@@ -164,7 +166,7 @@ export default function CaveClient({ cave, spots }: { cave: Cave; spots: Spot[];
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {spots.map((spot) => (
+          {sortedSpots.map((spot) => (
             <SpotCard key={spot.id} spot={spot} isLocked={spot.isPro && role === 'free'} isOffline={isOffline} />
           ))}
         </div>

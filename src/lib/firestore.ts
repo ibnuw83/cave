@@ -76,6 +76,7 @@ export async function createUserProfile(user: User): Promise<UserProfile> {
     updatedAt: serverTimestamp(),
   };
   const userRef = doc(db, 'users', user.uid);
+  
   try {
     await setDoc(userRef, userProfileData);
     return { uid: user.uid, ...userProfileData } as UserProfile;
@@ -88,7 +89,7 @@ export async function createUserProfile(user: User): Promise<UserProfile> {
         });
         errorEmitter.emit('permission-error', permissionError);
     }
-    throw error; // Re-throw the error to be caught by the caller
+    throw error;
   }
 }
 
@@ -190,9 +191,9 @@ export async function deleteCave(id: string): Promise<void> {
     const caveDocRef = doc(db, 'caves', id);
     const spotsQuery = query(collection(db, 'spots'), where('caveId', '==', id));
     
+    const batch = writeBatch(db);
     try {
         const spotsSnapshot = await getDocs(spotsQuery);
-        const batch = writeBatch(db);
         spotsSnapshot.forEach(spotDoc => {
           batch.delete(spotDoc.ref);
         });
@@ -206,7 +207,7 @@ export async function deleteCave(id: string): Promise<void> {
             });
             errorEmitter.emit('permission-error', permissionError);
         }
-        throw error;
+        throw error; // Re-throw to be caught by the caller
     }
 }
 
@@ -217,8 +218,7 @@ export async function getSpots(caveId: string): Promise<Spot[]> {
   const spotsRef = collection(db, 'spots');
   const q = query(
     spotsRef,
-    where('caveId', '==', caveId),
-    orderBy('order')
+    where('caveId', '==', caveId)
   );
   try {
     const querySnapshot = await getDocs(q);
@@ -232,8 +232,7 @@ export async function getSpots(caveId: string): Promise<Spot[]> {
 export async function getAllSpots(): Promise<Spot[]> {
     const spotsRef = collection(db, 'spots');
     try {
-        const q = query(spotsRef, orderBy('caveId'), orderBy('order'));
-        const querySnapshot = await getDocs(q);
+        const querySnapshot = await getDocs(spotsRef);
         return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Spot));
     } catch (error) {
         handleGetDocsError(error, spotsRef);
