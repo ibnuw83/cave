@@ -25,7 +25,7 @@ import { FirestorePermissionError } from './errors';
 
 // --- Generic Error Handlers ---
 
-const handleGetDocError = (error: any, docRef: DocumentReference) => {
+const handleGetDocError = async (error: any, docRef: DocumentReference) => {
     if (error.code === 'permission-denied') {
         const permissionError = new FirestorePermissionError({
             path: docRef.path,
@@ -37,9 +37,9 @@ const handleGetDocError = (error: any, docRef: DocumentReference) => {
     throw error;
 }
 
-const handleGetDocsError = (error: any, ref: CollectionReference | Query) => {
+const handleGetDocsError = async (error: any, ref: CollectionReference | Query) => {
      if (error.code === 'permission-denied') {
-        const path = (ref as CollectionReference).path ? (ref as CollectionReference).path : "kompleks query";
+        const path = (ref as CollectionReference).path ? (ref as CollectionReference).path : "complex query";
         const permissionError = new FirestorePermissionError({
             path,
             operation: 'list',
@@ -62,7 +62,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
     }
     return null;
   } catch(error) {
-    handleGetDocError(error, userRef);
+    await handleGetDocError(error, userRef);
     return null; // This will not be reached due to throw, but keeps TS happy
   }
 }
@@ -100,7 +100,7 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     const querySnapshot = await getDocs(usersRef);
     return querySnapshot.docs.map((doc) => ({ uid: doc.id, ...doc.data() } as UserProfile));
   } catch(error) {
-      handleGetDocsError(error, usersRef);
+      await handleGetDocsError(error, usersRef);
       return [];
   }
 }
@@ -133,7 +133,7 @@ export async function getCaves(includeInactive = false): Promise<Cave[]> {
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Cave));
   } catch (error) {
-    handleGetDocsError(error, q);
+    await handleGetDocsError(error, q);
     return [];
   }
 }
@@ -147,7 +147,7 @@ export async function getCave(id: string): Promise<Cave | null> {
         }
         return null;
     } catch(error) {
-        handleGetDocError(error, docRef);
+        await handleGetDocError(error, docRef);
         return null;
     }
 }
@@ -190,8 +190,8 @@ export async function deleteCave(id: string): Promise<void> {
     const caveDocRef = doc(db, 'caves', id);
     const spotsQuery = query(collection(db, 'spots'), where('caveId', '==', id));
     
-    const batch = writeBatch(db);
     try {
+        const batch = writeBatch(db);
         const spotsSnapshot = await getDocs(spotsQuery);
         spotsSnapshot.forEach(spotDoc => {
           batch.delete(spotDoc.ref);
@@ -224,7 +224,7 @@ export async function getSpots(caveId: string): Promise<Spot[]> {
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Spot));
   } catch (error) {
-    handleGetDocsError(error, q);
+    await handleGetDocsError(error, q);
     return [];
   }
 }
@@ -232,11 +232,11 @@ export async function getSpots(caveId: string): Promise<Spot[]> {
 export async function getAllSpots(): Promise<Spot[]> {
     const spotsRef = collection(db, 'spots');
      try {
-        const q = query(spotsRef, orderBy('order'));
+        const q = query(spotsRef);
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Spot));
     } catch (error) {
-        handleGetDocsError(error, spotsRef);
+        await handleGetDocsError(error, spotsRef);
         return [];
     }
 }
@@ -250,7 +250,7 @@ export async function getSpot(id: string): Promise<Spot | null> {
     }
     return null;
   } catch (error) {
-      handleGetDocError(error, docRef);
+      await handleGetDocError(error, docRef);
       return null;
   }
 }
@@ -318,7 +318,7 @@ export async function getKioskSettings(): Promise<KioskSettings | null> {
     }
     return null;
   } catch (error) {
-    handleGetDocError(error, docRef);
+    await handleGetDocError(error, docRef);
     return null;
   }
 }
