@@ -10,13 +10,14 @@ import {
   getDocs,
   query,
   where,
-  orderBy,
   serverTimestamp,
   writeBatch,
 } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
 import { db } from './firebase';
 import type { UserProfile, Cave, Spot, KioskSettings } from './types';
+import { errorEmitter } from './error-emitter';
+import { FirestorePermissionError } from './errors';
 
 
 // --- User Profile Functions ---
@@ -87,16 +88,16 @@ export async function updateCave(id: string, caveData: Partial<Omit<Cave, 'id'>>
 }
 
 export async function deleteCave(id: string): Promise<void> {
-    const caveDocRef = doc(db, 'caves', id);
-    const spotsQuery = query(collection(db, 'spots'), where('caveId', '==', id));
-    
-    const batch = writeBatch(db);
-    const spotsSnapshot = await getDocs(spotsQuery);
-    spotsSnapshot.forEach(spotDoc => {
-        batch.delete(spotDoc.ref);
-    });
-    batch.delete(caveDocRef);
-    await batch.commit();
+  const caveDocRef = doc(db, 'caves', id);
+  const spotsQuery = query(collection(db, 'spots'), where('caveId', '==', id));
+  
+  const batch = writeBatch(db);
+  const spotsSnapshot = await getDocs(spotsQuery);
+  spotsSnapshot.forEach(spotDoc => {
+      batch.delete(spotDoc.ref);
+  });
+  batch.delete(caveDocRef);
+  await batch.commit();
 }
 
 
@@ -106,8 +107,7 @@ export async function getSpots(caveId: string): Promise<Spot[]> {
   const spotsRef = collection(db, 'spots');
   const q = query(
     spotsRef,
-    where('caveId', '==', caveId),
-    orderBy('order')
+    where('caveId', '==', caveId)
   );
   const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Spot));
@@ -130,18 +130,53 @@ export async function getSpot(id: string): Promise<Spot | null> {
 }
 
 export async function addSpot(spotData: Omit<Spot, 'id'>): Promise<string> {
+  try {
     const docRef = await addDoc(collection(db, 'spots'), spotData);
     return docRef.id;
+  } catch (error: any) {
+    if (error.code === 'permission-denied') {
+        const permissionError = new FirestorePermissionError({
+            path: 'spots',
+            operation: 'create',
+            requestResourceData: spotData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    }
+    throw error;
+  }
 }
 
 export async function updateSpot(id: string, spotData: Partial<Omit<Spot, 'id'>>) {
-    const docRef = doc(db, 'spots', id);
+  const docRef = doc(db, 'spots', id);
+  try {
     await updateDoc(docRef, spotData);
+  } catch (error: any) {
+    if (error.code === 'permission-denied') {
+        const permissionError = new FirestorePermissionError({
+            path: `spots/${id}`,
+            operation: 'update',
+            requestResourceData: spotData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    }
+    throw error;
+  }
 }
 
 export async function deleteSpot(id: string) {
-    const docRef = doc(db, 'spots', id);
+  const docRef = doc(db, 'spots', id);
+  try {
     await deleteDoc(docRef);
+  } catch (error: any) {
+    if (error.code === 'permission-denied') {
+        const permissionError = new FirestorePermissionError({
+            path: `spots/${id}`,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    }
+    throw error;
+  }
 }
 
 // --- Kiosk Settings Functions ---
@@ -158,6 +193,20 @@ export async function getKioskSettings(): Promise<KioskSettings | null> {
 }
 
 export async function saveKioskSettings(settings: Omit<KioskSettings, 'id'>) {
-  const docRef = doc(db, 'kioskSettings', KIOSK_SETTINGS_ID);
-  await setDoc(docRef, settings, { merge: true });
+    const docRef = doc(db, 'kioskSettings', KIOSK_SETTINGS_ID);
+    try {
+        await setDoc(docRef, settings, { merge: true });
+    } catch (error: any) {
+        if (error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: 'kioskSettings/main',
+                operation: 'update',
+                requestResourceData: settings,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+            console.error("Error saving kiosk settings:", error);
+        }
+        throw error;
+    }
 }
