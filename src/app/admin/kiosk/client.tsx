@@ -53,9 +53,15 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
     return initialSpots.filter(spot => spot.caveId === watchCaveId);
   }, [watchCaveId, initialSpots]);
 
-  const onSubmit = (values: KioskSettingsFormValues) => {
-    saveKioskSettings(values);
-    toast({ title: 'Berhasil', description: 'Pengaturan kios telah disimpan.' });
+  const onSubmit = async (values: KioskSettingsFormValues) => {
+    try {
+        await saveKioskSettings(values);
+        toast({ title: 'Berhasil', description: 'Pengaturan kios telah disimpan.' });
+    } catch (error) {
+        // Error is handled by the global listener, no need to toast here
+        // for permission errors. We can add generic error handling if needed.
+        console.error("Failed to save kiosk settings:", error);
+    }
   };
 
   const isSubmitting = form.formState.isSubmitting;

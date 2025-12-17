@@ -73,14 +73,13 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
 
     try {
       if (spot) {
-        updateSpot(spot.id, spotData);
+        await updateSpot(spot.id, spotData);
         onSave({ id: spot.id, ...spotData });
       } else {
         const newSpotId = await addSpot(spotData);
         onSave({ id: newSpotId, ...spotData });
       }
     } catch (error) {
-      // The global error listener will catch and display the permission error toast.
       if (!(error instanceof FirestorePermissionError)) {
           toast({
             variant: 'destructive',

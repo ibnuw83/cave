@@ -14,14 +14,15 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserProfil
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
-  const handleRoleChange = (uid: string, newRole: 'free' | 'pro' | 'admin') => {
+  const handleRoleChange = async (uid: string, newRole: 'free' | 'pro' | 'admin') => {
     setLoadingStates((prev) => ({ ...prev, [uid]: true }));
     try {
-      updateUserRole(uid, newRole);
+      await updateUserRole(uid, newRole);
       setUsers(users.map(u => u.uid === uid ? { ...u, role: newRole } : u));
       toast({ title: "Berhasil", description: "Peran pengguna berhasil diperbarui." });
     } catch (error) {
        // Error is handled by global listener
+       console.error("Failed to update user role:", error);
     } finally {
       setLoadingStates((prev) => ({ ...prev, [uid]: false }));
     }
