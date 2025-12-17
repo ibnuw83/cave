@@ -1,6 +1,6 @@
 
 import { storage } from '@/lib/firebase';
-import { ref, uploadBytesResumable, getDownloadURL, UploadTask } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL, UploadTask, uploadBytes } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 
 export type UploadProgress = {
@@ -19,9 +19,12 @@ export const useFileUpload = () => {
         maxSizeMB: number
     ): Promise<string> => {
 
+        // The promise constructor is kept here because uploadBytesResumable
+        // uses a callback-based progress reporter, which doesn't fit neatly
+        // into a pure async/await structure for progress updates.
         return new Promise((resolve, reject) => {
             // Validate file type
-            if (!allowedTypes.some(type => file.type.startsWith(type))) {
+            if (!allowedTypes.some(type => file.type.startsWith(type) || allowedTypes.includes(file.type))) {
                 const errorMsg = `Tipe file tidak valid. Hanya menerima: ${allowedTypes.join(', ')}`;
                 toast({ variant: 'destructive', title: 'Upload Gagal', description: errorMsg });
                 reject(new Error(errorMsg));
