@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { 
   onAuthStateChanged, 
   User, 
@@ -40,44 +40,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const router = useRouter();
 
+  const processAuth = useCallback(async (user: User) => {
+    setUser(user);
+    let profile = await getUserProfile(user.uid);
+    if (!profile) {
+      console.log('Creating new user profile for:', user.uid);
+      profile = await createUserProfile(user);
+    }
+    setUserProfile(profile);
+    return profile;
+  }, []);
+
   useEffect(() => {
-    const processAuth = async (user: User) => {
-      setUser(user);
-      let profile = await getUserProfile(user.uid);
-      if (!profile) {
-        profile = await createUserProfile(user);
-      }
-      setUserProfile(profile);
-      return profile;
-    };
-
-    const handleRedirectResult = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result) {
-          setLoading(true);
-          await processAuth(result.user);
-          toast({
-            title: "Login Berhasil",
-            description: "Selamat datang kembali!",
-          });
-          router.push('/');
+    const handleRedirect = async () => {
+        try {
+            const result = await getRedirectResult(auth);
+            if (result) {
+                setLoading(true);
+                await processAuth(result.user);
+                toast({
+                    title: "Login Berhasil",
+                    description: "Selamat datang kembali!",
+                });
+                router.push('/');
+            }
+        } catch (error: any) {
+             console.error("Auth redirect error", error);
+             toast({
+                title: "Login Gagal",
+                description: "Terjadi kesalahan saat login.",
+                variant: "destructive",
+            });
         }
-      } catch (error: any) {
-        console.error("Error getting redirect result: ", error);
-        toast({
-          title: "Login Gagal",
-          description: error.message || "Terjadi kesalahan saat login.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    handleRedirectResult();
+    }
+    handleRedirect();
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setLoading(true);
       if (user) {
         if (!userProfile || user.uid !== userProfile.uid) {
            await processAuth(user);
@@ -90,13 +89,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [processAuth, userProfile, router, toast]);
 
   const signInWithGoogle = async () => {
+    setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      setLoading(true);
       await signInWithRedirect(auth, provider);
     } catch (error: any) {
       console.error("Error signing in with Google: ", error);
@@ -136,12 +134,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       await updateProfile(userCredential.user, { displayName: data.name });
       
-      // reload user to get displayName
+      // reload user to get displayName and then create profile
       await userCredential.user.reload();
       const updatedUser = auth.currentUser;
 
       if(updatedUser){
-        await createUserProfile(updatedUser);
+        await processAuth(updatedUser);
       }
       
       router.push('/');

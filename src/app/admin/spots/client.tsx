@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Cave, Spot } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -53,6 +53,10 @@ export default function SpotsClient({ initialSpots, caves }: { initialSpots: Spo
     return spots.filter((spot) => spot.caveId === filterCaveId);
   }, [spots, filterCaveId]);
 
+  const getCaveName = (caveId: string) => {
+    return caves.find(c => c.id === caveId)?.name || 'Gua tidak ditemukan';
+  };
+
   if (isFormOpen) {
     return <SpotForm spot={selectedSpot} caves={caves} onSave={handleFormSuccess} onCancel={() => { setIsFormOpen(false); setSelectedSpot(null); }} />;
   }
@@ -85,7 +89,7 @@ export default function SpotsClient({ initialSpots, caves }: { initialSpots: Spo
                 <div>
                   <CardTitle className="text-lg">{spot.title}</CardTitle>
                   <CardDescription className="flex items-center gap-2 mt-1">
-                    <span className="text-xs">{caves.find(c => c.id === spot.caveId)?.name || 'Gua tidak ditemukan'}</span>
+                    <span className="text-xs">{getCaveName(spot.caveId)}</span>
                     {spot.isPro && <Badge>PRO</Badge>}
                   </CardDescription>
                 </div>

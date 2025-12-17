@@ -32,7 +32,7 @@ function AdminProtection({ children }: { children: ReactNode }) {
     }
   }, [userProfile, loading, router]);
 
-  if (!isAuthorized || !user || !userProfile) {
+  if (loading || !isAuthorized || !user || !userProfile) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="text-center">
@@ -56,35 +56,19 @@ function AdminProtection({ children }: { children: ReactNode }) {
           <AdminNavLink href="/admin/spots" icon={<MapPin />} label="Spot" />
           <AdminNavLink href="/admin/users" icon={<Users />} label="Pengguna" />
         </nav>
-        {/* Mobile-only User Menu */}
-        <div className="absolute right-2 bottom-2 md:hidden">
-            <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={user.photoURL || ''} alt={userProfile.displayName || 'Admin'} />
-                  <AvatarFallback>{userProfile.displayName?.charAt(0) || 'A'}</AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{userProfile.displayName}</p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    {userProfile.email}
-                  </p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={signOut}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Logout</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        
+        {/* User menu is shown only on desktop sidebar, not on mobile */}
         <div className="hidden md:block mt-auto p-4 border-t">
+           <div className="flex items-center gap-3 mb-4">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={user.photoURL || ''} alt={userProfile.displayName || 'Admin'} />
+              <AvatarFallback>{userProfile.displayName?.charAt(0) || 'A'}</AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="text-sm font-medium leading-tight">{userProfile.displayName}</p>
+              <p className="text-xs text-muted-foreground">{userProfile.email}</p>
+            </div>
+           </div>
            <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-foreground" asChild>
              <Link href="/">
                 <ArrowLeft className="mr-2 h-4 w-4" />
