@@ -24,67 +24,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Handle the redirect result from Google Sign-In
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result) {
+          setLoading(true);
+          const user = result.user;
+          setUser(user);
+          let profile = await getUserProfile(user.uid);
+          if (!profile) {
+            profile = await createUserProfile(user);
+          }
+          setUserProfile(profile);
+          toast({
+            title: "Login Berhasil",
+            description: "Selamat datang kembali!",
+          });
+          setLoading(false);
+        }
+      })
+      .catch((error) => {
+        console.error("Error getting redirect result: ", error);
+        if (error.code === 'auth/unauthorized-domain') {
+           toast({
+            title: "Login Gagal",
+            description: "Domain aplikasi tidak diizinkan. Mohon periksa konfigurasi Firebase Anda.",
+            variant: "destructive",
+          });
+        }
+      });
+
+    // Listen for auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setLoading(true);
       if (user) {
         setUser(user);
-        let profile = await getUserProfile(user.uid);
-        if (!profile) {
-          profile = await createUserProfile(user);
-        }
-        setUserProfile(profile);
-      } else {
-        // Check for redirect result
-        try {
-          const result = await getRedirectResult(auth);
-          if (result) {
-            // This is the successfully redirected user.
-            const user = result.user;
-            setUser(user);
+        // Only fetch/create profile if it's not already loaded
+        if (!userProfile || user.uid !== userProfile.uid) {
             let profile = await getUserProfile(user.uid);
             if (!profile) {
-              profile = await createUserProfile(user);
+            profile = await createUserProfile(user);
             }
             setUserProfile(profile);
-            toast({
-              title: "Login Berhasil",
-              description: "Selamat datang kembali!",
-            });
-          }
-        } catch (error) {
-           console.error("Error getting redirect result: ", error);
-        } finally {
-            setUser(null);
-            setUserProfile(null);
         }
+      } else {
+        setUser(null);
+        setUserProfile(null);
       }
       setLoading(false);
     });
 
-    // Handle initial redirect result check
-    getRedirectResult(auth).then(async (result) => {
-        if (result) {
-            const user = result.user;
-            setUser(user);
-            let profile = await getUserProfile(user.uid);
-            if (!profile) {
-              profile = await createUserProfile(user);
-            }
-            setUserProfile(profile);
-             toast({
-              title: "Login Berhasil",
-              description: "Selamat datang kembali!",
-            });
-        }
-        setLoading(false);
-    }).catch(error => {
-        console.error("Error on initial redirect check:", error);
-        setLoading(false);
-    });
-
-
     return () => unsubscribe();
-  }, [toast]);
+  }, [toast, userProfile]);
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
@@ -103,12 +94,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     try {
       await firebaseSignOut(auth);
+      setUser(null);
+      setUserProfile(null);
       toast({
         title: "Logout Berhasil",
         description: "Anda telah keluar dari akun.",
       });
-      setUser(null);
-      setUserProfile(null);
     } catch (error) {
       console.error("Error signing out: ", error);
       toast({
