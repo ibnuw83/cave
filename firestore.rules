@@ -14,14 +14,15 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      // a user is an admin if their document in the users collection has role == 'admin'
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     // Rules for the 'users' collection
     match /users/{userId} {
       // Admins can read/write any user profile
       // Signed-in users can read/write their own profile
-      allow read, write: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow read, write: if isOwner(userId) || isAdmin();
     }
 
     // Rules for the 'caves' collection
