@@ -7,7 +7,7 @@ import ExitPin from './exit-pin';
 
 interface Props {
   cave: Cave;
-  spots: Spot[];
+  spots: (Spot & { duration: number })[];
   settings: KioskSettings;
 }
 
@@ -20,6 +20,22 @@ export default function KioskPlayer({ cave, spots, settings }: Props) {
     const el = document.documentElement;
     if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
   }, []);
+
+  // block keyboard shortcuts
+  useEffect(() => {
+    const blockKeys = (e: KeyboardEvent) => {
+      if (
+        e.key === 'Escape' ||
+        (e.ctrlKey && e.key === 'r') ||
+        e.key === 'F11'
+      ) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', blockKeys);
+    return () => window.removeEventListener('keydown', blockKeys);
+  }, []);
+
 
   // 5 tap exit
   let tapCount = 0;
