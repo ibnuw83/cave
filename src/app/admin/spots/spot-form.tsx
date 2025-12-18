@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { FileUploader } from '@/components/ui/file-uploader';
+import { useState } from 'react';
 
 const spotSchema = z.object({
   caveId: z.string().min(1, 'Gua harus dipilih.'),
@@ -44,6 +45,9 @@ interface SpotFormProps {
 
 export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
   const { toast } = useToast();
+  const [isImageUploading, setIsImageUploading] = useState(false);
+  const [isAudioUploading, setIsAudioUploading] = useState(false);
+
   const form = useForm<SpotFormValues>({
     resolver: zodResolver(spotSchema),
     defaultValues: {
@@ -58,10 +62,20 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
     },
   });
   
-  const isSubmitting = form.formState.isSubmitting;
+  const isUploading = isImageUploading || isAudioUploading;
+  const isSubmitting = form.formState.isSubmitting || isUploading;
   const spotId = spot?.id || 'new_spot';
 
   const onSubmit = async (values: SpotFormValues) => {
+     if (isUploading) {
+      toast({
+        variant: 'destructive',
+        title: 'Harap Tunggu',
+        description: 'Mohon tunggu hingga proses unggah file selesai.',
+      });
+      return;
+    }
+
     const spotData: Omit<Spot, 'id'> = {
       ...values,
       effects: {
@@ -181,6 +195,7 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
                         form.setValue('imageUrl', url, { shouldValidate: true });
                         toast({ title: 'Berhasil', description: 'Gambar spot telah diunggah.' });
                     }}
+                    onUploadStateChange={setIsImageUploading}
                     allowedTypes={['image/jpeg', 'image/png', 'image/webp']}
                     maxSizeMB={3}
                 />
@@ -202,6 +217,7 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
                         form.setValue('audioUrl', url);
                         toast({ title: 'Berhasil', description: 'Audio narasi telah diunggah.' });
                     }}
+                    onUploadStateChange={setIsAudioUploading}
                     allowedTypes={['audio/mpeg', 'audio/mp3']}
                     maxSizeMB={10}
                 />
