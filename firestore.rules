@@ -62,7 +62,8 @@ service cloud.firestore {
 
     /* ========= KIOSK ========= */
     match /kioskSettings/{id} {
-      allow read: if true;
+      // Hanya admin yang bisa membaca pengaturan kios
+      allow read: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
   }
