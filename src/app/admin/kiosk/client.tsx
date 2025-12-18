@@ -30,6 +30,7 @@ const kioskSettingsSchema = z.object({
     { message: 'Spot tidak boleh duplikat dalam playlist.' }
   ),
   mode: z.enum(['loop', 'shuffle']),
+  exitPin: z.string().length(4, 'PIN harus terdiri dari 4 digit.').regex(/^\d{4}$/, 'PIN harus berupa 4 angka.'),
 });
 
 type KioskSettingsFormValues = z.infer<typeof kioskSettingsSchema>;
@@ -51,6 +52,7 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
       caveId: initialSettings?.caveId || '',
       playlist: initialSettings?.playlist || [],
       mode: initialSettings?.mode || 'loop',
+      exitPin: initialSettings?.exitPin || '1234',
     },
   });
 
@@ -187,40 +189,55 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="mode"
-              render={({ field }) => (
-                <FormItem className="space-y-3">
-                  <FormLabel>Mode Pemutaran</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="flex flex-col space-y-1"
-                    >
-                      <FormItem className="flex items-center space-x-3 space-y-0">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                control={form.control}
+                name="mode"
+                render={({ field }) => (
+                    <FormItem className="space-y-3">
+                    <FormLabel>Mode Pemutaran</FormLabel>
+                    <FormControl>
+                        <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className="flex flex-col space-y-1"
+                        >
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                            <RadioGroupItem value="loop" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                            Loop (berurutan)
+                            </FormLabel>
+                        </FormItem>
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                            <RadioGroupItem value="shuffle" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                            Shuffle (acak)
+                            </FormLabel>
+                        </FormItem>
+                        </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="exitPin"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>PIN Keluar Kios</FormLabel>
                         <FormControl>
-                          <RadioGroupItem value="loop" />
+                        <Input type="password" placeholder="cth: 1234" maxLength={4} {...field} />
                         </FormControl>
-                        <FormLabel className="font-normal">
-                          Loop (berurutan)
-                        </FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="shuffle" />
-                        </FormControl>
-                        <FormLabel className="font-normal">
-                          Shuffle (acak)
-                        </FormLabel>
-                      </FormItem>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+             </div>
 
 
             <div className="space-y-4">
@@ -298,3 +315,5 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
     </Card>
   );
 }
+
+    

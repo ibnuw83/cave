@@ -54,4 +54,7 @@ export interface KioskSettings {
   caveId: string;
   playlist: KioskPlaylistItem[];
   mode: 'loop' | 'shuffle';
+  exitPin: string;
 }
+
+    

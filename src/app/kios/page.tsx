@@ -1,17 +1,20 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { getKioskSettings, getSpots, getCave } from '@/lib/firestore';
 import { Spot, KioskSettings, Cave } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import KioskPlayer from './player';
-import ExitPin from './exit-pin';
+import { ExitPin } from './exit-pin';
+import { getOfflineCaveData } from '@/lib/offline';
 
 export default function KiosPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [playlist, setPlaylist] = useState<(Spot & { duration: number })[]>([]);
-  const [mode, setMode] = useState<'loop' | 'shuffle'>('loop');
   const [cave, setCave] = useState<Cave | null>(null);
   const [settings, setSettings] = useState<KioskSettings | null>(null);
   const [showPin, setShowPin] = useState(false);
@@ -19,17 +22,31 @@ export default function KiosPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const settingsData = await getKioskSettings();
+        let settingsData = await getKioskSettings();
+        let caveData: Cave | null = null;
+        let allSpots: Spot[] = [];
+        
         if (!settingsData || !settingsData.playlist || settingsData.playlist.length === 0) {
-          setError('Kios belum dikonfigurasi. Silakan atur daftar putar di Panel Admin.');
-          setLoading(false);
-          return;
+           setError('Kios belum dikonfigurasi. Silakan atur daftar putar di Panel Admin.');
+           setLoading(false);
+           return;
         }
         
         setSettings(settingsData);
-        setMode(settingsData.mode);
         
-        const caveData = await getCave(settingsData.caveId);
+        // Try to load from offline cache first
+        const offlineData = await getOfflineCaveData(settingsData.caveId);
+        if (offlineData) {
+            caveData = offlineData.cave;
+            allSpots = offlineData.spots;
+        } else {
+            // Fetch from network if not offline
+            caveData = await getCave(settingsData.caveId);
+            if (caveData) {
+              allSpots = await getSpots(settingsData.caveId);
+            }
+        }
+        
         if (!caveData) {
             setError(`Gua dengan ID "${settingsData.caveId}" tidak ditemukan.`);
             setLoading(false);
@@ -37,8 +54,6 @@ export default function KiosPage() {
         }
         setCave(caveData);
 
-        const allSpots = await getSpots(settingsData.caveId);
-        
         if (allSpots.length === 0) {
             setError('Spot tidak ditemukan untuk gua yang dikonfigurasi.');
             setLoading(false);
@@ -71,6 +86,48 @@ export default function KiosPage() {
     };
 
     load();
+  }, []);
+
+  const handleExitSuccess = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    }
+    router.push('/');
+  };
+
+  useEffect(() => {
+    // Attempt to go fullscreen and lock orientation
+    async function enterKioskMode() {
+      try {
+        if (document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+        }
+        if (screen.orientation && screen.orientation.lock) {
+          await screen.orientation.lock('landscape');
+        }
+      } catch (err) {
+        console.warn("Could not enter fullscreen/lock orientation:", err);
+      }
+    }
+    enterKioskMode();
+    
+     const blockKeys = (e: KeyboardEvent) => {
+      if (
+        e.key === 'Escape' ||
+        (e.ctrlKey && e.key === 'r') ||
+        e.key === 'F11'
+      ) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', blockKeys);
+    
+    return () => {
+       window.removeEventListener('keydown', blockKeys);
+       if (document.fullscreenElement) {
+          document.exitFullscreen();
+       }
+    }
   }, []);
 
   if (loading) {
@@ -107,7 +164,14 @@ export default function KiosPage() {
             mode={settings.mode}
             onExitRequested={() => setShowPin(true)}
         />
-        {showPin && <ExitPin onClose={() => setShowPin(false)} />}
+        <ExitPin 
+          open={showPin} 
+          onOpenChange={setShowPin} 
+          pin={settings.exitPin}
+          onSuccess={handleExitSuccess}
+        />
     </div>
   );
 }
+
+    
