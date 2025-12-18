@@ -42,11 +42,11 @@ export async function POST(req: Request) {
     if (!ttsRes.ok) {
         let errorBody = { error: `TTS API failed with status ${ttsRes.status}`, details: '' };
         try {
-            // Gemini usually sends JSON errors
+            // If the error response is JSON, parse it for details.
             const errorJson = await ttsRes.json();
             errorBody.details = errorJson.error?.message || 'No details provided.';
         } catch (e) {
-            // If parsing JSON fails, read as text
+            // If parsing JSON fails, read as text as a fallback.
             errorBody.details = await ttsRes.text();
         }
         console.error("Gemini TTS API Error:", errorBody);
@@ -70,8 +70,17 @@ export async function POST(req: Request) {
             });
         }
     }
+    
+    // If we reach here, the response was successful (2xx) but not in the expected format.
+    // This could be an empty body for a 200 OK, which we should handle gracefully.
+    const raw = await ttsRes.text();
+    if (!raw.trim()) {
+        console.warn('TTS returned empty body with success status.');
+        return new NextResponse(null, { status: 204 }); // 204 No Content
+    }
 
-    // Fallback if the response is not as expected
+    // Fallback if the response is successful but has an unexpected format
+    console.warn("TTS API returned an unexpected but successful response format.", {contentType, body: raw.substring(0, 200)});
     return NextResponse.json({ error: 'TTS API returned an unexpected response format.' }, { status: 502 });
 
   } catch (error: any) {
@@ -79,3 +88,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Terjadi kesalahan internal pada server.", details: error.message }, { status: 500 });
   }
 }
+
