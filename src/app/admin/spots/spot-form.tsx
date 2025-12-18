@@ -21,7 +21,7 @@ const spotSchema = z.object({
   order: z.coerce.number().min(0, 'Urutan tidak boleh negatif.'),
   title: z.string().min(1, 'Judul tidak boleh kosong.'),
   description: z.string().min(1, 'Deskripsi tidak boleh kosong.'),
-  imageUrl: z.string().url('URL gambar tidak valid.').min(1, 'Gambar spot harus diunggah.'),
+  imageUrl: z.string().min(1, 'Gambar spot harus diunggah.'),
   audioUrl: z.string().url('URL audio tidak valid.').optional().or(z.literal('')),
   isPro: z.boolean(),
   vibrationPattern: z.string().optional().refine(
@@ -178,7 +178,7 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
                     filePath={`spots/${spotId}`}
                     currentFileUrl={field.value}
                     onUploadSuccess={(url) => {
-                        form.setValue('imageUrl', url);
+                        form.setValue('imageUrl', url, { shouldValidate: true });
                         toast({ title: 'Berhasil', description: 'Gambar spot telah diunggah.' });
                     }}
                     allowedTypes={['image/jpeg', 'image/png', 'image/webp']}
