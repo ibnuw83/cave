@@ -9,6 +9,7 @@ import { Loader2 } from 'lucide-react';
 import KioskPlayer from './player';
 import { ExitPin } from './exit-pin';
 import { getOfflineCaveData } from '@/lib/offline';
+import { enterKioskLock, exitKioskLock } from '@/lib/kiosk';
 
 export default function KiosPage() {
   const router = useRouter();
@@ -89,27 +90,12 @@ export default function KiosPage() {
   }, []);
 
   const handleExitSuccess = () => {
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    }
+    exitKioskLock();
     router.push('/');
   };
 
   useEffect(() => {
-    // Attempt to go fullscreen and lock orientation
-    async function enterKioskMode() {
-      try {
-        if (document.documentElement.requestFullscreen) {
-          await document.documentElement.requestFullscreen();
-        }
-        if (screen.orientation && screen.orientation.lock) {
-          await screen.orientation.lock('landscape');
-        }
-      } catch (err) {
-        console.warn("Could not enter fullscreen/lock orientation:", err);
-      }
-    }
-    enterKioskMode();
+    enterKioskLock();
     
      const blockKeys = (e: KeyboardEvent) => {
       if (
@@ -124,9 +110,7 @@ export default function KiosPage() {
     
     return () => {
        window.removeEventListener('keydown', blockKeys);
-       if (document.fullscreenElement) {
-          document.exitFullscreen();
-       }
+       exitKioskLock();
     }
   }, []);
 
@@ -173,5 +157,3 @@ export default function KiosPage() {
     </div>
   );
 }
-
-    
