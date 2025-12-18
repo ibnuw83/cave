@@ -54,7 +54,7 @@ async function readResponseBody(res: Response): Promise<{ text: string; json: an
   }
 }
 
-function speakLocal(text: string) {
+export function speakLocal(text: string) {
   if (typeof window === 'undefined') return;
   if (!('speechSynthesis' in window)) return;
 
