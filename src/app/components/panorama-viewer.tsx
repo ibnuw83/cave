@@ -13,14 +13,12 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, child
   const fov = useRef(75);
 
   useEffect(() => {
-     // Ensure this runs only on the client
      if (typeof window !== 'undefined') {
         setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
      }
   }, []);
 
   const requestGyro = async () => {
-    // Standard permission request for iOS 13+
     if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
       try {
         const permissionState = await (DeviceOrientationEvent as any).requestPermission();
@@ -31,7 +29,6 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, child
         console.error('Gyro permission request failed:', error);
       }
     } else {
-        // For other devices (like Android), just enable it
         setIsGyroActive(true);
     }
   };
@@ -52,7 +49,7 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, child
 
     const texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255])); // blue pixel
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
 
     const image = new Image();
     image.crossOrigin = "anonymous";
@@ -63,33 +60,29 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, child
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     };
-
-    if (imageUrl.startsWith('https://images.unsplash.com/')) {
-        image.src = imageUrl.replace('https://images.unsplash.com', '/image-proxy');
-    } else {
-        image.src = imageUrl;
-    }
-
+    image.src = imageUrl;
 
     const sphere = createSphere(gl, 50, 50);
 
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, `
       attribute vec3 aVertexPosition;
-      attribute vec2 aTextureCoord;
       uniform mat4 uMVMatrix;
       uniform mat4 uPMatrix;
-      varying highp vec2 vTextureCoord;
+      varying highp vec3 vTextureCoord;
       void main(void) {
         gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-        vTextureCoord = aTextureCoord;
+        vTextureCoord = aVertexPosition;
       }
     `);
 
     const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, `
-      varying highp vec2 vTextureCoord;
+      varying highp vec3 vTextureCoord;
       uniform sampler2D uSampler;
+      const highp float PI = 3.1415926535897932384626433832795;
       void main(void) {
-        gl_FragColor = texture2D(uSampler, vec2(1.0 - vTextureCoord.s, vTextureCoord.t));
+        highp float lon = atan(vTextureCoord.x, vTextureCoord.z);
+        highp float lat = acos(vTextureCoord.y / length(vTextureCoord));
+        gl_FragColor = texture2D(uSampler, vec2(lon / (2.0 * PI) + 0.5, lat / PI));
       }
     `);
       
@@ -103,7 +96,6 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, child
       program: shaderProgram,
       attribLocations: {
         vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
-        textureCoord: gl.getAttribLocation(shaderProgram, 'aTextureCoord'),
       },
       uniformLocations: {
         projectionMatrix: gl.getUniformLocation(shaderProgram, 'uPMatrix'),
@@ -115,7 +107,6 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, child
     function render() {
         if (!gl || gl.isContextLost()) return;
 
-        // Handle canvas resize
         const displayWidth  = gl.canvas.clientWidth;
         const displayHeight = gl.canvas.clientHeight;
         if (gl.canvas.width  !== displayWidth || gl.canvas.height !== displayHeight) {
@@ -138,10 +129,6 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, child
         gl.bindBuffer(gl.ARRAY_BUFFER, sphere.vertex);
         gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, sphere.texture);
-        gl.vertexAttribPointer(programInfo.attribLocations.textureCoord, 2, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
 
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphere.index);
         gl.useProgram(programInfo.program);
@@ -170,7 +157,7 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, child
       const deltaY = event.clientY - previousMousePosition.y;
       rotation.current.lon -= deltaX * 0.1;
       rotation.current.lat -= deltaY * 0.1;
-      rotation.current.lat = Math.max(-85, Math.min(85, rotation.current.lat)); // Clamp latitude
+      rotation.current.lat = Math.max(-85, Math.min(85, rotation.current.lat));
       previousMousePosition = { x: event.clientX, y: event.clientY };
     }
      function onTouchMove(event: TouchEvent) {
@@ -179,13 +166,13 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, child
       const deltaY = event.touches[0].clientY - previousMousePosition.y;
       rotation.current.lon -= deltaX * 0.1;
       rotation.current.lat -= deltaY * 0.1;
-      rotation.current.lat = Math.max(-85, Math.min(85, rotation.current.lat)); // Clamp latitude
+      rotation.current.lat = Math.max(-85, Math.min(85, rotation.current.lat));
       previousMousePosition = { x: event.touches[0].clientX, y: event.touches[0].clientY };
     }
     function onWheel(event: WheelEvent) {
         event.preventDefault();
         fov.current += event.deltaY * 0.05;
-        fov.current = Math.max(30, Math.min(100, fov.current)); // Clamp FOV
+        fov.current = Math.max(30, Math.min(100, fov.current));
     }
     
     let initialAlpha: number | null = null;
@@ -196,10 +183,8 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, child
             initialAlpha = event.alpha;
         }
 
-        // Adjust alpha to be relative to the initial orientation
         const relativeAlpha = event.alpha - initialAlpha;
         
-        // This is a simplified mapping and might need calibration/adjustment
         rotation.current.lon = -relativeAlpha;
         rotation.current.lat = event.beta - 90;
         rotation.current.lat = Math.max(-85, Math.min(85, rotation.current.lat));
@@ -231,7 +216,6 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, child
           gl.deleteShader(vertexShader);
           gl.deleteShader(fragmentShader);
           gl.deleteBuffer(sphere.vertex);
-          gl.deleteBuffer(sphere.texture);
           gl.deleteBuffer(sphere.index);
           gl.deleteTexture(texture);
        }
@@ -283,7 +267,7 @@ function createProgram(gl: WebGLRenderingContext, vs: WebGLShader, fs: WebGLShad
 
 function createSphere(gl: WebGLRenderingContext, latitudeBands: number, longitudeBands: number) {
   const vertexPositionData: number[] = [];
-  const textureCoordData: number[] = [];
+  const indexData: number[] = [];
   for (let latNumber = 0; latNumber <= latitudeBands; latNumber++) {
     const theta = latNumber * Math.PI / latitudeBands;
     const sinTheta = Math.sin(theta);
@@ -295,14 +279,10 @@ function createSphere(gl: WebGLRenderingContext, latitudeBands: number, longitud
       const x = cosPhi * sinTheta;
       const y = cosTheta;
       const z = sinPhi * sinTheta;
-      const u = 1 - (longNumber / longitudeBands);
-      const v = 1 - (latNumber / latitudeBands);
-      textureCoordData.push(u, v);
       vertexPositionData.push(10 * x, 10 * y, 10 * z);
     }
   }
 
-  const indexData: number[] = [];
   for (let latNumber = 0; latNumber < latitudeBands; latNumber++) {
     for (let longNumber = 0; longNumber < longitudeBands; longNumber++) {
       const first = (latNumber * (longitudeBands + 1)) + longNumber;
@@ -316,19 +296,14 @@ function createSphere(gl: WebGLRenderingContext, latitudeBands: number, longitud
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexPositionData), gl.STATIC_DRAW);
 
-  const textureBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, textureBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordData), gl.STATIC_DRAW);
-
   const indexBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indexData), gl.STATIC_DRAW);
 
-  return { vertex: vertexBuffer, texture: textureBuffer, index: indexBuffer, numIndices: indexData.length };
+  return { vertex: vertexBuffer, index: indexBuffer, numIndices: indexData.length };
 }
 
 
-// A minimal mat4 library for transformations
 const mat4 = {
   create: () => {
     let out = new Float32Array(16);
@@ -386,3 +361,5 @@ const mat4 = {
     return out;
   }
 };
+
+    

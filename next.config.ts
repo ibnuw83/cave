@@ -3,14 +3,6 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
-  async rewrites() {
-    return [
-      {
-        source: '/image-proxy/:path*',
-        destination: 'https://images.unsplash.com/:path*',
-      },
-    ]
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -71,3 +63,5 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+    
