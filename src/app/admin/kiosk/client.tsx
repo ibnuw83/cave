@@ -227,31 +227,29 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
               {fields.map((field, index) => (
                 <div key={field.id} className="flex items-center gap-2 p-2 border rounded-lg bg-muted/50">
                   <GripVertical className="h-5 w-5 text-muted-foreground" />
-                   <Controller
-                      control={form.control}
-                      name={`playlist.${index}.spotId`}
-                      render={({ field: controllerField, fieldState }) => (
-                        <FormItem className="flex-grow">
-                          <Select onValueChange={controllerField.onChange} value={controllerField.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Pilih spot..." />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {availableSpots.map(spot => (
-                                <SelectItem key={spot.id} value={spot.id}>
-                                  {spot.title}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                           <FormMessage>
-                               {fieldState.error?.message}
-                           </FormMessage>
-                        </FormItem>
-                      )}
-                    />
+                  <FormField
+                    control={form.control}
+                    name={`playlist.${index}.spotId`}
+                    render={({ field }) => (
+                      <FormItem className="flex-grow">
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Pilih spot..." />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {availableSpots.map(spot => (
+                              <SelectItem key={spot.id} value={spot.id}>
+                                {spot.title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={form.control}
                     name={`playlist.${index}.duration`}
@@ -263,7 +261,7 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
                            </FormControl>
                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">detik</span>
                          </div>
-                          <FormMessage className="pl-2"/>
+                          <FormMessage />
                        </FormItem>
                     )}
                   />
@@ -273,11 +271,9 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
                 </div>
               ))}
                {form.formState.errors.playlist?.root && <FormMessage>{form.formState.errors.playlist.root.message}</FormMessage>}
-               {form.formState.errors.playlist && !form.formState.errors.playlist.root && Array.isArray(form.formState.errors.playlist) && (
-                  <FormMessage>
-                    {form.formState.errors.playlist.map((p, i) => (p?.duration?.message && <div key={i}>- {p.duration.message}</div>))}
-                  </FormMessage>
-               )}
+               {Array.isArray(form.formState.errors.playlist) && form.formState.errors.playlist.map((error, index) => (
+                 error && <FormMessage key={index}>Baris {index + 1}: {error.spotId?.message || error.duration?.message}</FormMessage>
+               ))}
             </div>
 
             <Button
@@ -301,5 +297,3 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
     </Card>
   );
 }
-
-    
