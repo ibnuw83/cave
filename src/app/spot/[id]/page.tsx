@@ -1,5 +1,5 @@
 
-import { getSpot, getUserProfile } from '@/lib/firestore';
+import { getSpotAdmin, getUserProfileAdmin } from '@/lib/firebase-admin';
 import { notFound } from 'next/navigation';
 import { Spot } from '@/lib/types';
 import placeholderImagesData from '@/lib/placeholder-images.json';
@@ -58,9 +58,9 @@ export default async function SpotPage({ params }: { params: { id: string } }) {
   if (spotId.startsWith('static-')) {
     initialSpot = staticSpots.find(s => s.id === spotId) || null;
   } else {
-    // 2. If not static, fetch from Firestore
+    // 2. If not static, fetch from Firestore using Admin SDK
     try {
-      initialSpot = await getSpot(spotId);
+      initialSpot = await getSpotAdmin(spotId);
     } catch (e) {
       console.error(`Failed to fetch spot ${spotId} from Firestore`, e);
       // Let it fall through, client will try to load from cache.
@@ -68,14 +68,12 @@ export default async function SpotPage({ params }: { params: { id: string } }) {
   }
 
   // --- Auth Check (Server Side) ---
-  let userRole = 'free';
-  let isUserLoggedIn = false;
+  let userRole: 'free' | 'pro' | 'admin' = 'free';
   try {
     const sessionCookie = cookies().get('__session')?.value;
     if (sessionCookie) {
-      isUserLoggedIn = true;
       const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
-      const userProfile = await getUserProfile(decodedToken.uid);
+      const userProfile = await getUserProfileAdmin(decodedToken.uid);
       if (userProfile) {
         userRole = userProfile.role;
       }

@@ -4,7 +4,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Spot, KioskSettings } from '@/lib/types';
-import { getSpot } from '@/lib/firestore';
+import { getSpotClient } from '@/lib/firestore';
 import { getOfflineCaveData } from '@/lib/offline';
 import { enterKioskLock, exitKioskLock } from '@/lib/kiosk';
 import KioskPlayer from './player';
@@ -63,7 +63,7 @@ export default function KiosClient({ settings }: { settings: KioskSettings }) {
       const spotPromises = settings.playlist.map(async (item) => {
           try {
               // 1. Try online first
-              const onlineSpot = await getSpot(item.spotId);
+              const onlineSpot = await getSpotClient(item.spotId);
               if (onlineSpot) {
                   return { ...onlineSpot, duration: item.duration };
               }

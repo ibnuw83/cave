@@ -16,7 +16,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { UserProfile, RegisterData } from '@/lib/types';
-import { getUserProfile, createUserProfile } from '@/lib/firestore';
+import { getUserProfileClient, createUserProfile } from '@/lib/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const processAuth = useCallback(async (user: User) => {
     setUser(user);
     try {
-        let profile = await getUserProfile(user.uid);
+        let profile = await getUserProfileClient(user.uid);
         if (!profile) {
             console.log('Creating new user profile for:', user.uid);
             // createUserProfile is now non-blocking for UI, but we still need to

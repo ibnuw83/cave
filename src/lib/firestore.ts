@@ -20,9 +20,9 @@ import { errorEmitter } from './error-emitter';
 import { FirestorePermissionError } from './errors';
 
 
-// --- User Profile Functions ---
+// --- User Profile Functions (Client-Side) ---
 
-export async function getUserProfile(uid: string): Promise<UserProfile | null> {
+export async function getUserProfileClient(uid: string): Promise<UserProfile | null> {
   const userRef = doc(db, 'users', uid);
   try {
     const docSnap = await getDoc(userRef);
@@ -106,7 +106,7 @@ export function updateUserRole(uid: string, role: 'free' | 'pro' | 'admin') {
   });
 }
 
-// --- Cave Functions ---
+// --- Cave Functions (Client-Side) ---
 
 export async function getCaves(includeInactive = false): Promise<Cave[]> {
   const cavesRef = collection(db, 'caves');
@@ -215,7 +215,7 @@ export async function deleteCave(id: string): Promise<void> {
 }
 
 
-// --- Spot Functions ---
+// --- Spot Functions (Client-Side) ---
 
 export async function getAllSpotsForAdmin(): Promise<Spot[]> {
   const spotsRef = collection(db, 'spots');
@@ -256,7 +256,7 @@ export async function getSpots(caveId: string): Promise<Spot[]> {
   }
 }
 
-export async function getSpot(id: string): Promise<Spot | null> {
+export async function getSpotClient(id: string): Promise<Spot | null> {
   const docRef = doc(db, 'spots', id);
   try {
     const docSnap = await getDoc(docRef);
