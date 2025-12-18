@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -19,7 +20,7 @@ const kioskSettingsSchema = z.object({
   caveId: z.string().min(1, 'Gua harus dipilih.'),
   playlist: z.array(z.object({
     spotId: z.string().min(1, 'Spot harus dipilih.'),
-    duration: z.coerce.number().min(5, 'Durasi minimal 5 detik.'),
+    duration: z.coerce.number().min(5, 'Durasi minimal 5 detik.').max(300, 'Durasi maksimal 300 detik.'),
   })).min(1, 'Minimal harus ada 1 spot di playlist.').refine(
     (items) => new Set(items.map(i => i.spotId)).size === items.length,
     { message: 'Spot tidak boleh duplikat dalam playlist.' }
@@ -174,6 +175,11 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
                 </div>
               ))}
                {form.formState.errors.playlist?.root && <FormMessage>{form.formState.errors.playlist.root.message}</FormMessage>}
+               {form.formState.errors.playlist && !form.formState.errors.playlist.root && (
+                  <FormMessage>
+                    {form.formState.errors.playlist.map((p, i) => (p?.duration?.message && <div key={i}>- {p.duration.message}</div>))}
+                  </FormMessage>
+               )}
             </div>
 
             <Button
