@@ -57,38 +57,16 @@ const staticSpots: Spot[] = [
 export default async function SpotPage({ params }: { params: { id: string } }) {
   let spot: Spot | null = null;
   
+  // 1. Handle static examples directly
   if (params.id.startsWith('static-')) {
     spot = staticSpots.find(s => s.id === params.id) || null;
   } else {
-    // 1. Try to fetch from Firestore
+    // 2. Try to fetch from Firestore
     try {
       spot = await getSpot(params.id);
     } catch (e) {
       console.error(`Failed to fetch spot ${params.id} from Firestore`, e);
-    }
-
-    // 2. If not found in Firestore, try to load from any available offline cache as a fallback.
-    // This is less direct, but can work if the user has previously saved a cave containing this spot.
-    if (!spot) {
-        try {
-            const offlineCaves = await caches.keys().then(keys => 
-                Promise.all(keys
-                    .filter(key => key.startsWith('penjelajah-gua-offline-v1'))
-                    .map(key => caches.open(key).then(cache => cache.match(key).then(res => res ? res.json() : null)))
-                )
-            );
-            for (const data of offlineCaves) {
-                if (data && data.spots) {
-                    const foundSpot = data.spots.find((s: Spot) => s.id === params.id);
-                    if (foundSpot) {
-                        spot = { ...foundSpot, caveId: data.cave.id }; 
-                        break;
-                    }
-                }
-            }
-        } catch(e) {
-            console.warn("Could not search offline cache for spot:", e);
-        }
+      // Don't throw, let it fall through to notFound at the end if needed.
     }
   }
   
@@ -123,3 +101,4 @@ export default async function SpotPage({ params }: { params: { id: string } }) {
     </GyroViewer>
   );
 }
+
