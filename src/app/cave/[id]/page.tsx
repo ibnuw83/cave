@@ -2,11 +2,37 @@
 import { getCave, getSpots } from '@/lib/firestore';
 import { notFound } from 'next/navigation';
 import CaveClient from '@/app/components/cave-client';
-import { getOfflineCaveData } from '@/lib/offline';
 import { Cave, Spot } from '@/lib/types';
 import placeholderImagesData from '@/lib/placeholder-images.json';
+import { getOfflineCaveData } from '@/lib/offline';
 
 const placeholderImages = placeholderImagesData.placeholderImages;
+
+// Define static data here for reliability
+const staticCaves: Cave[] = [
+    {
+        id: 'static-jomblang',
+        name: 'Gua Jomblang (Contoh)',
+        description: 'Gua vertikal dengan cahaya surga yang menakjubkan.',
+        coverImage: placeholderImages.find(p => p.id === 'cave-jomblang-cover')?.imageUrl || '',
+        isActive: true,
+    },
+    {
+        id: 'static-gong',
+        name: 'Gua Gong (Contoh)',
+        description: 'Dijuluki sebagai gua terindah di Asia Tenggara.',
+        coverImage: placeholderImages.find(p => p.id === 'cave-gong-cover')?.imageUrl || '',
+        isActive: true,
+    },
+     {
+        id: 'static-petruk',
+        name: 'Gua Petruk (Contoh)',
+        description: 'Gua Petruk di Kebumen adalah destinasi wisata alam karst yang menawarkan pengalaman caving (susur gua) menantang.',
+        coverImage: placeholderImages.find(p => p.id === 'cave-petruk-cover')?.imageUrl || '',
+        isActive: true,
+    }
+];
+
 
 const staticSpots: Spot[] = [
     {
@@ -53,23 +79,14 @@ export default async function CavePage({ params }: { params: { id: string } }) {
   let cave: Cave | null = null;
   let spots: Spot[] = [];
 
-  // If it's a static example, create the data directly
+  // If it's a static example, load the data directly
   if (params.id.startsWith('static-')) {
-    const staticCaveId = params.id;
-    const placeholderCave = placeholderImages.find(p => p.id.includes(staticCaveId.replace('static-', '')));
-    
-    if (placeholderCave) {
-        cave = {
-            id: staticCaveId,
-            name: staticCaveId.replace('static-','').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
-            description: placeholderCave.description,
-            coverImage: placeholderCave.imageUrl,
-            isActive: true
-        };
-        spots = staticSpots.filter(s => s.caveId === staticCaveId);
+    cave = staticCaves.find(c => c.id === params.id) || null;
+    if (cave) {
+        spots = staticSpots.filter(s => s.caveId === cave!.id);
     }
   } else {
-    // --- Original logic for Firestore data ---
+    // --- Original logic for Firestore/Offline data ---
     // 1. Try to load from offline cache first
     try {
       const offlineData = await getOfflineCaveData(params.id);
@@ -78,17 +95,25 @@ export default async function CavePage({ params }: { params: { id: string } }) {
         spots = offlineData.spots;
       }
     } catch (error) {
-      console.warn("Could not search offline cache:", error);
+      console.warn("Could not load from offline cache:", error);
     }
 
     // 2. If not in cache, fetch from Firestore
     if (!cave) {
-      cave = await getCave(params.id);
+      try {
+        cave = await getCave(params.id);
+      } catch (e) {
+         console.error(`Failed to fetch cave ${params.id} from Firestore.`, e);
+      }
     }
   
     // 3. If spots were not in cache, fetch them now
     if (spots.length === 0 && cave) {
-      spots = await getSpots(params.id);
+       try {
+        spots = await getSpots(params.id);
+      } catch (e) {
+         console.error(`Failed to fetch spots for cave ${params.id} from Firestore.`, e);
+      }
     }
   }
 

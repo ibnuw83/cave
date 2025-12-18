@@ -2,13 +2,13 @@
 import { getSpot } from '@/lib/firestore';
 import { notFound } from 'next/navigation';
 import SpotClient from '@/app/components/spot-client';
-import { getOfflineCaveData } from '@/lib/offline';
 import { Spot } from '@/lib/types';
 import placeholderImagesData from '@/lib/placeholder-images.json';
+import { getOfflineCaveData } from '@/lib/offline';
 
 const placeholderImages = placeholderImagesData.placeholderImages;
 
-// Define static spots here as well to handle direct navigation
+// Define static spots here as well to handle direct navigation or refresh
 const staticSpots: Spot[] = [
     {
         id: 'static-spot-jomblang-light',
@@ -56,7 +56,7 @@ export default async function SpotPage({ params }: { params: { id: string } }) {
   if (params.id.startsWith('static-')) {
     spot = staticSpots.find(s => s.id === params.id) || null;
   } else {
-    // We need to find which cave this spot belongs to in the offline cache.
+    // For dynamic spots, try to find them in any offline cache first.
     try {
         const cachesKeys = await caches.keys();
         for (const key of cachesKeys) {
@@ -70,9 +70,7 @@ export default async function SpotPage({ params }: { params: { id: string } }) {
                       if (data && data.spots) {
                           const foundSpot = data.spots.find((s: Spot) => s.id === params.id);
                           if (foundSpot) {
-                              spot = foundSpot;
-                              // Also need to get the cave data for the back button
-                              spot.caveId = data.cave.id; 
+                              spot = { ...foundSpot, caveId: data.cave.id }; 
                               break;
                           }
                       }
@@ -82,12 +80,16 @@ export default async function SpotPage({ params }: { params: { id: string } }) {
           if(spot) break;
         }
     } catch (error) {
-      console.warn("Could not search offline cache:", error);
+      console.warn("Could not search offline cache for spot:", error);
     }
     
     // If not found in any offline cache, fetch from Firestore
     if (!spot) {
-      spot = await getSpot(params.id);
+      try {
+        spot = await getSpot(params.id);
+      } catch (e) {
+        console.error(`Failed to fetch spot ${params.id} from Firestore`, e);
+      }
     }
   }
   
