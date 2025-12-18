@@ -2,9 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { FaceDetection } from '@mediapipe/face_detection';
-import * as cameraUtils from '@mediapipe/camera_utils';
 import { doc, increment, serverTimestamp, setDoc, addDoc, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+
+// The camera_utils library attaches the Camera class to the window, so we don't import it directly.
+// We declare it here to satisfy TypeScript.
+declare let Camera: any;
+
 
 function todayKey() {
   const d = new Date();
@@ -24,7 +28,7 @@ export default function VisitorCounter({
   cooldownMs?: number;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const cameraRef = useRef<cameraUtils.Camera | null>(null);
+  const cameraRef = useRef<any | null>(null);
   const lastCountRef = useRef<number>(0);
   const [running, setRunning] = useState(false);
 
@@ -86,7 +90,7 @@ export default function VisitorCounter({
       }
 
 
-      cameraRef.current = new cameraUtils.Camera(videoRef.current, {
+      cameraRef.current = new Camera(videoRef.current, {
         onFrame: async () => {
           if (!faceDetection || !videoRef.current || videoRef.current.paused || videoRef.current.ended) return;
           try {
