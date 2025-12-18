@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -27,9 +26,10 @@ export default function VisitorCounter({
   const animationFrameId = useRef<number | null>(null);
   const lastCountRef = useRef<number>(0);
   const [running, setRunning] = useState(false);
+  const [isScriptLoaded, setIsScriptLoaded] = useState(false);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !isScriptLoaded || running) return;
 
     let localStream: MediaStream | null = null;
 
@@ -39,23 +39,22 @@ export default function VisitorCounter({
       
       const FaceDetection = (window as any).FaceDetection;
       if (!FaceDetection) {
-        console.error("FaceDetection not available on window. Please check MediaPipe script loading.");
+        console.error("FaceDetection not available on window. This should not happen if script is loaded.");
         return;
       }
 
-      const faceDetection = new FaceDetection({
+      faceDetectionRef.current = new FaceDetection({
         locateFile: (file: any) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`,
       });
-      faceDetectionRef.current = faceDetection;
-
+      
       if (!faceDetectionRef.current) return;
 
-      faceDetection.setOptions({
+      faceDetectionRef.current.setOptions({
         model: 'short',
         minDetectionConfidence: 0.6,
       });
 
-      faceDetection.onResults(async (results: any) => {
+      faceDetectionRef.current.onResults(async (results: any) => {
         const faces = results?.detections?.length || 0;
         if (faces <= 0) return;
 
@@ -132,11 +131,15 @@ export default function VisitorCounter({
           // Silently ignore close errors
       }
     };
-  }, [enabled, cooldownMs, kioskId, running]);
+  }, [enabled, cooldownMs, kioskId, isScriptLoaded, running]);
 
   return (
     <>
-      <Script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js" crossOrigin="anonymous" />
+      <Script 
+        src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js" 
+        crossOrigin="anonymous" 
+        onLoad={() => setIsScriptLoaded(true)}
+      />
       <video ref={videoRef} className="hidden" playsInline autoPlay muted />
       <div className="absolute top-3 left-3 z-50 rounded-md bg-black/60 px-3 py-2 text-xs text-white">
         Face Counter: {running ? 'ON' : 'OFF'}
