@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { FaceDetection } from '@mediapipe/face_detection';
-import { Camera } from '@mediapipe/camera_utils';
+import { Camera } from '@mediapipe/camera_utils/camera_utils';
 import { doc, increment, serverTimestamp, setDoc, addDoc, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
