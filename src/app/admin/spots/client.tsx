@@ -24,7 +24,7 @@ export default function SpotsClient({ caves }: { caves: Cave[] }) {
   const { toast } = useToast();
 
   const spotsQuery = useMemo(() => collection(db, 'spots'), []);
-  const { data: spots = [], loading: spotsLoading } = useCollection<Spot>(spotsQuery);
+  const { data: spots, loading: spotsLoading } = useCollection<Spot>(spotsQuery);
 
 
   const handleFormSuccess = (spot: Spot) => {
@@ -61,6 +61,9 @@ export default function SpotsClient({ caves }: { caves: Cave[] }) {
   };
 
   const filteredSpots = useMemo(() => {
+    if (!spots) {
+      return [];
+    }
     const spotsToSort = [...spots];
     if (filterCaveId === 'all') {
       return spotsToSort.sort((a, b) => a.order - b.order);
