@@ -10,7 +10,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Konfigurasi server tidak lengkap." }, { status: 500 });
   }
   
-  const { text, voice = 'onyx' } = await req.json(); // voice is kept for compatibility but not used by Gemini TTS model
+  let body;
+  try {
+    body = await req.json();
+  } catch (e) {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const { text, voice = 'onyx' } = body; // voice is kept for compatibility but not used by Gemini TTS model
 
   if (!text) {
      return NextResponse.json({ error: "Text is required." }, { status: 400 });
