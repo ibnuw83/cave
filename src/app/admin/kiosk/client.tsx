@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -53,6 +53,16 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
   const availableSpots = useMemo(() => {
     return initialSpots.filter(spot => spot.caveId === watchCaveId);
   }, [watchCaveId, initialSpots]);
+  
+  useEffect(() => {
+    // When the selected cave changes, reset the playlist and remove spots that don't belong to the new cave.
+    const currentPlaylist = form.getValues('playlist');
+    const spotsInNewCave = new Set(availableSpots.map(s => s.id));
+    const newPlaylist = currentPlaylist.filter(p => spotsInNewCave.has(p.spotId));
+    form.setValue('playlist', newPlaylist, { shouldValidate: true });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchCaveId, availableSpots]);
+  
 
   const onSubmit = async (values: KioskSettingsFormValues) => {
     try {
@@ -97,8 +107,6 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
                   <FormLabel>Pilih Gua</FormLabel>
                   <Select onValueChange={(value) => {
                       field.onChange(value);
-                      // Clear playlist when cave changes
-                      form.setValue('playlist', []);
                   }} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -126,9 +134,9 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
                    <Controller
                       control={form.control}
                       name={`playlist.${index}.spotId`}
-                      render={({ field }) => (
+                      render={({ field: controllerField }) => (
                         <FormItem className="flex-grow">
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={controllerField.onChange} value={controllerField.value}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Pilih spot..." />
@@ -142,6 +150,7 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
                               ))}
                             </SelectContent>
                           </Select>
+                           <FormMessage />
                         </FormItem>
                       )}
                     />
