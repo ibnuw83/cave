@@ -1,9 +1,12 @@
+
 import {
     getAuth,
-    getFirestore,
     connectAuthEmulator,
-    connectFirestoreEmulator,
 } from 'firebase/auth';
+import {
+    getFirestore,
+    connectFirestoreEmulator,
+} from 'firebase/firestore';
 import { initializeApp, getApp, getApps, FirebaseApp } from 'firebase/app';
 
 // This import is needed to initialize the permission error listener
