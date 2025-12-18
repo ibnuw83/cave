@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { text, voice = 'onyx' } = body; // voice is kept for compatibility but not used by Gemini TTS model
+  const { text } = body;
 
   if (!text) {
      return NextResponse.json({ error: "Text is required." }, { status: 400 });
@@ -46,9 +46,17 @@ export async function POST(req: Request) {
     });
 
     if (!r.ok) {
-      const msg = await r.json();
-      console.error("Gemini TTS API Error:", msg);
-      return NextResponse.json({ error: "Failed to generate audio from Gemini.", details: msg }, { status: r.status });
+      // Safely read error as text first. It could be JSON, or it could be plain text.
+      const errorText = await r.text();
+      let errorJson = {};
+      try {
+        errorJson = JSON.parse(errorText);
+      } catch (e) {
+        // Not a JSON error, use the raw text
+        errorJson = { error: "Failed to generate audio from Gemini.", details: errorText };
+      }
+      console.error("Gemini TTS API Error:", errorJson);
+      return NextResponse.json(errorJson, { status: r.status });
     }
 
     const responseData = await r.json();
