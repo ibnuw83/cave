@@ -46,7 +46,7 @@ export async function createUserProfile(user: User): Promise<UserProfile> {
   } catch(error: any) {
       if (error.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
-                path: `users/${user.uid}`,
+                path: `/users/${user.uid}`,
                 operation: 'create',
                 requestResourceData: userProfileData,
             });
@@ -74,7 +74,7 @@ export async function updateUserRole(uid: string, role: 'free' | 'pro' | 'admin'
   } catch (error: any) {
     if (error.code === 'permission-denied') {
         const permissionError = new FirestorePermissionError({
-            path: `users/${uid}`,
+            path: `/users/${uid}`,
             operation: 'update',
             requestResourceData: { role },
         });
@@ -111,7 +111,7 @@ export async function addCave(caveData: Omit<Cave, 'id'>): Promise<string> {
     } catch(error: any) {
         if (error.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
-                path: 'caves',
+                path: '/caves',
                 operation: 'create',
                 requestResourceData: caveData,
             });
@@ -132,7 +132,7 @@ export async function updateCave(id: string, caveData: Partial<Omit<Cave, 'id'>>
     } catch(error: any) {
         if (error.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
-                path: `caves/${id}`,
+                path: `/caves/${id}`,
                 operation: 'update',
                 requestResourceData: caveData,
             });
@@ -159,7 +159,7 @@ export async function deleteCave(id: string): Promise<void> {
   } catch (error: any) {
       if (error.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
-                path: `batch write (delete cave: ${id})`,
+                path: `/batch write (delete cave: ${id})`,
                 operation: 'delete',
             });
             errorEmitter.emit('permission-error', permissionError);
@@ -205,7 +205,7 @@ export async function addSpot(spotData: Omit<Spot, 'id'>): Promise<string> {
   } catch (error: any) {
     if (error.code === 'permission-denied') {
         const permissionError = new FirestorePermissionError({
-            path: 'spots',
+            path: '/spots',
             operation: 'create',
             requestResourceData: spotData,
         });
@@ -224,7 +224,7 @@ export async function updateSpot(id: string, spotData: Partial<Omit<Spot, 'id'>>
   } catch (error: any) {
     if (error.code === 'permission-denied') {
         const permissionError = new FirestorePermissionError({
-            path: `spots/${id}`,
+            path: `/spots/${id}`,
             operation: 'update',
             requestResourceData: spotData,
         });
@@ -242,7 +242,7 @@ export async function deleteSpot(id: string) {
   } catch (error: any) {
     if (error.code === 'permission-denied') {
         const permissionError = new FirestorePermissionError({
-            path: `spots/${id}`,
+            path: `/spots/${id}`,
             operation: 'delete',
         });
         errorEmitter.emit('permission-error', permissionError);
@@ -272,7 +272,7 @@ export async function saveKioskSettings(settings: Omit<KioskSettings, 'id'>) {
     } catch (error: any) {
         if (error.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
-                path: 'kioskSettings/main',
+                path: '/kioskSettings/main',
                 operation: 'update',
                 requestResourceData: settings,
             });
