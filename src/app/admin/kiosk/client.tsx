@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -21,7 +20,10 @@ const kioskSettingsSchema = z.object({
   playlist: z.array(z.object({
     spotId: z.string().min(1, 'Spot harus dipilih.'),
     duration: z.coerce.number().min(5, 'Durasi minimal 5 detik.'),
-  })).min(1, 'Minimal harus ada 1 spot di playlist.'),
+  })).min(1, 'Minimal harus ada 1 spot di playlist.').refine(
+    (items) => new Set(items.map(i => i.spotId)).size === items.length,
+    { message: 'Spot tidak boleh duplikat dalam playlist.' }
+  ),
 });
 
 type KioskSettingsFormValues = z.infer<typeof kioskSettingsSchema>;
