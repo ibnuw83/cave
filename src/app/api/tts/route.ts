@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 
 // This function now uses the Google AI Studio Text-to-Speech API (Gemini)
+// and robustly handles different response types.
 export async function POST(req: Request) {
   if (!process.env.GEMINI_API_KEY) {
     console.error("GEMINI_API_KEY is not set.");
@@ -24,47 +25,54 @@ export async function POST(req: Request) {
   }
 
   try {
-    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/text:synthesizeSpeech', {
+    const ttsRes = await fetch('https://generativelanguage.googleapis.com/v1beta/text:synthesizeSpeech', {
       method: 'POST',
       headers: {
         'x-goog-api-key': process.env.GEMINI_API_KEY!,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        "input": {
-          "text": text
-        },
-        "voice": {
-          "languageCode": "id-ID",
-          // Other voices can be found in the Gemini API documentation
-          // e.g., "name": "id-ID-Standard-A"
-        },
-        "audioConfig": {
-          "audioEncoding": "MP3"
-        }
+        "input": { "text": text },
+        "voice": { "languageCode": "id-ID" },
+        "audioConfig": { "audioEncoding": "MP3" }
       }),
     });
 
-    if (!r.ok) {
-      // Safely read error as text first. It could be JSON, or it could be plain text.
-      const errorText = await r.text();
-      let errorJson = {};
-      try {
-        errorJson = JSON.parse(errorText);
-      } catch (e) {
-        // Not a JSON error, use the raw text
-        errorJson = { error: "Failed to generate audio from Gemini.", details: errorText };
-      }
-      console.error("Gemini TTS API Error:", errorJson);
-      return NextResponse.json(errorJson, { status: r.status });
+    // Handle non-OK responses first
+    if (!ttsRes.ok) {
+        let errorBody = { error: `TTS API failed with status ${ttsRes.status}`, details: '' };
+        try {
+            // Gemini usually sends JSON errors
+            const errorJson = await ttsRes.json();
+            errorBody.details = errorJson.error?.message || 'No details provided.';
+        } catch (e) {
+            // If parsing JSON fails, read as text
+            errorBody.details = await ttsRes.text();
+        }
+        console.error("Gemini TTS API Error:", errorBody);
+        return NextResponse.json(errorBody, { status: ttsRes.status });
     }
 
-    const responseData = await r.json();
-    const audioBuffer = Buffer.from(responseData.audioContent, 'base64');
+    // Handle successful responses
+    const contentType = ttsRes.headers.get('content-type') || '';
     
-    return new NextResponse(audioBuffer, {
-      headers: { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'no-store' },
-    });
+    // The Gemini TTS API for MP3 returns JSON with base64 audio content.
+    if (contentType.includes('application/json')) {
+        const jsonResponse = await ttsRes.json();
+        if (jsonResponse.audioContent) {
+            const audioBuffer = Buffer.from(jsonResponse.audioContent, 'base64');
+            return new NextResponse(audioBuffer, {
+                status: 200,
+                headers: { 
+                    'Content-Type': 'audio/mpeg',
+                    'Cache-Control': 'no-store' 
+                },
+            });
+        }
+    }
+
+    // Fallback if the response is not as expected
+    return NextResponse.json({ error: 'TTS API returned an unexpected response format.' }, { status: 502 });
 
   } catch (error: any) {
     console.error("Internal error in TTS route:", error);
