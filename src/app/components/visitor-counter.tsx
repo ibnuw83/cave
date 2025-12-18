@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -113,7 +112,9 @@ export default function VisitorCounter({
       if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
       }
-      faceDetectionRef.current?.close();
+      try {
+        faceDetectionRef.current?.close();
+      } catch {}
     };
   }, [enabled, cooldownMs, kioskId]);
 
