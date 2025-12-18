@@ -140,9 +140,19 @@ export default function VisitorCounter({
         crossOrigin="anonymous" 
         onLoad={() => setIsScriptLoaded(true)}
       />
-      <video ref={videoRef} className="hidden" playsInline autoPlay muted />
-      <div className="absolute top-3 left-3 z-50 rounded-md bg-black/60 px-3 py-2 text-xs text-white">
-        Face Counter: {running ? 'ON' : 'OFF'}
+      <div className="absolute top-3 left-3 z-50 h-24 w-32 overflow-hidden rounded-md border-2 border-white/20 bg-black shadow-lg">
+        <video 
+          ref={videoRef} 
+          className="h-full w-full object-cover" 
+          playsInline 
+          autoPlay 
+          muted 
+        />
+         {!running && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-white text-xs">
+                Kamera nonaktif
+            </div>
+        )}
       </div>
     </>
   );
