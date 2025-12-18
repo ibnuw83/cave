@@ -11,19 +11,29 @@ const CAVE_DATA_KEY_PREFIX = 'cave-data-';
 const getCaveDataKey = (caveId: string) => `${CAVE_DATA_KEY_PREFIX}${caveId}`;
 
 /**
- * Caches multiple files.
+ * Caches multiple files individually.
  * @param urls Array of URLs to cache.
  */
 async function cacheFiles(urls: string[]): Promise<void> {
-  try {
     const cache = await caches.open(CACHE_NAME);
     const validUrls = urls.filter(url => url && typeof url === 'string');
-    await cache.addAll(validUrls);
-  } catch (error) {
-    console.error('Failed to cache files:', error);
-    // Don't re-throw, as some files might fail but others succeed (e.g., optional audio)
-  }
+
+    for (const url of validUrls) {
+        try {
+            // Use no-cors mode to allow caching cross-origin resources
+            // even if they don't have perfect CORS headers. This is safe
+            // for opaque resources like images and audio where we don't
+            // need to read the content directly in our code.
+            const request = new Request(url, { mode: 'no-cors' });
+            const response = await fetch(request);
+            await cache.put(url, response);
+        } catch (error) {
+            console.warn(`Failed to cache individual file: ${url}`, error);
+            // Continue to the next file instead of failing the whole operation
+        }
+    }
 }
+
 
 // --- Public API for Offline Management ---
 
