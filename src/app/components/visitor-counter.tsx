@@ -1,7 +1,7 @@
+
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { FaceDetection } from '@mediapipe/face_detection';
 import { doc, increment, serverTimestamp, setDoc, addDoc, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { errorEmitter } from '@/lib/error-emitter';
@@ -22,8 +22,8 @@ export default function VisitorCounter({
   cooldownMs?: number;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const faceDetectionRef = useRef<any | null>(null);
   const animationFrameId = useRef<number | null>(null);
-  const faceDetectionRef = useRef<FaceDetection | null>(null);
   const lastCountRef = useRef<number>(0);
   const [running, setRunning] = useState(false);
 
@@ -35,6 +35,12 @@ export default function VisitorCounter({
     async function start() {
       const videoEl = videoRef.current;
       if (!videoEl) return;
+      
+      const FaceDetection = (window as any).FaceDetection;
+      if (!FaceDetection) {
+        console.error("FaceDetection not available on window. Please check MediaPipe script loading.");
+        return;
+      }
 
       const faceDetection = new FaceDetection({
         locateFile: (file: any) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`,
