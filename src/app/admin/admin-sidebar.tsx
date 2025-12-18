@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { Mountain, MapPin, Users, Home, LogOut, ArrowLeft, Airplay } from 'lucide-react';
 
 
-function AdminNavLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
+function AdminNavLink({ href, icon, label, color, activeColor }: { href: string; icon: React.ReactNode; label: string; color: string; activeColor: string; }) {
   const pathname = usePathname();
   const isActive = pathname === href;
   
@@ -18,7 +18,7 @@ function AdminNavLink({ href, icon, label }: { href: string; icon: React.ReactNo
       href={href}
       className={cn(
         'flex flex-col items-center justify-center rounded-md p-2 text-xs font-medium transition-colors md:flex-row md:justify-start md:gap-3 md:text-sm md:px-3 md:py-2',
-        isActive ? 'bg-primary/20 text-primary border border-primary/20' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+        isActive ? `bg-primary/20 ${activeColor} border border-primary/20` : `${color} hover:bg-muted/50 hover:text-foreground`
       )}
     >
       {icon}
@@ -46,11 +46,11 @@ export default function AdminSidebar() {
       </div>
 
       <nav className="grid grid-cols-5 gap-1 md:flex md:flex-col md:gap-1 md:p-4">
-        <AdminNavLink href="/admin" icon={<Home />} label="Dashboard" />
-        <AdminNavLink href="/admin/caves" icon={<Mountain />} label="Gua" />
-        <AdminNavLink href="/admin/spots" icon={<MapPin />} label="Spot" />
-        <AdminNavLink href="/admin/users" icon={<Users />} label="Pengguna" />
-        <AdminNavLink href="/admin/kiosk" icon={<Airplay />} label="Kios" />
+        <AdminNavLink href="/admin" icon={<Home />} label="Dashboard" color="text-sky-400" activeColor="text-sky-300" />
+        <AdminNavLink href="/admin/caves" icon={<Mountain />} label="Gua" color="text-amber-400" activeColor="text-amber-300" />
+        <AdminNavLink href="/admin/spots" icon={<MapPin />} label="Spot" color="text-rose-400" activeColor="text-rose-300" />
+        <AdminNavLink href="/admin/users" icon={<Users />} label="Pengguna" color="text-emerald-400" activeColor="text-emerald-300" />
+        <AdminNavLink href="/admin/kiosk" icon={<Airplay />} label="Kios" color="text-violet-400" activeColor="text-violet-300" />
       </nav>
 
       <div className="hidden md:block mt-auto p-4 border-t">
