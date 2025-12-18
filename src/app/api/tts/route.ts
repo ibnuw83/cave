@@ -31,16 +31,14 @@ export async function POST(req: Request) {
   }
 
   try {
-    // Correct URL for Gemini TTS API
+    // Correct URL for Gemini TTS API with API key in the query string
     const ttsUrl =
-      'https://generativelanguage.googleapis.com/v1beta/text:synthesizeSpeech';
+      `https://generativelanguage.googleapis.com/v1beta/text:synthesizeSpeech?key=${geminiApiKey}`;
 
     const ttsRes = await fetch(ttsUrl, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        // API key should be in the header, not the URL
-        'x-goog-api-key': geminiApiKey,
       },
       body: JSON.stringify({
         input: { text },
