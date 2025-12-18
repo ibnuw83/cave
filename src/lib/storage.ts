@@ -1,6 +1,6 @@
 
 import { storage } from '@/lib/firebase';
-import { ref, uploadBytesResumable, getDownloadURL, UploadTask, uploadBytes } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL, UploadTask } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 
 export type UploadProgress = {
@@ -20,7 +20,14 @@ export const useFileUpload = () => {
     ): Promise<string> => {
 
         // --- Validation ---
-        if (!allowedTypes.some(type => file.type.startsWith(type) || allowedTypes.includes(file.type))) {
+        const fileTypeMatch = allowedTypes.some(type => {
+            if (type.endsWith('/*')) {
+                return file.type.startsWith(type.slice(0, -1));
+            }
+            return file.type === type;
+        });
+
+        if (!fileTypeMatch) {
             const errorMsg = `Tipe file tidak valid. Hanya menerima: ${allowedTypes.join(', ')}`;
             toast({ variant: 'destructive', title: 'Upload Gagal', description: errorMsg });
             throw new Error(errorMsg);
@@ -34,24 +41,7 @@ export const useFileUpload = () => {
 
         const storageRef = ref(storage, path);
         
-        // --- Simplified Upload for Images ---
-        const isImage = file.type.startsWith('image/');
-        if (isImage) {
-            try {
-                onProgress({ progress: 50, state: 'running' }); // Show initial progress
-                const snapshot = await uploadBytes(storageRef, file);
-                const downloadURL = await getDownloadURL(snapshot.ref);
-                onProgress({ progress: 100, state: 'success' });
-                return downloadURL;
-            } catch(error: any) {
-                console.error("Image upload error:", error);
-                toast({ variant: 'destructive', title: 'Upload Gagal', description: 'Gagal mengunggah gambar.' });
-                throw error;
-            }
-        }
-
-
-        // --- Resumable Upload for Other File Types (e.g., Audio) ---
+        // --- Resumable Upload for All File Types ---
         return new Promise((resolve, reject) => {
             const uploadTask: UploadTask = uploadBytesResumable(storageRef, file);
 
@@ -65,7 +55,7 @@ export const useFileUpload = () => {
                     let description = 'Terjadi kesalahan saat mengupload file.';
                     switch (error.code) {
                         case 'storage/unauthorized':
-                            description = 'Anda tidak memiliki izin untuk mengupload file.';
+                            description = 'Anda tidak memiliki izin untuk mengupload file. Pastikan Anda adalah admin.';
                             break;
                         case 'storage/canceled':
                             description = 'Upload dibatalkan.';
