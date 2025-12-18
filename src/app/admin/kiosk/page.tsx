@@ -1,14 +1,11 @@
 
-import { getCaves, getKioskSettings } from "@/lib/firestore";
+import { getCaves } from "@/lib/firestore";
 import KioskClient from "./client";
 
 export default async function KioskSettingsPage() {
-  // Fetch all necessary data in parallel
-  // Spots are now fetched client-side in KioskClient
-  const [caves, kioskSettings] = await Promise.all([
-    getCaves(true),      // include inactive caves for selection
-    getKioskSettings()
-  ]);
+  // Fetch only the caves data server-side.
+  // Kiosk settings and spots will now be fetched client-side in real-time.
+  const caves = await getCaves(true);
 
   return (
     <div className="p-4 md:p-8">
@@ -19,7 +16,6 @@ export default async function KioskSettingsPage() {
       <div className="space-y-8">
         <KioskClient 
           initialCaves={caves}
-          initialSettings={kioskSettings}
         />
       </div>
     </div>

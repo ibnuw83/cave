@@ -18,9 +18,10 @@ import { saveKioskSettings } from '@/lib/firestore';
 import Link from 'next/link';
 import { isCaveAvailableOffline, saveCaveForOffline } from '@/lib/offline';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useCollection } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useCollection, useDoc } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Schema untuk pengaturan global
 const globalSettingsSchema = z.object({
@@ -46,33 +47,50 @@ type PlaylistSettingsFormValues = z.infer<typeof playlistSettingsSchema>;
 
 interface KioskClientProps {
   initialCaves: Cave[];
-  initialSettings: KioskSettings | null;
 }
 
-export default function KioskClient({ initialCaves, initialSettings }: KioskClientProps) {
+export default function KioskClient({ initialCaves }: KioskClientProps) {
   const { toast } = useToast();
   const [isOffline, setIsOffline] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
+  // Real-time data fetching
   const spotsQuery = useMemo(() => collection(db, 'spots'), []);
   const { data: spots, loading: spotsLoading } = useCollection<Spot>(spotsQuery);
+  const settingsRef = useMemo(() => doc(db, 'kioskSettings', 'main'), []);
+  const { data: kioskSettings, loading: settingsLoading } = useDoc<KioskSettings>(settingsRef);
   
   const globalForm = useForm<GlobalSettingsFormValues>({
     resolver: zodResolver(globalSettingsSchema),
     defaultValues: {
-      logoUrl: initialSettings?.logoUrl || '',
-      mode: initialSettings?.mode || 'loop',
-      exitPin: initialSettings?.exitPin || '1234',
+      logoUrl: '',
+      mode: 'loop',
+      exitPin: '1234',
     },
   });
 
   const playlistForm = useForm<PlaylistSettingsFormValues>({
     resolver: zodResolver(playlistSettingsSchema),
     defaultValues: {
-      caveId: initialSettings?.caveId || '',
-      playlist: initialSettings?.playlist || [],
+      caveId: '',
+      playlist: [],
     },
   });
+  
+  // Effect to sync Firestore data with form state
+  useEffect(() => {
+    if (kioskSettings) {
+        globalForm.reset({
+            logoUrl: kioskSettings.logoUrl || '',
+            mode: kioskSettings.mode || 'loop',
+            exitPin: kioskSettings.exitPin || '1234',
+        });
+        playlistForm.reset({
+            caveId: kioskSettings.caveId || '',
+            playlist: kioskSettings.playlist || [],
+        });
+    }
+  }, [kioskSettings, globalForm, playlistForm]);
 
   const { fields, append, remove } = useFieldArray({
     control: playlistForm.control,
@@ -154,6 +172,15 @@ export default function KioskClient({ initialCaves, initialSettings }: KioskClie
 
   const isGlobalSubmitting = globalForm.formState.isSubmitting;
   const isPlaylistSubmitting = playlistForm.formState.isSubmitting;
+  
+  if (settingsLoading) {
+    return (
+      <div className="space-y-8">
+        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -188,7 +215,7 @@ export default function KioskClient({ initialCaves, initialSettings }: KioskClie
                           <FormControl>
                               <RadioGroup
                               onValueChange={field.onChange}
-                              defaultValue={field.value}
+                              value={field.value}
                               className="flex flex-col space-y-1"
                               >
                               <FormItem className="flex items-center space-x-3 space-y-0">
@@ -283,7 +310,7 @@ export default function KioskClient({ initialCaves, initialSettings }: KioskClie
                         field.onChange(value);
                         playlistForm.setValue('playlist', []); 
                         }} 
-                        defaultValue={field.value}
+                        value={field.value}
                     >
                         <FormControl>
                         <SelectTrigger>
@@ -378,5 +405,3 @@ export default function KioskClient({ initialCaves, initialSettings }: KioskClie
     </>
   );
 }
-
-    
