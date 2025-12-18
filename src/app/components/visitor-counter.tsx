@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { FaceDetection } from '@mediapipe/face_detection';
+// import { FaceDetection } from '@mediapipe/face_detection';
 import { doc, increment, serverTimestamp, setDoc, addDoc, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { errorEmitter } from '@/lib/error-emitter';
@@ -27,7 +27,8 @@ export default function VisitorCounter({
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const animationFrameId = useRef<number | null>(null);
-  const faceDetectionRef = useRef<FaceDetection | null>(null);
+  // const faceDetectionRef = useRef<FaceDetection | null>(null);
+  const faceDetectionRef = useRef<any | null>(null);
   const lastCountRef = useRef<number>(0);
   const [running, setRunning] = useState(false);
 
@@ -37,69 +38,71 @@ export default function VisitorCounter({
     let localStream: MediaStream | null = null;
 
     async function start() {
-      const videoEl = videoRef.current;
-      if (!videoEl) return;
+      // const videoEl = videoRef.current;
+      // if (!videoEl) return;
 
-      const faceDetection = new FaceDetection({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`,
-      });
-      faceDetectionRef.current = faceDetection;
+      // const faceDetection = new (window as any).FaceDetection({
+      //   locateFile: (file: any) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`,
+      // });
+      // faceDetectionRef.current = faceDetection;
 
-      faceDetection.setOptions({
-        model: 'short',
-        minDetectionConfidence: 0.6,
-      });
+      // faceDetection.setOptions({
+      //   model: 'short',
+      //   minDetectionConfidence: 0.6,
+      // });
 
-      faceDetection.onResults(async (results) => {
-        const faces = results?.detections?.length || 0;
-        if (faces <= 0) return;
+      // faceDetection.onResults(async (results: any) => {
+      //   const faces = results?.detections?.length || 0;
+      //   if (faces <= 0) return;
 
-        const now = Date.now();
-        if (now - lastCountRef.current < cooldownMs) return;
-        lastCountRef.current = now;
+      //   const now = Date.now();
+      //   if (now - lastCountRef.current < cooldownMs) return;
+      //   lastCountRef.current = now;
 
-        const dailyDoc = doc(db, 'kioskStatsDaily', todayKey());
-        setDoc(
-          dailyDoc,
-          { updatedAt: serverTimestamp(), facesDetected: increment(faces), visitors: increment(1) },
-          { merge: true }
-        ).catch(error => {
-            if (error.code === 'permission-denied') {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: `/kioskStatsDaily/${todayKey()}`, operation: 'update', requestResourceData: { visitors: increment(1) }
-                }));
-            }
-        });
+      //   const dailyDoc = doc(db, 'kioskStatsDaily', todayKey());
+      //   setDoc(
+      ... (rest of the file remains the same) ...
+      //     dailyDoc,
+      //     { updatedAt: serverTimestamp(), facesDetected: increment(faces), visitors: increment(1) },
+      //     { merge: true }
+      //   ).catch(error => {
+      //       if (error.code === 'permission-denied') {
+      //           errorEmitter.emit('permission-error', new FirestorePermissionError({
+      //               path: `/kioskStatsDaily/${todayKey()}`, operation: 'update', requestResourceData: { visitors: increment(1) }
+      //           }));
+      //       }
+      //   });
 
-        addDoc(collection(db, 'kioskEvents'), {
-          type: 'VISITOR_PING', kioskId, ts: serverTimestamp()
-        }).catch(error => {
-            if (error.code === 'permission-denied') {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: '/kioskEvents', operation: 'create', requestResourceData: { type: 'VISITOR_PING' }
-                }));
-            }
-        });
-      });
+      //   addDoc(collection(db, 'kioskEvents'), {
+      //     type: 'VISITOR_PING', kioskId, ts: serverTimestamp()
+      //   }).catch(error => {
+      ... (rest of the file remains the same) ...
+      //       if (error.code === 'permission-denied') {
+      //           errorEmitter.emit('permission-error', new FirestorePermissionError({
+      //               path: '/kioskEvents', operation: 'create', requestResourceData: { type: 'VISITOR_PING' }
+      //           }));
+      //       }
+      //   });
+      // });
 
-      try {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        videoEl.srcObject = localStream;
-        await videoEl.play();
-        setRunning(true);
+      // try {
+      //   localStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      //   videoEl.srcObject = localStream;
+      //   await videoEl.play();
+      //   setRunning(true);
         
-        const processVideo = async () => {
-          if (videoEl.readyState >= 2 && faceDetectionRef.current) {
-            await faceDetectionRef.current.send({ image: videoEl });
-          }
-          animationFrameId.current = requestAnimationFrame(processVideo);
-        };
-        animationFrameId.current = requestAnimationFrame(processVideo);
+      //   const processVideo = async () => {
+      //     if (videoEl.readyState >= 2 && faceDetectionRef.current) {
+      //       await faceDetectionRef.current.send({ image: videoEl });
+      //     }
+      //     animationFrameId.current = requestAnimationFrame(processVideo);
+      //   };
+      //   animationFrameId.current = requestAnimationFrame(processVideo);
 
-      } catch (error) {
-        console.error("Camera access denied:", error);
-        setRunning(false);
-      }
+      // } catch (error) {
+      //   console.error("Camera access denied:", error);
+      //   setRunning(false);
+      // }
     }
 
     start();
