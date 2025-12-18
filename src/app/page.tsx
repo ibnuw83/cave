@@ -1,87 +1,114 @@
+
 'use server';
 
-import ClientHomePage from '@/app/client-home-page';
+import HomeClient from '@/app/components/home-client';
 import { getCaves, addCave, addSpot } from '@/lib/firestore';
+import { Cave, Spot } from '@/lib/types';
+import { collection, getDocs, writeBatch } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import placeholderImages from '@/lib/placeholder-images.json';
 
 async function seedData() {
-  const caves = await getCaves(true);
-  if (caves.length > 0) {
-    console.log('Data sudah ada, seeding tidak diperlukan.');
-    return;
-  }
+    const cavesRef = collection(db, 'caves');
+    const existingCavesSnap = await getDocs(cavesRef);
 
-  console.log('Database kosong, membuat data contoh...');
-
-  try {
-    // 1. Buat Gua Jomblang
-    const jomblangId = await addCave({
-      name: 'Gua Jomblang',
-      description: 'Gua vertikal dengan cahaya surgawi yang menakjubkan di Gunungkidul.',
-      coverImage: 'https://images.unsplash.com/photo-1531874993088-51b60dda4452?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjYXZlJTIwbGlnaHR8ZW58MHx8fHwxNzY1OTc3NTIyfDA&ixlib=rb-4.1.0&q=80&w=1080',
-      isActive: true,
-    });
-
-    await addSpot({
-      caveId: jomblangId,
-      order: 1,
-      title: 'Cahaya dari Surga',
-      description: 'Sinar matahari yang menerobos masuk ke dalam gua, menciptakan pemandangan magis.',
-      imageUrl: 'https://images.unsplash.com/photo-1531874993088-51b60dda4452?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjYXZlJTIwbGlnaHR8ZW58MHx8fHwxNzY1OTc3NTIyfDA&ixlib=rb-4.1.0&q=80&w=1080',
-      isPro: false,
-      effects: {},
-    });
-     await addSpot({
-      caveId: jomblangId,
-      order: 2,
-      title: 'Hutan Purba',
-      description: 'Hutan dengan vegetasi purba yang tumbuh subur di dasar gua.',
-      imageUrl: 'https://images.unsplash.com/photo-1731400185777-6a4107598b7c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxtdWRkeSUyMHBhdGh8ZW58MHx8fHwxNzY1OTc3NTIyfDA&ixlib=rb-4.1.0&q=80&w=1080',
-      isPro: true,
-      effects: {},
-    });
-
-    // 2. Buat Gua Gong
-    const gongId = await addCave({
-      name: 'Gua Gong',
-      description: 'Salah satu gua terindah di Asia Tenggara dengan stalaktit dan stalagmit yang memukau.',
-      coverImage: 'https://images.unsplash.com/photo-1568809957712-6ae80d87e533?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxzdGFsYWN0aXRlJTIwY2F2ZXxlbnwwfHx8fDE3NjU5Nzc1MjJ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      isActive: true,
-    });
+    if (!existingCavesSnap.empty) {
+        console.log("Data sudah ada, seeding tidak diperlukan.");
+        return;
+    }
     
-    await addSpot({
-      caveId: gongId,
-      order: 1,
-      title: 'Ruang Kristal',
-      description: 'Jelajahi keindahan formasi kristal yang berkilauan di dalam gua.',
-      imageUrl: 'https://images.unsplash.com/photo-1684391706941-36813d87efe6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8c3RhbGFjdGl0ZSUyMGNsb3NldXB8ZW58MHx8fHwxNzY1OTc3NTIxfDA&ixlib=rb-4.1.0&q=80&w=1080',
-      isPro: false,
-      effects: {},
+    console.log("Belum ada data, memulai proses seeding...");
+
+    const batch = writeBatch(db);
+
+    const jomblangImage = placeholderImages.placeholderImages.find(p => p.id === 'cave-jomblang-cover')?.imageUrl || '';
+    const gongImage = placeholderImages.placeholderImages.find(p => p.id === 'cave-gong-cover')?.imageUrl || '';
+
+    const jomblangLightImage = placeholderImages.placeholderImages.find(p => p.id === 'spot-jomblang-light')?.imageUrl || '';
+    const jomblangMudImage = placeholderImages.placeholderImages.find(p => p.id === 'spot-jomblang-mud')?.imageUrl || '';
+
+    const gongStalactiteImage = placeholderImages.placeholderImages.find(p => p.id === 'spot-gong-stalactite')?.imageUrl || '';
+    const gongPoolImage = placeholderImages.placeholderImages.find(p => p.id === 'spot-gong-pool')?.imageUrl || '';
+
+
+    // --- CAVES ---
+    const cavesToCreate: Omit<Cave, 'id'>[] = [
+        {
+            name: 'Gua Jomblang',
+            description: 'Gua vertikal dengan cahaya surga yang menakjubkan.',
+            coverImage: jomblangImage,
+            isActive: true,
+        },
+        {
+            name: 'Gua Gong',
+            description: 'Dijuluki sebagai gua terindah di Asia Tenggara.',
+            coverImage: gongImage,
+            isActive: true,
+        },
+    ];
+
+    const caveRefs = cavesToCreate.map(() => doc(collection(db, 'caves')));
+    
+    caveRefs.forEach((ref, i) => {
+        batch.set(ref, cavesToCreate[i]);
     });
 
-     await addSpot({
-      caveId: gongId,
-      order: 2,
-      title: 'Kolam Bidadari',
-      description: 'Kolam air jernih di dalam gua yang dipercaya memiliki khasiat.',
-      imageUrl: 'https://images.unsplash.com/photo-1646928987820-f5c2bed3872d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHx1bmRlcmdyb3VuZCUyMHBvb2x8ZW58MHx8fHwxNzY1OTc3NTIyfDA&ixlib=rb-4.1.0&q=80&w=1080',
-      isPro: true,
-      effects: {},
+    const jomblangCaveId = caveRefs[0].id;
+    const gongCaveId = caveRefs[1].id;
+
+    // --- SPOTS ---
+    const spotsToCreate: Omit<Spot, 'id'>[] = [
+        {
+            caveId: jomblangCaveId,
+            order: 1,
+            title: 'Cahaya dari Surga',
+            description: 'Sinar matahari yang masuk melalui lubang gua, menciptakan pemandangan magis.',
+            imageUrl: jomblangLightImage,
+            isPro: false,
+        },
+        {
+            caveId: jomblangCaveId,
+            order: 2,
+            title: 'Jalur Berlumpur',
+            description: 'Tantangan jalur berlumpur sebelum mencapai dasar gua.',
+            imageUrl: jomblangMudImage,
+            isPro: true,
+            effects: { vibrationPattern: [60, 40, 60] }
+        },
+        {
+            caveId: gongCaveId,
+            order: 1,
+            title: 'Stalaktit Raksasa',
+            description: 'Formasi batuan kapur yang menjulang dari langit-langit gua.',
+            imageUrl: gongStalactiteImage,
+            isPro: false,
+        },
+        {
+            caveId: gongCaveId,
+            order: 2,
+            title: 'Kolam Bawah Tanah',
+            description: 'Kolam air jernih yang terbentuk secara alami di dalam gua.',
+            imageUrl: gongPoolImage,
+            isPro: true,
+        }
+    ];
+
+    spotsToCreate.forEach(spot => {
+        const spotRef = doc(collection(db, 'spots'));
+        batch.set(spotRef, spot);
     });
 
-    console.log('Data contoh berhasil dibuat.');
-  } catch (error) {
-      // Kita tidak akan memunculkan error ke user jika seeding gagal,
-      // cukup log di console server.
-      console.error("Gagal membuat data contoh:", error);
-  }
+    try {
+        await batch.commit();
+        console.log("Seeding data contoh berhasil!");
+    } catch (error) {
+        console.error("Gagal melakukan seeding data:", error);
+    }
 }
 
 
 export default async function Home() {
-  // Panggil fungsi untuk membuat data contoh jika diperlukan.
-  // Ini hanya akan berjalan di server saat halaman dirender.
   await seedData();
-  
-  // HomeClient akan diambil datanya di dalam ClientHomePage
-  return <ClientHomePage />;
+  const caves = await getCaves(false);
+  return <HomeClient initialCaves={caves} />;
 }

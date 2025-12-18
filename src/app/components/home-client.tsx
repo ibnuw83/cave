@@ -22,7 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { clearOfflineCache } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
-import { getCaves, getKioskSettings } from '@/lib/firestore';
+import { getKioskSettings } from '@/lib/firestore';
 
 
 const AuthSection = () => {
@@ -109,24 +109,16 @@ const AuthSection = () => {
 };
 
 
-export default function HomeClient() {
+export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
   const { loading: authLoading } = useAuth();
-  const [caves, setCaves] = useState<Cave[]>([]);
   const [settings, setSettings] = useState<KioskSettings | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      const [fetchedCaves, fetchedSettings] = await Promise.all([
-        getCaves(false),
-        getKioskSettings()
-      ]);
-      setCaves(fetchedCaves);
+    async function fetchSettings() {
+      const fetchedSettings = await getKioskSettings();
       setSettings(fetchedSettings);
-      setLoading(false);
     }
-    fetchData();
+    fetchSettings();
   }, []);
   
   return (
@@ -147,15 +139,15 @@ export default function HomeClient() {
 
       <main>
         <h2 className="mb-6 text-xl font-semibold text-foreground/90 md:text-2xl">Gua yang Tersedia</h2>
-        {authLoading || loading ? (
+        {authLoading ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             <Skeleton className="h-64 w-full" />
             <Skeleton className="h-64 w-full" />
             <Skeleton className="h-64 w-full" />
           </div>
-        ) : caves.length > 0 ? (
+        ) : initialCaves.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {caves.map((cave) => (
+            {initialCaves.map((cave) => (
               <Link href={`/cave/${cave.id}`} key={cave.id} className="group">
                 <Card className="h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:scale-105">
                   <CardHeader className="p-0">
