@@ -13,14 +13,12 @@ import { Switch } from '@/components/ui/switch';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { FileUploader } from '@/components/ui/file-uploader';
 import { auth } from '@/lib/firebase';
-import { useState } from 'react';
 
 const caveSchema = z.object({
   name: z.string().min(1, { message: 'Nama gua tidak boleh kosong.' }),
   description: z.string().min(1, { message: 'Deskripsi tidak boleh kosong.' }),
-  coverImage: z.string().min(1, { message: 'Gambar cover harus diunggah.' }),
+  coverImage: z.string().url({ message: 'URL gambar tidak valid.' }),
   isActive: z.boolean(),
 });
 
@@ -34,7 +32,6 @@ interface CaveFormProps {
 
 export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
   const { toast } = useToast();
-  const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<CaveFormValues>({
     resolver: zodResolver(caveSchema),
@@ -47,18 +44,8 @@ export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
   });
   
   const isSubmitting = form.formState.isSubmitting;
-  const caveId = cave?.id || 'new_cave';
 
   const onSubmit = async (values: CaveFormValues) => {
-    if (isUploading) {
-        toast({
-            variant: 'destructive',
-            title: 'Harap Tunggu',
-            description: 'Mohon tunggu hingga proses unggah gambar selesai.',
-        });
-        return;
-    }
-
     if (!auth.currentUser) {
         toast({
             variant: 'destructive',
@@ -129,18 +116,10 @@ export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
             name="coverImage"
             render={({ field }) => (
               <FormItem>
-                 <FileUploader 
-                    label="Gambar Cover"
-                    filePath={`caves/${caveId}`}
-                    currentFileUrl={field.value}
-                    onUploadSuccess={(url) => {
-                        form.setValue('coverImage', url, { shouldValidate: true });
-                        toast({ title: 'Berhasil', description: 'Gambar cover telah diunggah.' });
-                    }}
-                    onUploadStateChange={setIsUploading}
-                    allowedTypes={['image/jpeg', 'image/png', 'image/webp', 'image/*']}
-                    maxSizeMB={5}
-                />
+                <FormLabel>URL Gambar Cover</FormLabel>
+                <FormControl>
+                  <Input placeholder="https://..." {...field} />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -166,12 +145,12 @@ export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
             )}
           />
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting || isUploading}>
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
               Batal
             </Button>
-            <Button type="submit" disabled={isSubmitting || isUploading}>
-              {(isSubmitting || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isUploading ? 'Mengunggah...' : (cave ? 'Simpan Perubahan' : 'Simpan Gua')}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {cave ? 'Simpan Perubahan' : 'Simpan Gua'}
             </Button>
           </div>
         </form>
