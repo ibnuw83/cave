@@ -17,6 +17,11 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserProfil
   const { user: currentUser } = useAuth();
 
   const handleRoleChange = async (uid: string, newRole: 'free' | 'pro' | 'admin') => {
+    const userToChange = users.find(u => u.uid === uid);
+    if (userToChange?.role === newRole) {
+      return; // Do nothing if role is not changed
+    }
+    
     if (currentUser?.uid === uid) {
       toast({
         variant: 'destructive',
