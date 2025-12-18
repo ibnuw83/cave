@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -8,13 +7,9 @@ import { db } from '@/lib/firebase';
 import { errorEmitter } from '@/lib/error-emitter';
 import { FirestorePermissionError } from '@/lib/errors';
 
-
 function todayKey() {
   const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+  return d.toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
 export default function VisitorCounter({
@@ -41,7 +36,7 @@ export default function VisitorCounter({
       const videoEl = videoRef.current;
       if (!videoEl) return;
 
-      const faceDetection = new (window as any).FaceDetection({
+      const faceDetection = new FaceDetection({
         locateFile: (file: any) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`,
       });
       faceDetectionRef.current = faceDetection;
@@ -58,11 +53,21 @@ export default function VisitorCounter({
         const now = Date.now();
         if (now - lastCountRef.current < cooldownMs) return;
         lastCountRef.current = now;
+        
+        const dailyStats = {
+            visitors: increment(1),
+            facesDetected: increment(faces),
+            updatedAt: serverTimestamp(),
+        };
+        const eventData = {
+          type: 'VISITOR_PING',
+          kioskId,
+          ts: serverTimestamp(),
+        };
 
-        const dailyDoc = doc(db, 'kioskStatsDaily', todayKey());
         setDoc(
-          dailyDoc,
-          { updatedAt: serverTimestamp(), facesDetected: increment(faces), visitors: increment(1) },
+          doc(db, 'kioskStatsDaily', todayKey()),
+          dailyStats,
           { merge: true }
         ).catch(error => {
             if (error.code === 'permission-denied') {
@@ -72,19 +77,17 @@ export default function VisitorCounter({
             }
         });
 
-        addDoc(collection(db, 'kioskEvents'), {
-          type: 'VISITOR_PING', kioskId, ts: serverTimestamp()
-        }).catch(error => {
+        addDoc(collection(db, 'kioskEvents'), eventData).catch(error => {
             if (error.code === 'permission-denied') {
                 errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: '/kioskEvents', operation: 'create', requestResourceData: { type: 'VISITOR_PING' }
+                    path: '/kioskEvents', operation: 'create', requestResourceData: eventData
                 }));
             }
         });
       });
 
       try {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
         videoEl.srcObject = localStream;
         await videoEl.play();
         setRunning(true);
@@ -98,7 +101,7 @@ export default function VisitorCounter({
         animationFrameId.current = requestAnimationFrame(processVideo);
 
       } catch (error) {
-        console.error("Camera access denied:", error);
+        console.error("Camera access denied or failed to start:", error);
         setRunning(false);
       }
     }
@@ -115,16 +118,18 @@ export default function VisitorCounter({
       }
       try {
         faceDetectionRef.current?.close();
-      } catch {}
+      } catch (e) {
+          // Silently ignore close errors
+      }
     };
   }, [enabled, cooldownMs, kioskId]);
 
   return (
-    <div className="absolute top-3 left-3 z-50">
+    <>
       <video ref={videoRef} className="hidden" playsInline autoPlay muted />
-      <div className="rounded-md bg-black/60 px-3 py-2 text-xs text-white">
-        VisitorCounter: {running ? 'ON' : 'OFF'}
+      <div className="absolute top-3 left-3 z-50 rounded-md bg-black/60 px-3 py-2 text-xs text-white">
+        Face Counter: {running ? 'ON' : 'OFF'}
       </div>
-    </div>
+    </>
   );
 }
