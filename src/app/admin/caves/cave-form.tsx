@@ -19,7 +19,7 @@ import { auth } from '@/lib/firebase';
 const caveSchema = z.object({
   name: z.string().min(1, { message: 'Nama gua tidak boleh kosong.' }),
   description: z.string().min(1, { message: 'Deskripsi tidak boleh kosong.' }),
-  coverImage: z.string().url({ message: 'URL gambar tidak valid.' }).min(1, { message: 'Gambar cover harus diunggah.' }),
+  coverImage: z.string().min(1, { message: 'Gambar cover harus diunggah.' }),
   isActive: z.boolean(),
 });
 
@@ -122,7 +122,7 @@ export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
                     filePath={`caves/${caveId}`}
                     currentFileUrl={field.value}
                     onUploadSuccess={(url) => {
-                        form.setValue('coverImage', url);
+                        form.setValue('coverImage', url, { shouldValidate: true });
                         toast({ title: 'Berhasil', description: 'Gambar cover telah diunggah.' });
                     }}
                     allowedTypes={['image/jpeg', 'image/png', 'image/webp']}
