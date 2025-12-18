@@ -1,8 +1,8 @@
-import { getCaves, getAllSpots } from "@/lib/firestore";
+import { getCaves } from "@/lib/firestore";
 import SpotsClient from "./client";
 
 export default async function SpotsPage() {
-  const spots = await getAllSpots();
+  // Spots will now be fetched on the client side in real-time
   const caves = await getCaves(true);
 
   return (
@@ -11,7 +11,7 @@ export default async function SpotsPage() {
         <h1 className="text-2xl md:text-3xl font-bold">Manajemen Spot</h1>
         <p className="text-muted-foreground">Kelola semua spot penjelajahan.</p>
       </header>
-      <SpotsClient initialSpots={spots} caves={caves} />
+      <SpotsClient caves={caves} />
     </div>
   );
 }

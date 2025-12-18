@@ -182,22 +182,17 @@ export async function getSpots(caveId: string): Promise<Spot[]> {
   try {
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Spot));
-  } catch(error) {
+  } catch(error: any) {
+    if (error.code === 'permission-denied') {
+        const permissionError = new FirestorePermissionError({
+            path: `/spots where caveId==${caveId}`,
+            operation: 'list',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    }
     console.error(`Error getting spots for cave ${caveId}:`, error);
     return [];
   }
-}
-
-export async function getAllSpots(): Promise<Spot[]> {
-    const spotsRef = collection(db, 'spots');
-    const q = query(spotsRef);
-    try {
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Spot));
-    } catch (error) {
-        console.error("Error getting all spots:", error);
-        return [];
-    }
 }
 
 export async function getSpot(id: string): Promise<Spot | null> {
@@ -207,7 +202,14 @@ export async function getSpot(id: string): Promise<Spot | null> {
     if (docSnap.exists()) {
         return { id: docSnap.id, ...docSnap.data() } as Spot;
     }
-  } catch(error) {
+  } catch(error: any) {
+      if (error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: `/spots/${id}`,
+                operation: 'get',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+      }
       console.error(`Error getting spot ${id}:`, error);
   }
   return null;
