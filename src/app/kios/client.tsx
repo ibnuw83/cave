@@ -128,6 +128,7 @@ export default function KiosClient({ settings }: { settings: KioskSettings }) {
     <KioskPlayer
         spots={spots}
         mode={settings.mode || 'loop'}
+        kioskId={settings.caveId || 'unknown_kiosk'}
       />
   );
 }

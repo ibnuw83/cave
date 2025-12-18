@@ -3,13 +3,15 @@
 
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { Spot, KioskSettings } from '@/lib/types';
+import VisitorCounter from '../components/visitor-counter';
 
 interface Props {
   spots: (Spot & { duration: number })[];
   mode: KioskSettings['mode'];
+  kioskId: string;
 }
 
-export default function KioskPlayer({ spots, mode }: Props) {
+export default function KioskPlayer({ spots, mode, kioskId }: Props) {
   const [index, setIndex] = useState(0);
   const timerRef = useRef<number | null>(null);
 
@@ -53,6 +55,7 @@ export default function KioskPlayer({ spots, mode }: Props) {
 
   return (
     <div className="h-screen w-screen bg-black relative overflow-hidden">
+      <VisitorCounter kioskId={kioskId} enabled={true} />
       <img
         src={current.imageUrl}
         className="absolute inset-0 w-full h-full object-cover"
