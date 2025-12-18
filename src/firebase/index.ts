@@ -1,6 +1,6 @@
 
 import { FirebaseApp } from 'firebase/app';
-import { db, auth as firebaseAuth, app } from '@/lib/firebase';
+import app, { db, auth as firebaseAuth } from '@/lib/firebase';
 
 // This import is needed to initialize the permission error listener
 import '@/lib/permission-toast';
