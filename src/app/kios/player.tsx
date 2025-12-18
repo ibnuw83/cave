@@ -3,11 +3,11 @@
 import { Cave, Spot, KioskSettings } from '@/lib/types';
 import { useKioskPlayer, type KioskMode } from '@/hooks/use-kiosk-player';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import ExitPin from './exit-pin';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { Pause, Play, SkipBack, SkipForward, Volume2, VolumeX, Maximize, Minimize, LockKeyhole } from 'lucide-react';
+import { GyroViewer } from '@/app/components/gyro-viewer';
 
 
 type PlaylistItem = { spotId: string; duration: number };
@@ -127,12 +127,8 @@ a.load();
   return (
     <div className={cn('relative w-full h-[calc(100vh-0px)] bg-black', className)}>
       {/* Background image */}
-      <div
-        className="absolute inset-0 bg-center bg-cover opacity-90"
-        style={{ backgroundImage: `url(${currentSpot.imageUrl})` }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/50" />
-
+      <GyroViewer imageUrl={currentSpot.imageUrl} className="absolute inset-0 opacity-90" />
+      
       {/* Content */}
       <div className="relative z-10 flex h-full flex-col">
         <header className="p-4 md:p-6">
