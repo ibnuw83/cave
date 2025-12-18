@@ -147,21 +147,25 @@ export async function getCave(id: string): Promise<Cave | null> {
     }
 }
 
-export async function addCave(caveData: Omit<Cave, 'id'>): Promise<string> {
-    const docRef = await addDoc(collection(db, 'caves'), caveData).catch((error) => {
-        if (error.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: '/caves',
-                operation: 'create',
-                requestResourceData: caveData,
+export function addCave(caveData: Omit<Cave, 'id'>): Promise<string> {
+    return new Promise((resolve, reject) => {
+        addDoc(collection(db, 'caves'), caveData)
+            .then(docRef => {
+                resolve(docRef.id);
+            })
+            .catch(error => {
+                if (error.code === 'permission-denied') {
+                    const permissionError = new FirestorePermissionError({
+                        path: '/caves',
+                        operation: 'create',
+                        requestResourceData: caveData,
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                }
+                reject(error);
             });
-            errorEmitter.emit('permission-error', permissionError);
-        }
-        throw error;
     });
-    return docRef.id;
 }
-
 
 export function updateCave(id: string, caveData: Partial<Omit<Cave, 'id'>>) {
     const docRef = doc(db, 'caves', id);
@@ -185,12 +189,15 @@ export async function deleteCave(id: string): Promise<void> {
   const batch = writeBatch(db);
   
   try {
+    // We get the spots first to add their deletion to the batch
     const spotsSnapshot = await getDocs(spotsQuery);
     spotsSnapshot.forEach(spotDoc => {
         batch.delete(spotDoc.ref);
     });
+    // Then add the cave deletion
     batch.delete(caveDocRef);
 
+    // Commit all batched writes
     await batch.commit();
   } catch (error: any) {
       // Batch writes don't provide granular permission denied errors on specific docs.
@@ -269,21 +276,25 @@ export async function getSpot(id: string): Promise<Spot | null> {
   }
 }
 
-export async function addSpot(spotData: Omit<Spot, 'id'>): Promise<string> {
-    const docRef = await addDoc(collection(db, 'spots'), spotData).catch((error) => {
-        if (error.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: '/spots',
-                operation: 'create',
-                requestResourceData: spotData,
+export function addSpot(spotData: Omit<Spot, 'id'>): Promise<string> {
+    return new Promise((resolve, reject) => {
+        addDoc(collection(db, 'spots'), spotData)
+            .then(docRef => {
+                resolve(docRef.id);
+            })
+            .catch(error => {
+                if (error.code === 'permission-denied') {
+                    const permissionError = new FirestorePermissionError({
+                        path: '/spots',
+                        operation: 'create',
+                        requestResourceData: spotData,
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                }
+                reject(error);
             });
-            errorEmitter.emit('permission-error', permissionError);
-        }
-        throw error;
     });
-    return docRef.id;
 }
-
 
 export function updateSpot(id: string, spotData: Partial<Omit<Spot, 'id'>>) {
   const docRef = doc(db, 'spots', id);

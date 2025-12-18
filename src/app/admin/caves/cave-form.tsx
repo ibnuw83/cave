@@ -65,8 +65,9 @@ export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
         onSave({ id: newCaveId, ...newCaveData });
       }
     } catch (error) {
-        // The error is now handled by the permission-error emitter in firestore.ts
-        // The calling component will show the toast.
+        // Error is now handled by the permission-error emitter in firestore.ts
+        // The toast will be shown by the global listener.
+        // We catch here to prevent unhandled promise rejection, but do nothing.
     }
   };
 

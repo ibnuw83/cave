@@ -79,8 +79,8 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
         onSave({ id: newSpotId, ...spotData });
       }
     } catch (error) {
-        // The error is now handled by the permission-error emitter in firestore.ts
-        // The calling component will show the toast.
+        // Error is now handled by the permission-error emitter in firestore.ts
+        // The toast will be shown by the global listener.
     }
   };
 
