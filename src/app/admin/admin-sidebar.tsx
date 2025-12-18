@@ -18,7 +18,7 @@ function AdminNavLink({ href, icon, label }: { href: string; icon: React.ReactNo
       href={href}
       className={cn(
         'flex flex-col items-center justify-center rounded-md p-2 text-xs font-medium transition-colors md:flex-row md:justify-start md:gap-3 md:text-sm md:px-3 md:py-2',
-        isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+        isActive ? 'bg-primary/20 text-primary border border-primary/20' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
       )}
     >
       {icon}

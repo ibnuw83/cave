@@ -9,12 +9,14 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/auth-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Cave, Spot, UserProfile } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 interface Stat {
   title: string;
   value: number;
   icon: React.ReactNode;
   href: string;
+  color: string;
 }
 
 export default function AdminDashboard() {
@@ -32,9 +34,9 @@ export default function AdminDashboard() {
             getAllUsersAdmin(),
           ]);
           setStats([
-            { title: 'Total Gua', value: caves.length, icon: <Mountain className="h-6 w-6 text-muted-foreground" />, href: '/admin/caves' },
-            { title: 'Total Spot', value: spots.length, icon: <MapPin className="h-6 w-6 text-muted-foreground" />, href: '/admin/spots' },
-            { title: 'Total Pengguna', value: users.length, icon: <Users className="h-6 w-6 text-muted-foreground" />, href: '/admin/users' },
+            { title: 'Total Gua', value: caves.length, icon: <Mountain className="h-6 w-6" />, href: '/admin/caves', color: 'bg-blue-900/50 text-blue-100' },
+            { title: 'Total Spot', value: spots.length, icon: <MapPin className="h-6 w-6" />, href: '/admin/spots', color: 'bg-green-900/50 text-green-100' },
+            { title: 'Total Pengguna', value: users.length, icon: <Users className="h-6 w-6" />, href: '/admin/users', color: 'bg-yellow-900/50 text-yellow-100' },
           ]);
         } catch (error) {
           console.error("Failed to fetch admin data:", error);
@@ -56,20 +58,20 @@ export default function AdminDashboard() {
       
       {loading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-28 w-full" />
+          <Skeleton className="h-28 w-full" />
+          <Skeleton className="h-28 w-full" />
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {stats.map((stat) => (
-            <Card key={stat.title}>
+            <Card key={stat.title} className={cn('border-none', stat.color)}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
                 {stat.icon}
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
+                <div className="text-3xl font-bold">{stat.value}</div>
               </CardContent>
             </Card>
           ))}
