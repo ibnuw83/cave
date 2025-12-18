@@ -1,12 +1,10 @@
 
-import { getSpotAdmin, getUserProfileAdmin } from '@/lib/firebase-admin';
-import { notFound } from 'next/navigation';
-import { Spot } from '@/lib/types';
-import placeholderImagesData from '@/lib/placeholder-images.json';
 import { cookies } from 'next/headers';
 import { auth } from '@/lib/firebase-admin';
-import LockedScreen from '@/app/components/locked-screen';
+import { getSpotAdmin, getUserProfileAdmin } from '@/lib/firebase-admin';
 import SpotPageClient from './client';
+import { Spot } from '@/lib/types';
+import placeholderImagesData from '@/lib/placeholder-images.json';
 
 const placeholderImages = placeholderImagesData.placeholderImages;
 
@@ -50,24 +48,17 @@ const staticSpots: Spot[] = [
     }
 ];
 
+
 export default async function SpotPage({ params }: { params: { id: string } }) {
-  let initialSpot: Spot | null = null;
+  let spot: Spot | null = null;
   const spotId = params.id;
 
-  // 1. Try to load from static examples first
   if (spotId.startsWith('static-')) {
-    initialSpot = staticSpots.find(s => s.id === spotId) || null;
+    spot = staticSpots.find(s => s.id === spotId) || null;
   } else {
-    // 2. If not static, fetch from Firestore using Admin SDK
-    try {
-      initialSpot = await getSpotAdmin(spotId);
-    } catch (e) {
-      console.error(`Failed to fetch spot ${spotId} from Firestore`, e);
-      // Let it fall through, client will try to load from cache.
-    }
+    spot = await getSpotAdmin(spotId);
   }
 
-  // --- Auth Check (Server Side) ---
   let userRole: 'free' | 'pro' | 'admin' = 'free';
   try {
     const sessionCookie = cookies().get('__session')?.value;
@@ -82,19 +73,11 @@ export default async function SpotPage({ params }: { params: { id: string } }) {
     console.log('User not logged in or session expired');
   }
 
-  // If spot data couldn't be found on the server at all, render client with null.
-  // The client will then try to load from offline cache.
-  if (!initialSpot) {
-      return <SpotPageClient spotId={spotId} initialSpot={null} userRole={userRole} />;
-  }
-
-  // Server-side check for locked content to avoid flash of content for free users.
-  const isLocked = initialSpot.isPro && userRole === 'free';
-  
-  if (isLocked) {
-    return <LockedScreen spot={initialSpot} />;
-  }
-
-  // Render the client component with the initial data.
-  return <SpotPageClient spotId={spotId} initialSpot={initialSpot} userRole={userRole} />;
+  return (
+    <SpotPageClient
+      spotId={spotId}
+      initialSpot={spot}
+      userRole={userRole}
+    />
+  );
 }
