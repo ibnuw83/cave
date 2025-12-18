@@ -1,3 +1,4 @@
+@import "react-pannellum-next/dist/index.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
