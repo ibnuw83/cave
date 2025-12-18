@@ -1,4 +1,3 @@
-
 'use client';
 
 // Hentikan audio yang sedang diputar
@@ -66,9 +65,13 @@ export function speakLocal(text: string) {
   window.speechSynthesis.speak(u);
 }
 
+let ttsSession = 0;
+
 // ---- main: PRO TTS ----
 export async function speakPro(text: string) {
+  const session = ++ttsSession;
   stopSpeaking(); // Hentikan audio/speech sebelumnya
+  
   try {
     const res = await fetch('/api/tts', {
       method: 'POST',
@@ -76,7 +79,11 @@ export async function speakPro(text: string) {
       body: JSON.stringify({ text }),
     });
 
+    if (session !== ttsSession) return; // Batal kalau sudah ganti spot
+
     const { text: raw, json } = await readResponseBody(res);
+
+    if (session !== ttsSession) return;
 
     if (!res.ok) {
       // kalau server ngirim JSON error → pakai itu
@@ -125,6 +132,7 @@ export async function speakPro(text: string) {
     console.warn('TTS API success but no playable audio returned. Raw:', raw?.slice(0, 200));
     speakLocal(text);
   } catch (e: any) {
+    if (session !== ttsSession) return;
     console.error('TTS fetch failed:', e?.message || e);
     speakLocal(text);
   }
