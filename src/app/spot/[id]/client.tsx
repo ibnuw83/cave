@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
 import { Spot } from '@/lib/types';
 import LockedScreen from '@/app/components/locked-screen';
-import { GyroViewer } from '@/app/components/gyro-viewer';
+import { PanoramaViewer } from '@/app/components/panorama-viewer';
 import SpotPlayerUI from '@/app/components/spot-player-ui';
 
 async function findSpotOffline(spotId: string): Promise<Spot | null> {
@@ -56,8 +55,8 @@ export default function SpotPageClient({
   }
 
   return (
-    <GyroViewer imageUrl={spot.imageUrl}>
+    <PanoramaViewer imageUrl={spot.imageUrl}>
       <SpotPlayerUI spot={spot} />
-    </GyroViewer>
+    </PanoramaViewer>
   );
 }
