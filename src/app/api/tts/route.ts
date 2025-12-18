@@ -39,7 +39,7 @@ export async function POST(req: Request) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-goog-api-key': geminiApiKey, // Kunci API dipindahkan ke header
+        'X-Goog-Api-Key': geminiApiKey, // Correct header for this API
       },
       body: JSON.stringify({
         input: { text },
