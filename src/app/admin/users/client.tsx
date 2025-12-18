@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -18,9 +19,6 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserProfil
 
   const handleRoleChange = async (uid: string, newRole: 'free' | 'pro' | 'admin') => {
     const userToChange = users.find(u => u.uid === uid);
-    if (!userToChange || userToChange.role === newRole) {
-      return;
-    }
     
     if (currentUser?.uid === uid) {
       toast({
@@ -30,6 +28,10 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserProfil
       });
       // Revert the visual state of the select dropdown
       setUsers(users.map(u => u)); 
+      return;
+    }
+    
+    if (!userToChange || userToChange.role === newRole) {
       return;
     }
     
