@@ -14,15 +14,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { FileUploader } from '@/components/ui/file-uploader';
-import { useState } from 'react';
 
 const spotSchema = z.object({
   caveId: z.string().min(1, 'Gua harus dipilih.'),
   order: z.coerce.number().min(0, 'Urutan tidak boleh negatif.'),
   title: z.string().min(1, 'Judul tidak boleh kosong.'),
   description: z.string().min(1, 'Deskripsi tidak boleh kosong.'),
-  imageUrl: z.string().min(1, 'Gambar spot harus diunggah.'),
+  imageUrl: z.string().url('URL gambar tidak valid.'),
   audioUrl: z.string().url('URL audio tidak valid.').optional().or(z.literal('')),
   isPro: z.boolean(),
   vibrationPattern: z.string().optional().refine(
@@ -45,8 +43,6 @@ interface SpotFormProps {
 
 export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
   const { toast } = useToast();
-  const [isImageUploading, setIsImageUploading] = useState(false);
-  const [isAudioUploading, setIsAudioUploading] = useState(false);
 
   const form = useForm<SpotFormValues>({
     resolver: zodResolver(spotSchema),
@@ -62,20 +58,9 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
     },
   });
   
-  const isUploading = isImageUploading || isAudioUploading;
-  const isSubmitting = form.formState.isSubmitting || isUploading;
-  const spotId = spot?.id || 'new_spot';
+  const isSubmitting = form.formState.isSubmitting;
 
   const onSubmit = async (values: SpotFormValues) => {
-     if (isUploading) {
-      toast({
-        variant: 'destructive',
-        title: 'Harap Tunggu',
-        description: 'Mohon tunggu hingga proses unggah file selesai.',
-      });
-      return;
-    }
-
     const spotData: Omit<Spot, 'id'> = {
       ...values,
       effects: {
@@ -182,45 +167,29 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
             )}
           />
 
-          <FormField
+           <FormField
             control={form.control}
             name="imageUrl"
             render={({ field }) => (
               <FormItem>
-                 <FileUploader 
-                    label="Gambar Spot"
-                    filePath={`spots/${spotId}`}
-                    currentFileUrl={field.value}
-                    onUploadSuccess={(url) => {
-                        form.setValue('imageUrl', url, { shouldValidate: true });
-                        toast({ title: 'Berhasil', description: 'Gambar spot telah diunggah.' });
-                    }}
-                    onUploadStateChange={setIsImageUploading}
-                    allowedTypes={['image/jpeg', 'image/png', 'image/webp']}
-                    maxSizeMB={3}
-                />
+                <FormLabel>URL Gambar Spot</FormLabel>
+                <FormControl>
+                  <Input placeholder="https://..." {...field} />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          <FormField
+           <FormField
             control={form.control}
             name="audioUrl"
             render={({ field }) => (
               <FormItem>
-                 <FileUploader 
-                    label="Audio Narasi (Opsional)"
-                    filePath={`spots/${spotId}`}
-                    currentFileUrl={field.value}
-                    onUploadSuccess={(url) => {
-                        form.setValue('audioUrl', url);
-                        toast({ title: 'Berhasil', description: 'Audio narasi telah diunggah.' });
-                    }}
-                    onUploadStateChange={setIsAudioUploading}
-                    allowedTypes={['audio/mpeg', 'audio/mp3']}
-                    maxSizeMB={10}
-                />
+                <FormLabel>URL Audio Narasi (Opsional)</FormLabel>
+                <FormControl>
+                  <Input placeholder="https://..." {...field} />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
