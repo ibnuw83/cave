@@ -1,14 +1,11 @@
 
-import { getKioskSettings, getSpots, getCave } from '@/lib/firestore';
-import { Spot, KioskSettings, Cave } from '@/lib/types';
-import { getOfflineCaveData } from '@/lib/offline';
-import { Loader2 } from 'lucide-react';
+import { getKioskSettings, getSpot, getOfflineCaveData } from "@/lib/firestore";
+import { Spot, KioskSettings } from '@/lib/types';
 import KiosClient from './client';
 
 async function KioskDataContainer() {
     let settingsData: KioskSettings | null = null;
-    let caveData: Cave | null = null;
-    let allSpots: Spot[] = [];
+    let playlistSpots: (Spot & { duration: number })[] = [];
     let error: string | null = null;
     
     try {
@@ -17,28 +14,41 @@ async function KioskDataContainer() {
         if (!settingsData || !settingsData.playlist || settingsData.playlist.length === 0) {
            error = 'Kios belum dikonfigurasi. Silakan atur daftar putar di Panel Admin.';
         } else {
-             // Try to load from offline cache first
+            // Coba muat semua data dari cache gua yang relevan jika tersedia
             const offlineData = await getOfflineCaveData(settingsData.caveId);
+
             if (offlineData) {
-                caveData = offlineData.cave;
-                allSpots = offlineData.spots;
-            } else {
-                // Fetch from network if not offline
-                caveData = await getCave(settingsData.caveId);
-                if (caveData) {
-                  allSpots = await getSpots(settingsData.caveId);
+                // Jika data offline tersedia, filter dan urutkan berdasarkan playlist
+                const spotMap = new Map(offlineData.spots.map(s => [s.id, s]));
+                playlistSpots = settingsData.playlist.map(item => {
+                    const spot = spotMap.get(item.spotId);
+                    return spot ? { ...spot, duration: item.duration } : null;
+                }).filter(Boolean) as (Spot & { duration: number })[];
+
+                if (playlistSpots.length !== settingsData.playlist.length) {
+                    console.warn("Beberapa spot dari playlist tidak ditemukan di cache offline. Lanjutkan dengan data yang ada.");
                 }
+
+            } else {
+                // Jika tidak ada data offline, ambil setiap spot dari jaringan
+                const spotPromises = settingsData.playlist.map(async (item) => {
+                    const spot = await getSpot(item.spotId);
+                    if (spot) {
+                        return { ...spot, duration: item.duration };
+                    }
+                    return null;
+                });
+                
+                playlistSpots = (await Promise.all(spotPromises)).filter(Boolean) as (Spot & { duration: number })[];
             }
 
-            if (!caveData) {
-                error = `Gua dengan ID "${settingsData.caveId}" tidak ditemukan.`;
-            } else if (allSpots.length === 0) {
-                error = 'Spot tidak ditemukan untuk gua yang dikonfigurasi.';
+            if (playlistSpots.length === 0) {
+                 error = 'Spot yang dikonfigurasi dalam daftar putar tidak dapat ditemukan.';
             }
         }
     } catch (err) {
         console.error("Failed to load kiosk data:", err);
-        error = "Gagal memuat data kios.";
+        error = "Gagal memuat data kios. Periksa koneksi dan konfigurasi.";
     }
 
     if (error) {
@@ -50,35 +60,14 @@ async function KioskDataContainer() {
         );
     }
 
-    if (!settingsData || allSpots.length === 0) {
+    if (!settingsData || playlistSpots.length === 0) {
          return (
             <div className="h-screen flex items-center justify-center bg-black text-white p-8 text-center">
                  <h1 className="text-3xl font-bold mb-4">Mode Kios Tidak Dapat Dimuat</h1>
-                 <p className="text-xl text-muted-foreground">Data yang diperlukan tidak lengkap.</p>
+                 <p className="text-xl text-muted-foreground">Data yang diperlukan tidak lengkap atau spot tidak ditemukan.</p>
             </div>
         );
     }
-    
-    // Filter and order spots based on the playlist from settings
-    const playlistSpots = settingsData.playlist
-        .map(p => {
-            const spot = allSpots.find(s => s.id === p.spotId);
-            if (spot) {
-                return { ...spot, duration: p.duration };
-            }
-            return null;
-        })
-        .filter(Boolean) as (Spot & { duration: number })[];
-        
-    if (playlistSpots.length === 0) {
-        return (
-            <div className="flex h-screen w-screen flex-col items-center justify-center bg-black text-white p-8 text-center">
-                <h1 className="text-3xl font-bold mb-4">Mode Kios Tidak Dapat Dimuat</h1>
-                <p className="text-xl text-muted-foreground">Spot yang dikonfigurasi dalam daftar putar tidak dapat ditemukan.</p>
-          </div>
-        );
-    }
-
 
     return <KiosClient settings={settingsData} spots={playlistSpots} />;
 }
