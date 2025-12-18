@@ -3,7 +3,7 @@
     {
       "id": "cave-jomblang-cover",
       "description": "Cover image for Jomblang Cave, showing the 'light from heaven'.",
-      "imageUrl": "https://images.unsplash.com/photo-1730366702955-c133ae599e3a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjYXZlJTIwZW50cmFuY2V8ZW58MHx8fHwxNzY1OTc3NTIyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1531874993088-51b60dda4452?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjYXZlJTIwbGlnaHR8ZW58MHx8fHwxNzY1OTc3NTIyfDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "cave entrance"
     },
     {
@@ -11,6 +11,12 @@
       "description": "Cover image for Gong Cave, showcasing its stalactites and stalagmites.",
       "imageUrl": "https://images.unsplash.com/photo-1568809957712-6ae80d87e533?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxzdGFsYWN0aXRlJTIwY2F2ZXxlbnwwfHx8fDE3NjU5Nzc1MjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "stalactite cave"
+    },
+    {
+      "id": "cave-petruk-cover",
+      "description": "Cover image for Petruk Cave.",
+      "imageUrl": "https://www.kebumenkab.go.id/resource/doc/potenda/images/29092025-013627-271_goa-petruk.jpg",
+      "imageHint": "cave entrance"
     },
     {
       "id": "spot-jomblang-light",
@@ -21,7 +27,7 @@
     {
       "id": "spot-jomblang-mud",
       "description": "The muddy path inside Jomblang Cave.",
-      "imageUrl": "https://images.unsplash.com/photo-1731400185777-6a4107598b7c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxtdWRkeSUyMHBhdGh8ZW58MHx8fHwxNzY1OTc3NTIyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1594965135824-34547963c621?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtdWRkeSUyMGNhdmluZ3xlbnwwfHx8fDE3NjYwNjEyMDd8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "muddy path"
     },
     {

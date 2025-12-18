@@ -1,13 +1,14 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Cave, UserProfile } from '@/lib/types';
+import { Cave, KioskSettings } from '@/lib/types';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { Mountain, LogIn, LogOut, User } from 'lucide-react';
+import { Mountain, LogIn, LogOut, User, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,13 +19,30 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { clearOfflineCache } from '@/lib/offline';
+import { useToast } from '@/hooks/use-toast';
+import { getKioskSettings } from '@/lib/firestore';
 
 
 const AuthSection = () => {
   const { user, userProfile, loading, signOut } = useAuth();
+  const { toast } = useToast();
+
+  const handleClearCache = async () => {
+    if (!confirm('Anda yakin ingin menghapus semua konten offline? Ini tidak dapat diurungkan.')) {
+      return;
+    }
+    try {
+      await clearOfflineCache();
+      toast({ title: 'Berhasil', description: 'Semua konten offline telah dihapus.' });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Gagal', description: 'Gagal menghapus cache offline.' });
+    }
+  };
+
 
   if (loading) {
-    return <Skeleton className="h-10 w-24" />;
+    return <Skeleton className="h-10 w-10 rounded-full" />;
   }
 
   if (user && userProfile) {
@@ -62,6 +80,15 @@ const AuthSection = () => {
                 <DropdownMenuSeparator />
              </>
            )}
+            {userProfile.role !== 'free' && (
+             <>
+                <DropdownMenuItem onClick={handleClearCache}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  <span>Hapus Cache Offline</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+             </>
+           )}
           <DropdownMenuItem onClick={signOut}>
             <LogOut className="mr-2 h-4 w-4" />
             <span>Logout</span>
@@ -81,12 +108,27 @@ const AuthSection = () => {
 };
 
 
-export default function HomeClient({ caves }: { caves: Cave[] }) {
+export default function ClientHomePage({ initialCaves }: { initialCaves: Cave[] }) {
+  const { loading: authLoading } = useAuth();
+  const [settings, setSettings] = useState<KioskSettings | null>(null);
+
+  useEffect(() => {
+    async function fetchSettings() {
+      const fetchedSettings = await getKioskSettings();
+      setSettings(fetchedSettings);
+    }
+    fetchSettings();
+  }, []);
+  
   return (
     <div className="container mx-auto min-h-screen max-w-4xl p-4 md:p-8">
       <header className="flex items-center justify-between pb-8">
         <div className="flex items-center gap-3">
-          <Mountain className="h-8 w-8 text-primary" />
+          {settings?.logoUrl ? (
+             <Image src={settings.logoUrl} alt="App Logo" width={32} height={32} className="h-8 w-8" />
+          ) : (
+            <Mountain className="h-8 w-8 text-primary" />
+          )}
           <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl font-headline">
             Penjelajah Gua
           </h1>
@@ -96,9 +138,15 @@ export default function HomeClient({ caves }: { caves: Cave[] }) {
 
       <main>
         <h2 className="mb-6 text-xl font-semibold text-foreground/90 md:text-2xl">Gua yang Tersedia</h2>
-        {caves.length > 0 ? (
+        {authLoading ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {caves.map((cave) => (
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-64 w-full" />
+          </div>
+        ) : initialCaves.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {initialCaves.map((cave) => (
               <Link href={`/cave/${cave.id}`} key={cave.id} className="group">
                 <Card className="h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:scale-105">
                   <CardHeader className="p-0">
