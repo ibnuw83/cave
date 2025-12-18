@@ -1,4 +1,4 @@
-import { getCaves, getAllSpots, getAllUsers } from '@/lib/firestore';
+import { getCaves, getAllSpots, getAllUsersAdmin } from '@/lib/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mountain, MapPin, Users, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 export default async function AdminDashboard() {
   const caves = await getCaves(true); // include inactive
   const spots = await getAllSpots();
-  const users = await getAllUsers();
+  const users = await getAllUsersAdmin();
 
   const stats = [
     { title: 'Total Gua', value: caves.length, icon: <Mountain className="h-6 w-6 text-muted-foreground" />, href: '/admin/caves' },

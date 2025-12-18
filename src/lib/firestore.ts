@@ -53,14 +53,14 @@ export async function createUserProfile(user: User): Promise<UserProfile> {
             errorEmitter.emit('permission-error', permissionError);
       } else {
         console.error("Error creating user profile:", error);
+        throw error;
       }
-      throw error;
   }
   return { uid: user.uid, ...userProfileData } as UserProfile;
 }
 
 
-export async function getAllUsers(): Promise<UserProfile[]> {
+export async function getAllUsersAdmin(): Promise<UserProfile[]> {
   const usersRef = collection(db, 'users');
   const querySnapshot = await getDocs(usersRef);
   return querySnapshot.docs.map((doc) => ({ uid: doc.id, ...doc.data() } as UserProfile));
@@ -79,8 +79,9 @@ export async function updateUserRole(uid: string, role: 'free' | 'pro' | 'admin'
             requestResourceData: { role },
         });
         errorEmitter.emit('permission-error', permissionError);
+    } else {
+      throw error;
     }
-    throw error;
   }
 }
 
@@ -115,9 +116,13 @@ export async function addCave(caveData: Omit<Cave, 'id'>): Promise<string> {
                 requestResourceData: caveData,
             });
             errorEmitter.emit('permission-error', permissionError);
+        } else {
+          throw error;
         }
-        throw error;
     }
+    // This part is unreachable because of the throw, so it can be removed or modified.
+    // Assuming we want to stop execution on error.
+    return ''; // Or handle it differently
 }
 
 export async function updateCave(id: string, caveData: Partial<Omit<Cave, 'id'>>) {
@@ -132,8 +137,9 @@ export async function updateCave(id: string, caveData: Partial<Omit<Cave, 'id'>>
                 requestResourceData: caveData,
             });
             errorEmitter.emit('permission-error', permissionError);
+        } else {
+          throw error;
         }
-        throw error;
     }
 }
 
@@ -157,8 +163,9 @@ export async function deleteCave(id: string): Promise<void> {
                 operation: 'delete',
             });
             errorEmitter.emit('permission-error', permissionError);
+        } else {
+          throw error;
         }
-        throw error;
   }
 }
 
@@ -203,9 +210,11 @@ export async function addSpot(spotData: Omit<Spot, 'id'>): Promise<string> {
             requestResourceData: spotData,
         });
         errorEmitter.emit('permission-error', permissionError);
+    } else {
+        throw error;
     }
-    throw error;
   }
+  return '';
 }
 
 export async function updateSpot(id: string, spotData: Partial<Omit<Spot, 'id'>>) {
@@ -220,8 +229,9 @@ export async function updateSpot(id: string, spotData: Partial<Omit<Spot, 'id'>>
             requestResourceData: spotData,
         });
         errorEmitter.emit('permission-error', permissionError);
+    } else {
+        throw error;
     }
-    throw error;
   }
 }
 
@@ -236,8 +246,9 @@ export async function deleteSpot(id: string) {
             operation: 'delete',
         });
         errorEmitter.emit('permission-error', permissionError);
+    } else {
+        throw error;
     }
-    throw error;
   }
 }
 
@@ -268,7 +279,7 @@ export async function saveKioskSettings(settings: Omit<KioskSettings, 'id'>) {
             errorEmitter.emit('permission-error', permissionError);
         } else {
             console.error("Error saving kiosk settings:", error);
+            throw error;
         }
-        throw error;
     }
 }
