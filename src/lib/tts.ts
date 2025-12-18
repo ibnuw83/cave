@@ -1,6 +1,6 @@
+
 'use client';
 
-// Hentikan audio yang sedang diputar
 let currentAudio: HTMLAudioElement | null = null;
 export function stopSpeaking() {
     if (currentAudio) {
@@ -18,40 +18,10 @@ export function stopSpeaking() {
 }
 
 
-type TtsApiSuccess = {
-  audioBase64?: string; // kalau server kirim base64
-  audioUrl?: string;    // atau URL audio
-};
-
 type TtsApiError = {
   error?: string;
   details?: string;
 };
-
-// ---- helpers: safe read response ----
-async function readResponseBody(res: Response): Promise<{ text: string; json: any | null }> {
-  // clone biar aman kalau mau dibaca dua kali
-  const cloned = res.clone();
-
-  // coba ambil text dulu (paling aman)
-  let text = '';
-  try {
-    text = await cloned.text();
-  } catch {
-    text = '';
-  }
-
-  // kalau kosong, stop
-  if (!text || !text.trim()) return { text: '', json: null };
-
-  // coba parse JSON kalau memungkinkan
-  try {
-    const json = JSON.parse(text);
-    return { text, json };
-  } catch {
-    return { text, json: null };
-  }
-}
 
 export function speakLocal(text: string) {
   if (typeof window === 'undefined') return;
@@ -70,8 +40,8 @@ let ttsSession = 0;
 // ---- main: PRO TTS ----
 export async function speakPro(text: string) {
   const session = ++ttsSession;
-  stopSpeaking(); // Hentikan audio/speech sebelumnya
-  
+  stopSpeaking();
+
   try {
     const res = await fetch('/api/tts', {
       method: 'POST',
@@ -79,46 +49,30 @@ export async function speakPro(text: string) {
       body: JSON.stringify({ text }),
     });
 
-    if (session !== ttsSession) return; // Batal kalau sudah ganti spot
-
-    const { text: raw, json } = await readResponseBody(res);
-
     if (session !== ttsSession) return;
 
     if (!res.ok) {
-      // kalau server ngirim JSON error → pakai itu
-      const err: TtsApiError =
-        (json && typeof json === 'object' ? json : null) || {
-          error: raw ? raw.slice(0, 400) : `HTTP ${res.status}`,
-        };
-
-      console.error('TTS API Error:', err.details || err.error || `HTTP ${res.status}`);
+      // If the response is not OK, it should be a JSON error object from our API
+      try {
+        const err: TtsApiError = await res.json();
+        console.error('TTS API Error:', err.details || err.error || `HTTP ${res.status}`);
+      } catch (e) {
+        // If parsing the error response fails, log the raw text
+        const errorText = await res.text();
+        console.error('TTS API Error (non-JSON):', errorText || `HTTP ${res.status}`);
+      }
       speakLocal('Maaf, narasi pro tidak tersedia saat ini. ' + text);
       return;
     }
 
-    // sukses: bisa JSON, bisa kosong (misconfig), bisa audio binary
-    // 1) kalau JSON
-    if (json && typeof json === 'object') {
-      const data = json as TtsApiSuccess;
+    // If the response is OK, it must be a binary audio stream
+    const ct = res.headers.get('content-type') || '';
+    if (ct.includes('audio/')) {
+        const blob = await res.blob();
+        if (session !== ttsSession) return; // Check again after await
 
-      if (data.audioUrl) {
-        currentAudio = new Audio(data.audioUrl);
-      } else if (data.audioBase64) {
-        currentAudio = new Audio(`data:audio/mpeg;base64,${data.audioBase64}`);
-      }
-    } else {
-        // 2) kalau bukan JSON, mungkin server balikin audio binary
-        // cek content-type
-        const ct = res.headers.get('content-type') || '';
-        if (ct.includes('audio/')) {
-            const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
-            currentAudio = new Audio(url);
-        }
-    }
-    
-    if (currentAudio) {
+        const url = URL.createObjectURL(blob);
+        currentAudio = new Audio(url);
         currentAudio.onended = () => {
             if (currentAudio?.src.startsWith('blob:')) {
                 URL.revokeObjectURL(currentAudio.src);
@@ -127,8 +81,8 @@ export async function speakPro(text: string) {
         };
         await currentAudio.play();
     } else {
-        // 3) kalau sampai sini berarti response sukses tapi format nggak sesuai
-        console.warn('TTS API success but no playable audio returned. Raw:', raw?.slice(0, 200));
+        // This case should not happen if the API is working correctly
+        console.warn('TTS API returned success, but content-type was not audio.', `Type: ${ct}`);
         speakLocal(text);
     }
     
