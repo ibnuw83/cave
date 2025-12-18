@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getKioskSettings, getSpots } from '@/lib/firestore';
-import { Spot, KioskSettings } from '@/lib/types';
+import { getKioskSettings, getSpots, getCave } from '@/lib/firestore';
+import { Spot, KioskSettings, Cave } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import KioskPlayer from './player';
 import { notFound } from 'next/navigation';
@@ -13,26 +12,39 @@ export default function KiosPage() {
   const [error, setError] = useState<string | null>(null);
   const [playlist, setPlaylist] = useState<(Spot & { duration: number })[]>([]);
   const [mode, setMode] = useState<'loop' | 'shuffle'>('loop');
+  const [cave, setCave] = useState<Cave | null>(null);
+  const [settings, setSettings] = useState<KioskSettings | null>(null);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const settings = await getKioskSettings();
-        if (!settings || !settings.playlist || settings.playlist.length === 0) {
+        const settingsData = await getKioskSettings();
+        if (!settingsData || !settingsData.playlist || settingsData.playlist.length === 0) {
           setError('Kios belum dikonfigurasi. Silakan atur daftar putar di Panel Admin.');
+          setLoading(false);
           return;
         }
         
-        setMode(settings.mode);
+        setSettings(settingsData);
+        setMode(settingsData.mode);
+        
+        const caveData = await getCave(settingsData.caveId);
+        if (!caveData) {
+            setError(`Gua dengan ID "${settingsData.caveId}" tidak ditemukan.`);
+            setLoading(false);
+            return;
+        }
+        setCave(caveData);
 
-        const allSpots = await getSpots(settings.caveId);
+        const allSpots = await getSpots(settingsData.caveId);
         
         if (allSpots.length === 0) {
             setError('Spot tidak ditemukan untuk gua yang dikonfigurasi.');
+            setLoading(false);
             return;
         }
 
-        const orderedPlaylist = settings.playlist
+        const orderedPlaylist = settingsData.playlist
           .map(p => {
             const spot = allSpots.find(s => s.id === p.spotId);
             if (spot) {
@@ -44,6 +56,7 @@ export default function KiosPage() {
         
         if (orderedPlaylist.length === 0) {
              setError('Spot yang dikonfigurasi dalam daftar putar tidak dapat ditemukan.');
+             setLoading(false);
              return;
         }
 
@@ -75,10 +88,19 @@ export default function KiosPage() {
       </div>
     );
   }
+  
+  if (!cave || !settings || playlist.length === 0) {
+    return (
+        <div className="h-screen flex items-center justify-center bg-black text-white p-8 text-center">
+             <h1 className="text-3xl font-bold mb-4">Mode Kios Tidak Dapat Dimuat</h1>
+             <p className="text-xl text-muted-foreground">Data yang diperlukan tidak lengkap.</p>
+        </div>
+    );
+  }
 
   return (
     <div className="h-screen w-screen bg-black text-white overflow-hidden">
-      <KioskPlayer playlist={playlist} mode={mode} />
+      <KioskPlayer cave={cave} spots={playlist} settings={settings} />
     </div>
   );
 }
