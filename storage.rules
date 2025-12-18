@@ -3,28 +3,8 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isAdmin() {
-      return isSignedIn() &&
-        firestore.get(
-          /databases/(default)/documents/users/$(request.auth.uid)
-        ).data.role == 'admin';
-    }
-
-    // Gambar gua
-    match /caves/{allPaths=**} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    // Media spot
-    match /spots/{allPaths=**} {
-      allow read: if true;
-      allow write: if isAdmin();
+    match /{allPaths=**} {
+      allow read, write: if true;
     }
   }
 }
