@@ -15,36 +15,50 @@ async function KioskDataContainer() {
         if (!settingsData || !settingsData.playlist || settingsData.playlist.length === 0) {
            error = 'Kios belum dikonfigurasi. Silakan atur daftar putar di Panel Admin.';
         } else {
-            // Coba muat semua data dari cache gua yang relevan jika tersedia
-            const offlineData = await getOfflineCaveData(settingsData.caveId);
-
-            if (offlineData) {
-                // Jika data offline tersedia, filter dan urutkan berdasarkan playlist
-                const spotMap = new Map(offlineData.spots.map(s => [s.id, s]));
-                playlistSpots = settingsData.playlist.map(item => {
-                    const spot = spotMap.get(item.spotId);
-                    return spot ? { ...spot, duration: item.duration } : null;
-                }).filter(Boolean) as (Spot & { duration: number })[];
-
-                if (playlistSpots.length !== settingsData.playlist.length) {
-                    console.warn("Beberapa spot dari playlist tidak ditemukan di cache offline. Lanjutkan dengan data yang ada.");
-                }
-
-            } else {
-                // Jika tidak ada data offline, ambil setiap spot dari jaringan
-                const spotPromises = settingsData.playlist.map(async (item) => {
+            // A more robust fetching logic. Prioritize network, use cache as fallback.
+            const spotPromises = settingsData.playlist.map(async (item) => {
+                try {
+                    // 1. Try to fetch from network first
                     const spot = await getSpot(item.spotId);
                     if (spot) {
                         return { ...spot, duration: item.duration };
                     }
-                    return null;
-                });
-                
-                playlistSpots = (await Promise.all(spotPromises)).filter(Boolean) as (Spot & { duration: number })[];
-            }
+                } catch (networkError) {
+                    console.warn(`Network fetch for spot ${item.spotId} failed, trying offline.`, networkError);
+                }
+
+                // 2. If network fails or spot is null, try to find it in ANY offline cache
+                try {
+                    const cachesKeys = await caches.keys();
+                    for (const key of cachesKeys) {
+                        if (key.startsWith('penjelajah-gua-offline-v1')) {
+                            const cache = await caches.open(key);
+                            const response = await cache.match(`cave-data-${settingsData!.caveId}`); // Check specific cave cache
+                            if (response) {
+                                const data: OfflineCaveData = await response.json();
+                                const foundSpot = data.spots.find(s => s.id === item.spotId);
+                                if (foundSpot) {
+                                    return { ...foundSpot, duration: item.duration };
+                                }
+                            }
+                        }
+                    }
+                } catch (cacheError) {
+                    console.error(`Cache lookup for spot ${item.spotId} failed.`, cacheError);
+                }
+
+                // 3. If it's not found anywhere, return null
+                console.warn(`Spot with ID ${item.spotId} could not be found online or in cache.`);
+                return null;
+            });
+            
+            playlistSpots = (await Promise.all(spotPromises)).filter(Boolean) as (Spot & { duration: number })[];
 
             if (playlistSpots.length === 0) {
-                 error = 'Spot yang dikonfigurasi dalam daftar putar tidak dapat ditemukan.';
+                 error = 'Spot yang dikonfigurasi dalam daftar putar tidak dapat ditemukan baik online maupun di cache offline.';
+            } else if (playlistSpots.length < settingsData.playlist.length) {
+                console.warn("Beberapa spot dari daftar putar tidak dapat dimuat.");
+                // We can still proceed with the spots that were found.
             }
         }
     } catch (err) {
@@ -61,6 +75,7 @@ async function KioskDataContainer() {
         );
     }
 
+    // This check is redundant if the error above is set, but it's a good safeguard.
     if (!settingsData || playlistSpots.length === 0) {
          return (
             <div className="h-screen flex items-center justify-center bg-black text-white p-8 text-center">
