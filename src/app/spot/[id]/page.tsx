@@ -1,12 +1,11 @@
 
-import { getSpot } from '@/lib/firestore';
+import { getSpot, getUserProfile } from '@/lib/firestore';
 import { notFound } from 'next/navigation';
 import { Spot } from '@/lib/types';
 import placeholderImagesData from '@/lib/placeholder-images.json';
 import { getOfflineCaveData } from '@/lib/offline';
 import { cookies } from 'next/headers';
 import { auth } from '@/lib/firebase-admin';
-import { getUserProfile } from '@/lib/firestore';
 import LockedScreen from '@/app/components/locked-screen';
 import { GyroViewer } from '@/app/components/gyro-viewer';
 import SpotPlayerUI from '@/app/components/spot-player-ui';
@@ -58,44 +57,38 @@ const staticSpots: Spot[] = [
 export default async function SpotPage({ params }: { params: { id: string } }) {
   let spot: Spot | null = null;
   
-  // 1. Check for static data
   if (params.id.startsWith('static-')) {
     spot = staticSpots.find(s => s.id === params.id) || null;
   } else {
-    // 2. Try to load from offline cache first (only for dynamic spots)
+    // 1. Try to fetch from Firestore
     try {
-        const cachesKeys = await caches.keys();
-        for (const key of cachesKeys) {
-          if (key.startsWith('penjelajah-gua-offline-v1')) {
-              const cache = await caches.open(key);
-              const responses = await cache.keys();
-              for (const request of responses) {
-                  const response = await cache.match(request);
-                  if (response) {
-                      const data = await response.json();
-                      if (data && data.spots) {
-                          const foundSpot = data.spots.find((s: Spot) => s.id === params.id);
-                          if (foundSpot) {
-                              spot = { ...foundSpot, caveId: data.cave.id }; 
-                              break;
-                          }
-                      }
-                  }
-              }
-          }
-          if(spot) break;
-        }
-    } catch (error) {
-      console.warn("Could not search offline cache for spot:", error);
+      spot = await getSpot(params.id);
+    } catch (e) {
+      console.error(`Failed to fetch spot ${params.id} from Firestore`, e);
     }
-    
-    // 3. If not in cache, fetch from Firestore
+
+    // 2. If not found in Firestore, try to load from any available offline cache as a fallback.
+    // This is less direct, but can work if the user has previously saved a cave containing this spot.
     if (!spot) {
-      try {
-        spot = await getSpot(params.id);
-      } catch (e) {
-        console.error(`Failed to fetch spot ${params.id} from Firestore`, e);
-      }
+        try {
+            const offlineCaves = await caches.keys().then(keys => 
+                Promise.all(keys
+                    .filter(key => key.startsWith('penjelajah-gua-offline-v1'))
+                    .map(key => caches.open(key).then(cache => cache.match(key).then(res => res ? res.json() : null)))
+                )
+            );
+            for (const data of offlineCaves) {
+                if (data && data.spots) {
+                    const foundSpot = data.spots.find((s: Spot) => s.id === params.id);
+                    if (foundSpot) {
+                        spot = { ...foundSpot, caveId: data.cave.id }; 
+                        break;
+                    }
+                }
+            }
+        } catch(e) {
+            console.warn("Could not search offline cache for spot:", e);
+        }
     }
   }
   
