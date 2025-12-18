@@ -35,7 +35,7 @@ async function KioskDataContainer() {
                             const cache = await caches.open(key);
                             const response = await cache.match(`cave-data-${settingsData!.caveId}`); // Check specific cave cache
                             if (response) {
-                                const data: OfflineCaveData = await response.json();
+                                const data: { cave: any; spots: Spot[] } = await response.json();
                                 const foundSpot = data.spots.find(s => s.id === item.spotId);
                                 if (foundSpot) {
                                     return { ...foundSpot, duration: item.duration };
