@@ -1,16 +1,17 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Cave, Spot, KioskSettings, KioskPlaylistItem } from '@/lib/types';
+import { Cave, Spot, KioskSettings } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Trash2, Plus, GripVertical, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { saveKioskSettings } from '@/lib/firestore';
@@ -25,6 +26,7 @@ const kioskSettingsSchema = z.object({
     (items) => new Set(items.map(i => i.spotId)).size === items.length,
     { message: 'Spot tidak boleh duplikat dalam playlist.' }
   ),
+  mode: z.enum(['loop', 'shuffle']),
 });
 
 type KioskSettingsFormValues = z.infer<typeof kioskSettingsSchema>;
@@ -43,6 +45,7 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
     defaultValues: {
       caveId: initialSettings?.caveId || '',
       playlist: initialSettings?.playlist || [],
+      mode: initialSettings?.mode || 'loop',
     },
   });
 
@@ -103,7 +106,6 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
                   <Select 
                     onValueChange={(value) => {
                       field.onChange(value);
-                      // Reset playlist when cave changes
                       form.setValue('playlist', []); 
                     }} 
                     defaultValue={field.value}
@@ -125,6 +127,42 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="mode"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel>Mode Pemutaran</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex flex-col space-y-1"
+                    >
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="loop" />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          Loop (berurutan)
+                        </FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="shuffle" />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          Shuffle (acak)
+                        </FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
 
             <div className="space-y-4">
               <FormLabel>Playlist Spot</FormLabel>

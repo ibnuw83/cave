@@ -9,7 +9,7 @@ import { Play, Pause } from 'lucide-react';
 
 type PlaylistItem = Spot & { duration: number };
 
-export default function KioskModeClient({ playlist }: { playlist: PlaylistItem[] }) {
+export default function KioskModeClient({ playlist, mode }: { playlist: PlaylistItem[], mode: 'loop' | 'shuffle' }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -20,8 +20,17 @@ export default function KioskModeClient({ playlist }: { playlist: PlaylistItem[]
   const progressRef = useRef<NodeJS.Timeout | null>(null);
 
   const playNext = useCallback(() => {
-    setCurrentIndex((prevIndex) => (prevIndex + 1) % playlist.length);
-  }, [playlist.length]);
+    if (mode === 'shuffle') {
+        // Pick a random index that is different from the current one
+        let nextIndex;
+        do {
+            nextIndex = Math.floor(Math.random() * playlist.length);
+        } while (playlist.length > 1 && nextIndex === currentIndex);
+        setCurrentIndex(nextIndex);
+    } else { // 'loop' mode
+        setCurrentIndex((prevIndex) => (prevIndex + 1) % playlist.length);
+    }
+  }, [playlist.length, mode, currentIndex]);
 
   useEffect(() => {
     // Cleanup previous audio

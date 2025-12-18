@@ -1,6 +1,7 @@
 import { getKioskSettings, getSpots, getCave } from '@/lib/firestore';
 import { notFound } from 'next/navigation';
 import KioskModeClient from './client';
+import { KioskSettings } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,5 +38,5 @@ export default async function KioskPage() {
   }).filter(Boolean);
 
 
-  return <KioskModeClient playlist={playlistWithData as any[]} />;
+  return <KioskModeClient playlist={playlistWithData as any[]} mode={settings.mode} />;
 }
