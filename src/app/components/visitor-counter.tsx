@@ -6,6 +6,7 @@ import { doc, increment, serverTimestamp, setDoc, addDoc, collection } from 'fir
 import { db } from '@/lib/firebase';
 import { errorEmitter } from '@/lib/error-emitter';
 import { FirestorePermissionError } from '@/lib/errors';
+import Script from 'next/script';
 
 function todayKey() {
   const d = new Date();
@@ -46,6 +47,8 @@ export default function VisitorCounter({
         locateFile: (file: any) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`,
       });
       faceDetectionRef.current = faceDetection;
+
+      if (!faceDetectionRef.current) return;
 
       faceDetection.setOptions({
         model: 'short',
@@ -115,6 +118,7 @@ export default function VisitorCounter({
     start();
 
     return () => {
+      if (!running) return;
       setRunning(false);
       if (animationFrameId.current) {
         cancelAnimationFrame(animationFrameId.current);
@@ -128,10 +132,11 @@ export default function VisitorCounter({
           // Silently ignore close errors
       }
     };
-  }, [enabled, cooldownMs, kioskId]);
+  }, [enabled, cooldownMs, kioskId, running]);
 
   return (
     <>
+      <Script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js" crossOrigin="anonymous" />
       <video ref={videoRef} className="hidden" playsInline autoPlay muted />
       <div className="absolute top-3 left-3 z-50 rounded-md bg-black/60 px-3 py-2 text-xs text-white">
         Face Counter: {running ? 'ON' : 'OFF'}
