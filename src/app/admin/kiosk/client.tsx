@@ -43,7 +43,7 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
     },
   });
 
-  const { fields, append, remove, move } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'playlist',
   });
@@ -51,17 +51,9 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
   const watchCaveId = form.watch('caveId');
 
   const availableSpots = useMemo(() => {
+    if (!watchCaveId) return [];
     return initialSpots.filter(spot => spot.caveId === watchCaveId);
   }, [watchCaveId, initialSpots]);
-  
-  useEffect(() => {
-    // When the selected cave changes, reset the playlist and remove spots that don't belong to the new cave.
-    const currentPlaylist = form.getValues('playlist');
-    const spotsInNewCave = new Set(availableSpots.map(s => s.id));
-    const newPlaylist = currentPlaylist.filter(p => spotsInNewCave.has(p.spotId));
-    form.setValue('playlist', newPlaylist, { shouldValidate: true });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watchCaveId, availableSpots]);
   
 
   const onSubmit = async (values: KioskSettingsFormValues) => {
@@ -105,9 +97,14 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Pilih Gua</FormLabel>
-                  <Select onValueChange={(value) => {
+                  <Select 
+                    onValueChange={(value) => {
                       field.onChange(value);
-                  }} defaultValue={field.value}>
+                      // Reset playlist when cave changes
+                      form.setValue('playlist', []); 
+                    }} 
+                    defaultValue={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Pilih gua untuk ditampilkan di kios..." />
@@ -131,12 +128,12 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
               {fields.map((field, index) => (
                 <div key={field.id} className="flex items-center gap-2 p-2 border rounded-lg bg-muted/50">
                   <GripVertical className="h-5 w-5 text-muted-foreground" />
-                   <Controller
+                   <FormField
                       control={form.control}
                       name={`playlist.${index}.spotId`}
-                      render={({ field: controllerField }) => (
+                      render={({ field }) => (
                         <FormItem className="flex-grow">
-                          <Select onValueChange={controllerField.onChange} value={controllerField.value}>
+                          <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Pilih spot..." />
@@ -154,14 +151,19 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
                         </FormItem>
                       )}
                     />
-                  <Controller
+                  <FormField
                     control={form.control}
                     name={`playlist.${index}.duration`}
-                    render={({ field: inputField }) => (
-                       <div className="relative w-48">
-                         <Input type="number" placeholder="Detik" {...inputField} className="pr-12"/>
-                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">detik</span>
-                       </div>
+                    render={({ field }) => (
+                       <FormItem>
+                         <div className="relative w-48">
+                           <FormControl>
+                              <Input type="number" placeholder="Detik" {...field} className="pr-12"/>
+                           </FormControl>
+                           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">detik</span>
+                         </div>
+                          <FormMessage className="pl-2"/>
+                       </FormItem>
                     )}
                   />
                   <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
