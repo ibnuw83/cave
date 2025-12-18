@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getCaves, getAllSpots, getAllUsersAdmin } from '@/lib/firestore';
+import { getCaves, getAllUsersAdmin } from '@/lib/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mountain, MapPin, Users, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
@@ -10,6 +10,10 @@ import { useAuth } from '@/context/auth-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Cave, Spot, UserProfile } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { errorEmitter } from '@/lib/error-emitter';
+import { FirestorePermissionError } from '@/lib/errors';
 
 interface Stat {
   title: string;
@@ -25,12 +29,29 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    async function fetchAllSpots() {
+        try {
+            const spotsSnapshot = await getDocs(collection(db, 'spots'));
+            return spotsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Spot));
+        } catch (error: any) {
+            if (error.code === 'permission-denied') {
+                const permissionError = new FirestorePermissionError({
+                    path: '/spots',
+                    operation: 'list',
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            }
+            console.error("Failed to fetch all spots for admin dashboard:", error);
+            return []; // Return empty array on permission error or other failures
+        }
+    }
+    
     async function fetchData() {
       if (userProfile?.role === 'admin') {
         try {
           const [caves, spots, users] = await Promise.all([
             getCaves(true),
-            getAllSpots(),
+            fetchAllSpots(),
             getAllUsersAdmin(),
           ]);
           setStats([
@@ -40,7 +61,7 @@ export default function AdminDashboard() {
           ]);
         } catch (error) {
           console.error("Failed to fetch admin data:", error);
-          // Error is handled by global permission toast
+          // Errors from individual fetches are handled within those functions
         } finally {
           setLoading(false);
         }
