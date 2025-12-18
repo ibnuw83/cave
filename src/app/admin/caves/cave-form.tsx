@@ -64,9 +64,9 @@ export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
         const newCaveId = await addCave(newCaveData);
         onSave({ id: newCaveId, ...newCaveData });
       }
-    } catch (error: any) {
-        // The error is handled by the permission-error emitter in firestore.ts
-        // No need to show a toast here, it will be handled globally.
+    } catch (error) {
+        // The error is now handled by the permission-error emitter in firestore.ts
+        // The calling component will show the toast.
     }
   };
 

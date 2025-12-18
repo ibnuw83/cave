@@ -27,7 +27,7 @@ export default function SpotsClient({ caves }: { caves: Cave[] }) {
   const { data: spots, loading: spotsLoading } = useCollection<Spot>(spotsQuery);
 
 
-  const handleFormSuccess = (spot: Spot) => {
+  const handleFormSuccess = () => {
     // Real-time listener will update the list automatically.
     // We just need to close the form.
     if (selectedSpot) {
@@ -44,14 +44,10 @@ export default function SpotsClient({ caves }: { caves: Cave[] }) {
     setIsFormOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-        await deleteSpot(id);
-        // Real-time listener will remove the spot from the UI.
-        toast({ title: "Berhasil", description: "Spot berhasil dihapus." });
-    } catch (error: any) {
-        // The error is handled by the permission-error emitter in firestore.ts
-    }
+  const handleDelete = (id: string) => {
+    deleteSpot(id);
+    // Real-time listener will remove the spot from the UI.
+    toast({ title: "Berhasil", description: "Spot berhasil dihapus." });
   };
 
   const filteredSpots = useMemo(() => {

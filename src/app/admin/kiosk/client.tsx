@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Trash2, Plus, GripVertical, Loader2, Download, WifiOff } from 'lucide-react';
+import { Trash2, Plus, GripVertical, Loader2, Download, WifiOff, ArrowRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { saveKioskSettings } from '@/lib/firestore';
 import Link from 'next/link';
@@ -140,22 +140,14 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
     }
   };
 
-  const onGlobalSubmit = async (values: GlobalSettingsFormValues) => {
-    try {
-        await saveKioskSettings(values);
-        toast({ title: 'Berhasil', description: 'Pengaturan global telah disimpan.' });
-    } catch (error: any) {
-        // The error is handled by the permission-error emitter in firestore.ts
-    }
+  const onGlobalSubmit = (values: GlobalSettingsFormValues) => {
+    saveKioskSettings(values);
+    toast({ title: 'Berhasil', description: 'Pengaturan global telah disimpan.' });
   };
   
-  const onPlaylistSubmit = async (values: PlaylistSettingsFormValues) => {
-    try {
-        await saveKioskSettings(values);
-        toast({ title: 'Berhasil', description: 'Pengaturan daftar putar kios telah disimpan.' });
-    } catch (error: any) {
-        // The error is handled by the permission-error emitter in firestore.ts
-    }
+  const onPlaylistSubmit = (values: PlaylistSettingsFormValues) => {
+    saveKioskSettings(values);
+    toast({ title: 'Berhasil', description: 'Pengaturan daftar putar kios telah disimpan.' });
   };
 
   const isGlobalSubmitting = globalForm.formState.isSubmitting;
@@ -262,14 +254,14 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
                         <CardTitle>Daftar Putar Kios</CardTitle>
                         <CardDescription>Pilih gua dan atur spot yang akan diputar otomatis.</CardDescription>
                     </div>
-                    <div className='flex gap-2'>
+                    <div className='flex items-center gap-2 flex-wrap justify-end'>
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <div>
                                         <Button onClick={handleDownload} disabled={isDownloading || isOffline || !selectedCave} variant="secondary" type="button">
-                                            {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : isOffline ? <WifiOff className="mr-2 h-4 w-4"/> : <Download className="mr-2 h-4 w-4" />}
-                                            {isOffline ? 'Tersimpan Offline' : 'Simpan Offline'}
+                                            {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : isOffline ? <WifiOff className="h-4 w-4"/> : <Download className="h-4 w-4" />}
+                                            <span className='hidden sm:inline ml-2'>{isOffline ? 'Tersimpan Offline' : 'Simpan Offline'}</span>
                                         </Button>
                                     </div>
                                 </TooltipTrigger>
@@ -280,7 +272,8 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
                         </TooltipProvider>
                         <Button asChild variant="outline">
                             <Link href="/kios" target="_blank">
-                                Buka Mode Kios
+                                <span className='hidden sm:inline mr-2'>Buka Mode Kios</span>
+                                <ArrowRight className="h-4 w-4" />
                             </Link>
                         </Button>
                     </div>
@@ -351,7 +344,7 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
                         name={`playlist.${index}.duration`}
                         render={({ field }) => (
                         <FormItem>
-                            <div className="relative w-48">
+                            <div className="relative w-32 md:w-48">
                             <FormControl>
                                 <Input type="number" placeholder="Detik" {...field} className="pr-12"/>
                             </FormControl>

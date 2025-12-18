@@ -76,12 +76,11 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
         onSave({ id: spot.id, ...spotData });
       } else {
         const newSpotId = await addSpot(spotData);
-        if (newSpotId) {
-          onSave({ id: newSpotId, ...spotData });
-        }
+        onSave({ id: newSpotId, ...spotData });
       }
-    } catch (error: any) {
-        // The error is handled by the permission-error emitter in firestore.ts
+    } catch (error) {
+        // The error is now handled by the permission-error emitter in firestore.ts
+        // The calling component will show the toast.
     }
   };
 

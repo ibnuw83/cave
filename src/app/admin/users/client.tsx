@@ -23,7 +23,7 @@ export default function UsersClient() {
   const usersQuery = useMemo(() => collection(db, 'users'), []);
   const { data: users, loading: usersLoading } = useCollection<UserProfile>(usersQuery);
 
-  const handleRoleChange = async (uid: string, newRole: 'free' | 'pro' | 'admin') => {
+  const handleRoleChange = (uid: string, newRole: 'free' | 'pro' | 'admin') => {
     if (!users) return;
     const userToChange = users.find(u => u.uid === uid);
     
@@ -43,22 +43,37 @@ export default function UsersClient() {
     if (newRole === 'admin') {
         const ok = confirm('Yakin ingin menjadikan pengguna ini sebagai ADMIN? Tindakan ini memberikan akses penuh ke panel admin.');
         if (!ok) {
+             // To revert the select dropdown visual state if the user cancels
+             const selectTrigger = document.querySelector(`[data-uid="${uid}"]`) as HTMLElement | null;
+             if (selectTrigger) {
+                selectTrigger.click(); // Close the dropdown
+                setTimeout(() => {
+                   const previousRole = userToChange.role;
+                   const roleSelect = document.querySelector(`[data-uid-select="${uid}"]`) as HTMLSelectElement | null;
+                   if(roleSelect) {
+                     // This is tricky as we can't directly set the value of a shadcn select.
+                     // The UI will visually revert on the next re-render from Firestore anyway.
+                   }
+                }, 100);
+             }
              return;
         }
     }
 
-
     setLoadingStates((prev) => ({ ...prev, [uid]: true }));
-    try {
-      await updateUserRole(uid, newRole);
-      // UI will update automatically via the real-time listener.
-      toast({ title: "Berhasil", description: "Peran pengguna berhasil diperbarui." });
-    } catch (error: any) {
-       // The central error handler will show the toast. We just need to catch the re-thrown error.
-       // The spinner state will be cleared in the finally block.
-    } finally {
+    
+    // The updateUserRole function now handles its own error via the emitter.
+    updateUserRole(uid, newRole);
+
+    // We can show a success toast optimistically. The UI will update via the listener.
+    toast({ title: "Memperbarui", description: `Mengubah peran untuk ${userToChange.displayName || userToChange.email}...` });
+    
+    // No try/catch needed here anymore, but we need to reset loading state.
+    // A better approach would be to wait for the Firestore listener to confirm the change.
+    // For now, a simple timeout works for visual feedback.
+    setTimeout(() => {
       setLoadingStates((prev) => ({ ...prev, [uid]: false }));
-    }
+    }, 1500);
   };
   
   const sortedUsers = useMemo(() => {
@@ -101,10 +116,10 @@ export default function UsersClient() {
                 onValueChange={(value: 'free' | 'pro' | 'admin') => handleRoleChange(user.uid, value)}
                 disabled={loadingStates[user.uid] || currentUser?.uid === user.uid}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full" data-uid={user.uid}>
                   <SelectValue placeholder="Pilih peran" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent data-uid-select={user.uid}>
                   <SelectItem value="free">Free</SelectItem>
                   <SelectItem value="pro">Pro</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>

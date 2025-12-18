@@ -50,7 +50,7 @@ export default function CavesClient({ initialCaves }: { initialCaves: Cave[] }) 
         await deleteCave(id);
         setCaves(caves.filter((c) => c.id !== id));
         toast({ title: "Berhasil", description: "Gua dan semua spot di dalamnya berhasil dihapus." });
-    } catch (error: any) {
+    } catch (error) {
         // The error is handled by the permission-error emitter in firestore.ts
     }
   };
