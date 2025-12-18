@@ -378,3 +378,5 @@ export default function KioskClient({ initialCaves, initialSettings }: KioskClie
     </>
   );
 }
+
+    
