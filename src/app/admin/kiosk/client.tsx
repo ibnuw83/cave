@@ -20,6 +20,9 @@ import { isCaveAvailableOffline, saveCaveForOffline } from '@/lib/offline';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { FileUploader } from '@/components/ui/file-uploader';
 import Image from 'next/image';
+import { useCollection } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const kioskSettingsSchema = z.object({
   logoUrl: z.string().url().optional().or(z.literal('')),
@@ -39,15 +42,17 @@ type KioskSettingsFormValues = z.infer<typeof kioskSettingsSchema>;
 
 interface KioskClientProps {
   initialCaves: Cave[];
-  initialSpots: Spot[];
   initialSettings: KioskSettings | null;
 }
 
-export default function KioskClient({ initialCaves, initialSpots, initialSettings }: KioskClientProps) {
+export default function KioskClient({ initialCaves, initialSettings }: KioskClientProps) {
   const { toast } = useToast();
   const [isOffline, setIsOffline] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+
+  const spotsQuery = useMemo(() => collection(db, 'spots'), []);
+  const { data: spots, loading: spotsLoading } = useCollection<Spot>(spotsQuery);
   
   const form = useForm<KioskSettingsFormValues>({
     resolver: zodResolver(kioskSettingsSchema),
@@ -69,9 +74,9 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
   const watchLogoUrl = form.watch('logoUrl');
 
   const availableSpots = useMemo(() => {
-    if (!watchCaveId) return [];
-    return initialSpots.filter(spot => spot.caveId === watchCaveId);
-  }, [watchCaveId, initialSpots]);
+    if (!watchCaveId || !spots) return [];
+    return spots.filter(spot => spot.caveId === watchCaveId);
+  }, [watchCaveId, spots]);
 
   const selectedCave = useMemo(() => {
     return initialCaves.find(c => c.id === watchCaveId) || null;
@@ -336,7 +341,7 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
                 type="button"
                 variant="outline"
                 onClick={() => append({ spotId: '', duration: 30 })}
-                disabled={!watchCaveId}
+                disabled={!watchCaveId || spotsLoading}
                 >
                 <Plus className="mr-2 h-4 w-4" /> Tambah Spot ke Playlist
                 </Button>
