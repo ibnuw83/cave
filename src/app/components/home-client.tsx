@@ -1,5 +1,7 @@
+
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Cave } from '@/lib/types';
 import { useAuth } from '@/context/auth-context';
@@ -20,6 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { clearOfflineCache } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
+import { getCaves } from '@/lib/firestore';
 
 
 const AuthSection = () => {
@@ -106,8 +109,20 @@ const AuthSection = () => {
 };
 
 
-export default function HomeClient({ caves }: { caves: Cave[] }) {
+export default function HomeClient() {
   const { loading: authLoading } = useAuth();
+  const [caves, setCaves] = useState<Cave[]>([]);
+  const [loadingCaves, setLoadingCaves] = useState(true);
+
+  useEffect(() => {
+    async function fetchCaves() {
+      setLoadingCaves(true);
+      const fetchedCaves = await getCaves(false);
+      setCaves(fetchedCaves);
+      setLoadingCaves(false);
+    }
+    fetchCaves();
+  }, []);
   
   return (
     <div className="container mx-auto min-h-screen max-w-4xl p-4 md:p-8">
@@ -123,7 +138,7 @@ export default function HomeClient({ caves }: { caves: Cave[] }) {
 
       <main>
         <h2 className="mb-6 text-xl font-semibold text-foreground/90 md:text-2xl">Gua yang Tersedia</h2>
-        {authLoading ? (
+        {authLoading || loadingCaves ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             <Skeleton className="h-64 w-full" />
             <Skeleton className="h-64 w-full" />
@@ -159,3 +174,4 @@ export default function HomeClient({ caves }: { caves: Cave[] }) {
     </div>
   );
 }
+

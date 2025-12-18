@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -21,9 +20,10 @@ export default function UsersClient() {
   const { user: currentUser } = useFirebaseAuth();
 
   const usersQuery = useMemo(() => collection(db, 'users'), []);
-  const { data: users = [], loading: usersLoading } = useCollection<UserProfile>(usersQuery);
+  const { data: users, loading: usersLoading } = useCollection<UserProfile>(usersQuery);
 
   const handleRoleChange = async (uid: string, newRole: 'free' | 'pro' | 'admin') => {
+    if (!users) return;
     const userToChange = users.find(u => u.uid === uid);
     
     if (currentUser?.uid === uid) {
@@ -68,6 +68,9 @@ export default function UsersClient() {
   };
   
   const sortedUsers = useMemo(() => {
+    if (!users) {
+        return [];
+    }
     return [...users].sort((a, b) => a.displayName?.localeCompare(b.displayName || '') || 0);
   }, [users]);
 
