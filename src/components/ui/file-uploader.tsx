@@ -1,6 +1,6 @@
 
 'use client';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
@@ -14,6 +14,7 @@ interface FileUploaderProps {
   filePath: string;
   currentFileUrl?: string;
   onUploadSuccess: (downloadURL: string) => void;
+  onUploadStateChange: (isUploading: boolean) => void;
   allowedTypes: string[];
   maxSizeMB: number;
 }
@@ -23,6 +24,7 @@ export function FileUploader({
   filePath,
   currentFileUrl,
   onUploadSuccess,
+  onUploadStateChange,
   allowedTypes,
   maxSizeMB,
 }: FileUploaderProps) {
@@ -32,24 +34,32 @@ export function FileUploader({
   const { uploadFile } = useFileUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    onUploadStateChange(uploadState?.state === 'running');
+  }, [uploadState, onUploadStateChange]);
+
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
       setError(null);
       setUploadState(null);
+      
+      // Immediately start upload after selecting
+      handleUpload(selectedFile);
     }
   };
 
-  const handleUpload = async () => {
-    if (!file) return;
+  const handleUpload = async (fileToUpload: File) => {
+    if (!fileToUpload) return;
 
     setError(null);
-    const finalFilePath = `${filePath}/${file.name}`;
+    const finalFilePath = `${filePath}/${fileToUpload.name}`;
 
     try {
       const downloadURL = await uploadFile(
-        file,
+        fileToUpload,
         finalFilePath,
         (progress) => setUploadState(progress),
         allowedTypes,
@@ -72,12 +82,12 @@ export function FileUploader({
       }
   }
   
-  const isImage = currentFileUrl && allowedTypes.includes('image/');
+  const isImage = currentFileUrl && (currentFileUrl.includes('image') || allowedTypes.some(t => t.startsWith('image/')));
 
   return (
     <div className="space-y-4 rounded-lg border p-4">
         <label className="text-sm font-medium">{label}</label>
-        {currentFileUrl && !file && (
+        {currentFileUrl && !file && !uploadState && (
             <div className="relative group">
                 {isImage ? (
                     <Image src={currentFileUrl} alt="Current file" width={128} height={128} className="rounded-md object-cover h-32 w-32"/>
@@ -97,10 +107,11 @@ export function FileUploader({
           onChange={handleFileChange}
           className="hidden"
           id={`file-input-${label}`}
+          accept={allowedTypes.join(',')}
         />
-        <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+        <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploadState?.state === 'running'}>
             <Upload className="mr-2 h-4 w-4" />
-            Pilih File
+            {currentFileUrl ? 'Ganti File' : 'Pilih File'}
         </Button>
 
         {file && (
@@ -113,13 +124,7 @@ export function FileUploader({
         )}
       </div>
 
-      {file && (
-        <Button type="button" onClick={handleUpload} disabled={uploadState?.state === 'running'}>
-          {uploadState?.state === 'running' ? 'Mengunggah...' : 'Unggah Sekarang'}
-        </Button>
-      )}
-
-      {uploadState && uploadState.state !== 'success' && (
+      {uploadState && uploadState.state === 'running' && (
         <div className="space-y-2">
           <Progress value={uploadState.progress} className="w-full" />
           <p className="text-sm text-muted-foreground">
@@ -132,7 +137,7 @@ export function FileUploader({
         <Alert variant="default" className="border-green-500 text-green-700">
             <CheckCircle className="h-4 w-4 !text-green-500" />
             <AlertTitle>Berhasil</AlertTitle>
-            <AlertDescription>File berhasil diunggah.</AlertDescription>
+            <AlertDescription>File berhasil diunggah. Anda bisa menyimpan sekarang.</AlertDescription>
         </Alert>
       )}
 

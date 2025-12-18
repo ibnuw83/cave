@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { FileUploader } from '@/components/ui/file-uploader';
 import { auth } from '@/lib/firebase';
+import { useState } from 'react';
 
 const caveSchema = z.object({
   name: z.string().min(1, { message: 'Nama gua tidak boleh kosong.' }),
@@ -33,6 +34,8 @@ interface CaveFormProps {
 
 export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
   const { toast } = useToast();
+  const [isUploading, setIsUploading] = useState(false);
+
   const form = useForm<CaveFormValues>({
     resolver: zodResolver(caveSchema),
     defaultValues: {
@@ -47,6 +50,15 @@ export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
   const caveId = cave?.id || 'new_cave';
 
   const onSubmit = async (values: CaveFormValues) => {
+    if (isUploading) {
+        toast({
+            variant: 'destructive',
+            title: 'Harap Tunggu',
+            description: 'Mohon tunggu hingga proses unggah gambar selesai.',
+        });
+        return;
+    }
+
     if (!auth.currentUser) {
         toast({
             variant: 'destructive',
@@ -125,8 +137,9 @@ export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
                         form.setValue('coverImage', url, { shouldValidate: true });
                         toast({ title: 'Berhasil', description: 'Gambar cover telah diunggah.' });
                     }}
-                    allowedTypes={['image/jpeg', 'image/png', 'image/webp']}
-                    maxSizeMB={3}
+                    onUploadStateChange={setIsUploading}
+                    allowedTypes={['image/jpeg', 'image/png', 'image/webp', 'image/*']}
+                    maxSizeMB={5}
                 />
                 <FormMessage />
               </FormItem>
@@ -153,12 +166,12 @@ export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
             )}
           />
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting || isUploading}>
               Batal
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {cave ? 'Simpan Perubahan' : 'Simpan Gua'}
+            <Button type="submit" disabled={isSubmitting || isUploading}>
+              {(isSubmitting || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isUploading ? 'Mengunggah...' : (cave ? 'Simpan Perubahan' : 'Simpan Gua')}
             </Button>
           </div>
         </form>
