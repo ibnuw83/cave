@@ -61,8 +61,19 @@ export async function createUserProfile(user: User): Promise<UserProfile> {
 
 export async function getAllUsersAdmin(): Promise<UserProfile[]> {
   const usersRef = collection(db, 'users');
-  const querySnapshot = await getDocs(usersRef);
-  return querySnapshot.docs.map((doc) => ({ uid: doc.id, ...doc.data() } as UserProfile));
+  try {
+    const querySnapshot = await getDocs(usersRef);
+    return querySnapshot.docs.map((doc) => ({ uid: doc.id, ...doc.data() } as UserProfile));
+  } catch (error: any) {
+    if (error.code === 'permission-denied') {
+        const permissionError = new FirestorePermissionError({
+            path: '/users',
+            operation: 'list',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    }
+    throw error;
+  }
 }
 
 export async function updateUserRole(uid: string, role: 'free' | 'pro' | 'admin') {
