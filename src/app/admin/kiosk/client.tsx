@@ -331,7 +331,7 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
               />
 
               <div className="space-y-4">
-                <FormLabel>Playlist Spot</FormLabel>
+                <FormLabel>Urutan Spot di Playlist</FormLabel>
                 {fields.map((field, index) => (
                     <div key={field.id} className="flex items-center gap-2 p-2 border rounded-lg bg-muted/50">
                     <GripVertical className="h-5 w-5 text-muted-foreground" />
