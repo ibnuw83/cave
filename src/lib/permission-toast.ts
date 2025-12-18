@@ -4,13 +4,11 @@ import { errorEmitter } from '@/lib/error-emitter';
 import { FirestorePermissionError } from '@/lib/errors';
 import { toast } from '@/hooks/use-toast';
 
-let initialized = false;
-
-export function initPermissionToast() {
-  if (initialized) return;
-  initialized = true;
-
-  errorEmitter.on('permission-error', (error: FirestorePermissionError) => {
+// The listener is attached once when this module is imported.
+// The EventEmitter uses a Set to prevent duplicate listeners.
+errorEmitter.on((error: FirestorePermissionError) => {
+  // Only handle FirestorePermissionError instances
+  if (error instanceof FirestorePermissionError) {
     toast({
       variant: 'destructive',
       title: 'Akses Ditolak',
@@ -23,5 +21,14 @@ export function initPermissionToast() {
       operation: error.context.operation,
       data: error.context.requestResourceData,
     });
-  });
+  }
+});
+
+/**
+ * This function is kept for backwards compatibility in case it's called somewhere,
+ * but the primary mechanism is now the module-level listener registration.
+ */
+export function initPermissionToast() {
+  // The logic is now handled at the module level to be more robust
+  // against hot-reloading and multiple initializations.
 }

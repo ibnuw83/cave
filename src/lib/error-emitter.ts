@@ -1,18 +1,22 @@
 type Listener<T> = (data: T) => void;
 
 class EventEmitter<T> {
-  private listeners: Listener<T>[] = [];
+  private listeners: Set<Listener<T>> = new Set();
 
   on(listener: Listener<T>) {
-    this.listeners.push(listener);
+    this.listeners.add(listener);
   }
 
   off(listener: Listener<T>) {
-    this.listeners = this.listeners.filter(l => l !== listener);
+    this.listeners.delete(listener);
   }
 
   emit(data: T) {
-    this.listeners.forEach(listener => listener(data));
+    this.listeners.forEach(listener => {
+      if (typeof listener === 'function') {
+        listener(data);
+      }
+    });
   }
 }
 
