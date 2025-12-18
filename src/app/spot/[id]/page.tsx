@@ -1,3 +1,4 @@
+
 import { getSpot } from '@/lib/firestore';
 import { notFound } from 'next/navigation';
 import SpotClient from '@/app/components/spot-client';
