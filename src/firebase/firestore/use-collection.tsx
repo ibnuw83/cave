@@ -54,7 +54,6 @@ export const useCollection = <T,>(
                 setLoading(false);
             },
             (err: FirestoreError) => {
-                console.error("useCollection error:", err);
                 if (err.code === 'permission-denied') {
                     const permissionError = new FirestorePermissionError({
                         path: (q as any)._query.path.segments.join('/'),

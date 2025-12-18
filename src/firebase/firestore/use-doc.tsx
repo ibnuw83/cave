@@ -44,7 +44,6 @@ export const useDoc = <T,>(
                 setLoading(false);
             },
             (err: FirestoreError) => {
-                console.error("useDoc error:", err);
                 if (err.code === 'permission-denied') {
                      const permissionError = new FirestorePermissionError({
                         path: ref.path,
