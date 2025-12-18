@@ -1,6 +1,8 @@
+
 'use client';
 
 let currentAudio: HTMLAudioElement | null = null;
+let ttsSession = 0;
 
 export function stopSpeaking() {
   if (currentAudio) {
@@ -28,11 +30,16 @@ export function speakLocal(text: string) {
   window.speechSynthesis.speak(u);
 }
 
-let ttsSession = 0;
 
-export async function speakPro(text: string) {
+export async function speakPro(text: string, audioUrl?:string) {
   const session = ++ttsSession;
   stopSpeaking();
+  
+  if(audioUrl){
+    currentAudio = new Audio(audioUrl);
+    await currentAudio.play();
+    return;
+  }
 
   try {
     const res = await fetch('/api/tts', {
@@ -44,10 +51,24 @@ export async function speakPro(text: string) {
     if (session !== ttsSession) return;
 
     if (!res.ok) {
-      // Always read error as text first. It's the safest.
-      const errorText = await res.text();
+        let errorText;
+        try {
+            // Try to parse as JSON first for detailed error
+            const errorJson = await res.clone().json();
+            errorText = errorJson.error?.message || errorJson.error || JSON.stringify(errorJson);
+        } catch {
+            // Fallback to raw text if not JSON
+            errorText = await res.text();
+        }
       console.error('TTS API Error:', errorText || `HTTP ${res.status}`);
       speakLocal('Maaf, narasi pro tidak tersedia saat ini. ' + text);
+      return;
+    }
+
+    // Handle 204 No Content gracefully
+    if (res.status === 204) {
+      console.warn("TTS API returned a success status but no content. Falling back to local TTS.");
+      speakLocal(text);
       return;
     }
 

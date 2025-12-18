@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { canVibrate, vibrate } from '@/lib/haptics';
-import { speakLocal, speakPro, stopSpeaking } from '@/lib/tts';
+import { speakPro, stopSpeaking, speakLocal } from '@/lib/tts';
 
 export default function SpotPlayerUI({ spot }: { spot: Spot }) {
   const { userProfile, loading } = useAuth();
@@ -39,9 +39,12 @@ export default function SpotPlayerUI({ spot }: { spot: Spot }) {
     } else {
       if (hasAudio) {
         const textToSpeak = spot.description;
-        if (canUseProFeatures) {
-          speakPro(textToSpeak);
-        } else {
+        if (canUseProFeatures && spot.audioUrl) {
+           speakPro(textToSpeak, spot.audioUrl);
+        } else if (canUseProFeatures) {
+            speakPro(textToSpeak);
+        }
+        else {
           speakLocal(textToSpeak);
         }
       }
@@ -81,4 +84,5 @@ export default function SpotPlayerUI({ spot }: { spot: Spot }) {
     </>
   );
 }
+
 
