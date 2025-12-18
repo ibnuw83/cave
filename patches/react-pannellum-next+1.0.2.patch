@@ -1,0 +1,13 @@
+diff --git a/node_modules/react-pannellum-next/package.json b/node_modules/react-pannellum-next/package.json
+index 5899988..35a6873 100644
+--- a/node_modules/react-pannellum-next/package.json
++++ b/node_modules/react-pannellum-next/package.json
+@@ -37,7 +37,7 @@
+     "url": "git+https://github.com/good-lly/react-pannellum-next.git"
+   },
+   "peerDependencies": {
+-    "react": "^18.2.0",
++    "react": "^18.2.0 || ^19.0.0",
+     "react-dom": "^18.2.0"
+   }
+ }
