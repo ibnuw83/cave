@@ -193,6 +193,25 @@ export async function deleteCave(id: string): Promise<void> {
 
 // --- Spot Functions ---
 
+export async function getAllSpotsForAdmin(): Promise<Spot[]> {
+  const spotsRef = collection(db, 'spots');
+  try {
+    const querySnapshot = await getDocs(spotsRef);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Spot));
+  } catch (error: any) {
+    if (error.code === 'permission-denied') {
+      const permissionError = new FirestorePermissionError({
+        path: '/spots',
+        operation: 'list',
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    }
+    console.error('Error getting all spots for admin:', error);
+    return [];
+  }
+}
+
+
 export async function getSpots(caveId: string): Promise<Spot[]> {
   const spotsRef = collection(db, 'spots');
   const q = query(
@@ -312,3 +331,5 @@ export async function saveKioskSettings(settings: Omit<KioskSettings, 'id'>) {
         throw error;
     }
 }
+
+    

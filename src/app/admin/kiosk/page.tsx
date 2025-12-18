@@ -1,11 +1,11 @@
-import { getCaves, getAllSpots, getKioskSettings } from "@/lib/firestore";
+import { getCaves, getAllSpotsForAdmin, getKioskSettings } from "@/lib/firestore";
 import KioskClient from "./client";
 
 export default async function KioskSettingsPage() {
   // Fetch all necessary data in parallel
   const [caves, spots, kioskSettings] = await Promise.all([
     getCaves(true),      // include inactive caves for selection
-    getAllSpots(),
+    getAllSpotsForAdmin(),
     getKioskSettings()
   ]);
 
@@ -23,3 +23,5 @@ export default async function KioskSettingsPage() {
     </div>
   );
 }
+
+    
