@@ -12,20 +12,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Trash2, Plus, GripVertical, Loader2, Download, WifiOff, Image as ImageIcon } from 'lucide-react';
+import { Trash2, Plus, GripVertical, Loader2, Download, WifiOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { saveKioskSettings } from '@/lib/firestore';
 import Link from 'next/link';
 import { isCaveAvailableOffline, saveCaveForOffline } from '@/lib/offline';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { FileUploader } from '@/components/ui/file-uploader';
 import Image from 'next/image';
 import { useCollection } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 const kioskSettingsSchema = z.object({
-  logoUrl: z.string().url().optional().or(z.literal('')),
+  logoUrl: z.string().url({ message: "URL tidak valid." }).optional().or(z.literal('')),
   caveId: z.string().min(1, 'Gua harus dipilih.'),
   playlist: z.array(z.object({
     spotId: z.string().min(1, 'Spot harus dipilih.'),
@@ -49,7 +48,6 @@ export default function KioskClient({ initialCaves, initialSettings }: KioskClie
   const { toast } = useToast();
   const [isOffline, setIsOffline] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
 
   const spotsQuery = useMemo(() => collection(db, 'spots'), []);
   const { data: spots, loading: spotsLoading } = useCollection<Spot>(spotsQuery);
@@ -71,7 +69,6 @@ export default function KioskClient({ initialCaves, initialSettings }: KioskClie
   });
 
   const watchCaveId = form.watch('caveId');
-  const watchLogoUrl = form.watch('logoUrl');
 
   const availableSpots = useMemo(() => {
     if (!watchCaveId || !spots) return [];
@@ -147,21 +144,9 @@ export default function KioskClient({ initialCaves, initialSettings }: KioskClie
                     name="logoUrl"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Logo Aplikasi</FormLabel>
+                        <FormLabel>URL Logo Aplikasi</FormLabel>
                         <FormControl>
-                             <FileUploader
-                                label="Logo Aplikasi (PNG, JPG, maks 1MB)"
-                                filePath="app/logo"
-                                currentFileUrl={field.value}
-                                onUploadSuccess={(url) => {
-                                    field.onChange(url);
-                                    // Manually trigger save after upload
-                                    form.handleSubmit(onSubmit)();
-                                }}
-                                onUploadStateChange={setIsUploading}
-                                allowedTypes={['image/png', 'image/jpeg']}
-                                maxSizeMB={1}
-                            />
+                            <Input placeholder="https://example.com/logo.png" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -349,8 +334,8 @@ export default function KioskClient({ initialCaves, initialSettings }: KioskClie
         </Card>
             
         <div className="flex justify-end pt-4">
-            <Button type="submit" disabled={isSubmitting || isUploading}>
-            {(isSubmitting || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+            <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
             Simpan Pengaturan
             </Button>
         </div>
