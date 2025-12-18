@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRef, useEffect, useState, ReactNode } from 'react';
@@ -12,15 +13,17 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, child
   const fov = useRef(75);
 
   useEffect(() => {
-     setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+     // Ensure this runs only on the client
+     if (typeof window !== 'undefined') {
+        setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+     }
   }, []);
 
   const requestGyro = async () => {
     // Standard permission request for iOS 13+
-    const anyDO = DeviceOrientationEvent as any;
-    if (typeof anyDO.requestPermission === 'function') {
+    if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
       try {
-        const permissionState = await anyDO.requestPermission();
+        const permissionState = await (DeviceOrientationEvent as any).requestPermission();
         if (permissionState === 'granted') {
           setIsGyroActive(true);
         }
@@ -28,7 +31,7 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, child
         console.error('Gyro permission request failed:', error);
       }
     } else {
-        // For other devices, just enable it
+        // For other devices (like Android), just enable it
         setIsGyroActive(true);
     }
   };
@@ -42,32 +45,6 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, child
       console.error('WebGL not supported');
       return;
     }
-
-    const vsSource = `
-      attribute vec4 aVertexPosition;
-      uniform mat4 uProjectionMatrix;
-      uniform mat4 uViewMatrix;
-      varying highp vec2 vTextureCoord;
-      void main(void) {
-        gl_Position = uProjectionMatrix * uViewMatrix * aVertexPosition;
-        vTextureCoord = aVertexPosition.xy * 0.5 + 0.5;
-      }
-    `;
-
-    const fsSource = `
-      varying highp vec2 vTextureCoord;
-      uniform sampler2D uSampler;
-      void main(void) {
-          // A simple spherical projection would require more complex UV mapping.
-          // This is a placeholder to just display the image on a plane.
-          // For a true 360 view, you need to map spherical coordinates.
-          // This is a complex task for a simple snippet.
-          // The real implementation is below in the main useEffect
-          gl_FragColor = texture2D(uSampler, vTextureCoord);
-      }
-    `;
-    
-    // --- This effect is complex, so we'll re-write it with a proper 3D sphere ---
     
     let isDragging = false;
     let previousMousePosition = { x: 0, y: 0 };
@@ -132,6 +109,15 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, child
     function render() {
         if (!gl || gl.isContextLost()) return;
 
+        // Handle canvas resize
+        const displayWidth  = gl.canvas.clientWidth;
+        const displayHeight = gl.canvas.clientHeight;
+        if (gl.canvas.width  !== displayWidth || gl.canvas.height !== displayHeight) {
+            gl.canvas.width  = displayWidth;
+            gl.canvas.height = displayHeight;
+            gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+        }
+
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -169,7 +155,9 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, child
     
     // --- Event Handlers ---
     function onMouseDown(event: MouseEvent) { isDragging = true; previousMousePosition = { x: event.clientX, y: event.clientY }; }
+    function onTouchStart(event: TouchEvent) { isDragging = true; previousMousePosition = { x: event.touches[0].clientX, y: event.touches[0].clientY }; }
     function onMouseUp() { isDragging = false; }
+    function onTouchEnd() { isDragging = false; }
     function onMouseMove(event: MouseEvent) {
       if (!isDragging) return;
       const deltaX = event.clientX - previousMousePosition.x;
@@ -179,23 +167,45 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, child
       rotation.current.lat = Math.max(-85, Math.min(85, rotation.current.lat)); // Clamp latitude
       previousMousePosition = { x: event.clientX, y: event.clientY };
     }
+     function onTouchMove(event: TouchEvent) {
+      if (!isDragging) return;
+      const deltaX = event.touches[0].clientX - previousMousePosition.x;
+      const deltaY = event.touches[0].clientY - previousMousePosition.y;
+      rotation.current.lon -= deltaX * 0.1;
+      rotation.current.lat -= deltaY * 0.1;
+      rotation.current.lat = Math.max(-85, Math.min(85, rotation.current.lat)); // Clamp latitude
+      previousMousePosition = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+    }
     function onWheel(event: WheelEvent) {
         event.preventDefault();
         fov.current += event.deltaY * 0.05;
         fov.current = Math.max(30, Math.min(100, fov.current)); // Clamp FOV
     }
+    
+    let initialAlpha: number | null = null;
     function onDeviceOrientation(event: DeviceOrientationEvent) {
-        if (!isGyroActive || !event.alpha || !event.beta || !event.gamma) return;
+        if (!isGyroActive || event.alpha === null || event.beta === null) return;
+        
+        if (initialAlpha === null) {
+            initialAlpha = event.alpha;
+        }
+
+        // Adjust alpha to be relative to the initial orientation
+        const relativeAlpha = event.alpha - initialAlpha;
+        
         // This is a simplified mapping and might need calibration/adjustment
-        rotation.current.lon = -event.alpha;
-        rotation.current.lat = -event.beta + 90;
+        rotation.current.lon = -relativeAlpha;
+        rotation.current.lat = event.beta - 90;
         rotation.current.lat = Math.max(-85, Math.min(85, rotation.current.lat));
     }
 
 
     canvas.addEventListener('mousedown', onMouseDown);
+    canvas.addEventListener('touchstart', onTouchStart);
     document.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('touchend', onTouchEnd);
     document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('touchmove', onTouchMove);
     canvas.addEventListener('wheel', onWheel);
     window.addEventListener('deviceorientation', onDeviceOrientation);
 
@@ -203,10 +213,22 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, child
     return () => {
       cancelAnimationFrame(frameId);
       canvas.removeEventListener('mousedown', onMouseDown);
+      canvas.removeEventListener('touchstart', onTouchStart);
       document.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('touchend', onTouchEnd);
       document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('touchmove', onTouchMove);
       canvas.removeEventListener('wheel', onWheel);
       window.removeEventListener('deviceorientation', onDeviceOrientation);
+       if (gl && !gl.isContextLost()) {
+          gl.deleteProgram(programInfo.program);
+          gl.deleteShader(vertexShader);
+          gl.deleteShader(fragmentShader);
+          gl.deleteBuffer(sphere.vertex);
+          gl.deleteBuffer(sphere.texture);
+          gl.deleteBuffer(sphere.index);
+          gl.deleteTexture(texture);
+       }
     };
 
   }, [imageUrl, isGyroActive]);
@@ -216,8 +238,8 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, child
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
        {children}
        {isMobile && !isGyroActive && (
-        <div className="absolute inset-0 flex items-center justify-center z-10">
-          <Button onClick={requestGyro}>Aktifkan Mode Gyro</Button>
+        <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/50">
+          <Button onClick={requestGyro} variant="secondary">Aktifkan Mode Gyro</Button>
         </div>
       )}
     </div>
@@ -302,7 +324,14 @@ function createSphere(gl: WebGLRenderingContext, latitudeBands: number, longitud
 
 // A minimal mat4 library for transformations
 const mat4 = {
-  create: () => new Float32Array(16),
+  create: () => {
+    let out = new Float32Array(16);
+    out[0] = 1;
+    out[5] = 1;
+    out[10] = 1;
+    out[15] = 1;
+    return out;
+  },
   perspective: (out: Float32Array, fovy: number, aspect: number, near: number, far: number) => {
     const f = 1.0 / Math.tan(fovy / 2);
     out[0] = f / aspect; out[1] = 0; out[2] = 0; out[3] = 0;
@@ -316,6 +345,7 @@ const mat4 = {
       out[10] = -1;
       out[14] = -2 * near;
     }
+    return out;
   },
   rotate: (out: Float32Array, a: Float32Array, rad: number, axis: number[]) => {
     let [x, y, z] = axis;
@@ -350,3 +380,5 @@ const mat4 = {
     return out;
   }
 };
+
+    
