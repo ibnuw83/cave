@@ -73,12 +73,14 @@ export async function POST(req: Request) {
         }
     }
     
+    // Handle cases where the response might be successful but empty.
     const raw = await ttsRes.text();
     if (!raw.trim()) {
         console.warn('TTS returned empty body with success status.');
         return new NextResponse(null, { status: 204 }); // 204 No Content
     }
 
+    // This case should ideally not be reached if the API behaves as documented.
     console.warn("TTS API returned an unexpected but successful response format.", {contentType, body: raw.substring(0, 200)});
     return NextResponse.json({ error: 'TTS API returned an unexpected response format.' }, { status: 502 });
 
