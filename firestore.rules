@@ -1,58 +1,67 @@
 
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
+    /* ========= HELPERS ========= */
     function isSignedIn() {
       return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return request.auth.uid == userId;
     }
 
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
 
     function isAdmin() {
-      return isSignedIn() && getUserData().role == 'admin';
+      return isSignedIn()
+        && getUserData().role == 'admin';
     }
 
-    // Rules for the 'users' collection
+    /* ========= USERS ========= */
     match /users/{userId} {
-      // Admins can list all users.
+      // Admin dapat melihat daftar semua pengguna
       allow list: if isAdmin();
-      // Admins or the owner of the profile can read it.
-      allow read: if isOwner(userId) || isAdmin();
-      // Signed-in users can write their own profile, admins can write any.
-      allow write: if isOwner(userId) || isAdmin();
+
+      // Pengguna dapat membaca profilnya sendiri, admin dapat membaca profil siapa pun
+      allow read: if isSignedIn()
+        && (isOwner(userId) || isAdmin());
+
+      // Pengguna baru dapat membuat profilnya sendiri (hanya sekali)
+      allow create: if isSignedIn()
+        && isOwner(userId)
+        && !exists(/databases/$(database)/documents/users/$(userId));
+
+      // Pengguna dapat memperbarui profilnya sendiri, selama mereka tidak mengubah 'role'
+      allow update: if isSignedIn()
+        && isOwner(userId)
+        && !('role' in request.resource.data);
+      
+      // Admin dapat memperbarui & menghapus profil siapa pun (termasuk mengubah 'role')
+      allow update, delete: if isAdmin();
     }
 
-    // Rules for the 'caves' collection
+    /* ========= CAVES ========= */
     match /caves/{caveId} {
-      // Anyone can read caves now
       allow read: if true;
-      // Only admins can create, update, or delete caves
       allow create, update, delete: if isAdmin();
     }
 
-    // Rules for the 'spots' collection
+    /* ========= SPOTS ========= */
     match /spots/{spotId} {
-        // Any signed-in user can read spots
+        // Aturan lama 'allow read: if true;' terlalu permisif.
+        // Sebaiknya hanya pengguna yang sudah login yang bisa membaca spot.
         allow read: if isSignedIn();
-        // Only admins can create, update, or delete spots
         allow create, update, delete: if isAdmin();
     }
 
-     // Rules for the 'kioskSettings' collection
-    match /kioskSettings/{settingId} {
-        // Anyone can read kiosk settings for the public /kios page
-        allow read: if true;
-        // Only admins can change kiosk settings
-        allow write: if isAdmin();
+    /* ========= KIOSK ========= */
+    match /kioskSettings/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
     }
   }
 }
