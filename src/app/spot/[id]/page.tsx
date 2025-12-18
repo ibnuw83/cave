@@ -88,11 +88,13 @@ export default async function SpotPage({ params }: { params: { id: string } }) {
       return <SpotPageClient spotId={spotId} initialSpot={null} userRole={userRole} />;
   }
 
+  // Server-side check for locked content to avoid flash of content for free users.
   const isLocked = initialSpot.isPro && userRole === 'free';
   
   if (isLocked) {
     return <LockedScreen spot={initialSpot} />;
   }
 
+  // Render the client component with the initial data.
   return <SpotPageClient spotId={spotId} initialSpot={initialSpot} userRole={userRole} />;
 }

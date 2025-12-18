@@ -1,3 +1,4 @@
+
 // lib/offline.ts
 'use client';
 
@@ -5,6 +6,7 @@ import { Cave, Spot, OfflineCaveData } from './types';
 
 const CACHE_NAME = 'penjelajah-gua-offline-v1';
 const CAVE_DATA_KEY_PREFIX = 'cave-data-';
+const OFFLINE_INDEX_KEY = 'offline-index';
 
 // --- Helper Functions ---
 
@@ -39,32 +41,42 @@ async function cacheFiles(urls: string[]): Promise<void> {
 
 /**
  * Saves all data for a specific cave for offline use.
+ * This function also updates the offline index.
  * @param cave The cave object.
  * @param spots An array of spots belonging to the cave.
  */
 export async function saveCaveForOffline(cave: Cave, spots: Spot[]): Promise<void> {
+  const cache = await caches.open(CACHE_NAME);
+
+  // 1. Update the offline index
+  let offlineIndex: Record<string, string> = {};
+  const indexResponse = await cache.match(OFFLINE_INDEX_KEY);
+  if (indexResponse) {
+    offlineIndex = await indexResponse.json();
+  }
+  spots.forEach(spot => {
+    offlineIndex[spot.id] = cave.id;
+  });
+  await cache.put(OFFLINE_INDEX_KEY, new Response(JSON.stringify(offlineIndex)));
+
+  // 2. Cache the JSON metadata for the cave and spots
   const caveDataKey = getCaveDataKey(cave.id);
   const dataToStore: OfflineCaveData = {
     cave,
     spots,
     timestamp: Date.now(),
   };
-
-  // 1. Cache the JSON metadata for the cave and spots
   const metadataResponse = new Response(JSON.stringify(dataToStore), {
     headers: { 'Content-Type': 'application/json' },
   });
-
-  const cache = await caches.open(CACHE_NAME);
   await cache.put(caveDataKey, metadataResponse);
 
-  // 2. Cache all associated media files (images, audio)
+  // 3. Cache all associated media files (images, audio)
   const mediaUrls = [
     cave.coverImage,
     ...spots.map(spot => spot.imageUrl),
     ...spots.map(spot => spot.audioUrl).filter(Boolean), // Filter out undefined/empty audioUrls
   ];
-
   await cacheFiles(mediaUrls as string[]);
 }
 
