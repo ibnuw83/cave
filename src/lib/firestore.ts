@@ -38,7 +38,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
         });
         errorEmitter.emit('permission-error', permissionError);
     }
-    // No need for a generic console.error here, the emitter handles it.
+    // This throw is important to signal failure to the caller (e.g., processAuth)
     throw error;
   }
 }
@@ -53,6 +53,7 @@ export async function createUserProfile(user: User): Promise<UserProfile> {
   };
   const userRef = doc(db, 'users', user.uid);
   
+  // Use .catch() for non-blocking error handling and contextual error emission.
   setDoc(userRef, userProfileData).catch(error => {
       if (error.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
@@ -62,10 +63,12 @@ export async function createUserProfile(user: User): Promise<UserProfile> {
             });
             errorEmitter.emit('permission-error', permissionError);
       }
-      // We don't re-throw here to avoid unhandled promise rejection
+      // We don't re-throw here to avoid unhandled promise rejection,
+      // but the caller needs to know this might have failed.
+      // The emitter handles user notification.
   });
   
-  // Return the profile optimistically
+  // Return the profile optimistically for a responsive UI.
   return { uid: user.uid, ...userProfileData } as UserProfile;
 }
 
@@ -83,13 +86,14 @@ export async function getAllUsersAdmin(): Promise<UserProfile[]> {
         });
         errorEmitter.emit('permission-error', permissionError);
     }
-     return []; // Return empty array on error
+     throw error; // Re-throw to be handled by caller
   }
 }
 
 export async function updateUserRole(uid: string, role: 'free' | 'pro' | 'admin') {
   const userRef = doc(db, 'users', uid);
   const dataToUpdate = { role, updatedAt: serverTimestamp() };
+  // Use .catch for non-blocking UI and proper error handling
   updateDoc(userRef, dataToUpdate).catch(error => {
     if (error.code === 'permission-denied') {
         const permissionError = new FirestorePermissionError({
@@ -99,6 +103,7 @@ export async function updateUserRole(uid: string, role: 'free' | 'pro' | 'admin'
         });
         errorEmitter.emit('permission-error', permissionError);
     }
+    // We don't need to re-throw here, the emitter handles the notification.
   });
 }
 
@@ -119,7 +124,7 @@ export async function getCaves(includeInactive = false): Promise<Cave[]> {
         });
         errorEmitter.emit('permission-error', permissionError);
     }
-    return []; // Return empty array on error
+    throw error;
   }
 }
 
@@ -144,7 +149,10 @@ export async function getCave(id: string): Promise<Cave | null> {
 }
 
 export async function addCave(caveData: Omit<Cave, 'id'>): Promise<string> {
-    const docRef = await addDoc(collection(db, 'caves'), caveData).catch(error => {
+    try {
+        const docRef = await addDoc(collection(db, 'caves'), caveData);
+        return docRef.id;
+    } catch (error: any) {
         if (error.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
                 path: '/caves',
@@ -154,13 +162,14 @@ export async function addCave(caveData: Omit<Cave, 'id'>): Promise<string> {
             errorEmitter.emit('permission-error', permissionError);
         }
         throw error;
-    });
-    return docRef.id;
+    }
 }
 
 export async function updateCave(id: string, caveData: Partial<Omit<Cave, 'id'>>) {
     const docRef = doc(db, 'caves', id);
-    await updateDoc(docRef, caveData).catch(error => {
+    try {
+        await updateDoc(docRef, caveData);
+    } catch(error: any) {
         if (error.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
                 path: `/caves/${id}`,
@@ -170,7 +179,7 @@ export async function updateCave(id: string, caveData: Partial<Omit<Cave, 'id'>>
             errorEmitter.emit('permission-error', permissionError);
         }
         throw error;
-    });
+    }
 }
 
 export async function deleteCave(id: string): Promise<void> {
@@ -214,7 +223,7 @@ export async function getAllSpotsForAdmin(): Promise<Spot[]> {
       });
       errorEmitter.emit('permission-error', permissionError);
     }
-    return [];
+    throw error;
   }
 }
 
@@ -236,7 +245,7 @@ export async function getSpots(caveId: string): Promise<Spot[]> {
         });
         errorEmitter.emit('permission-error', permissionError);
     }
-    return [];
+    throw error;
   }
 }
 
@@ -261,7 +270,10 @@ export async function getSpot(id: string): Promise<Spot | null> {
 }
 
 export async function addSpot(spotData: Omit<Spot, 'id'>): Promise<string | null> {
-    const docRef = await addDoc(collection(db, 'spots'), spotData).catch(error => {
+    try {
+        const docRef = await addDoc(collection(db, 'spots'), spotData);
+        return docRef.id;
+    } catch (error: any) {
         if (error.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
                 path: '/spots',
@@ -271,13 +283,14 @@ export async function addSpot(spotData: Omit<Spot, 'id'>): Promise<string | null
             errorEmitter.emit('permission-error', permissionError);
         }
         throw error;
-    });
-    return docRef.id;
+    }
 }
 
 export async function updateSpot(id: string, spotData: Partial<Omit<Spot, 'id'>>) {
   const docRef = doc(db, 'spots', id);
-  await updateDoc(docRef, spotData).catch(error => {
+  try {
+    await updateDoc(docRef, spotData);
+  } catch(error: any) {
         if (error.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
                 path: `/spots/${id}`,
@@ -287,12 +300,14 @@ export async function updateSpot(id: string, spotData: Partial<Omit<Spot, 'id'>>
             errorEmitter.emit('permission-error', permissionError);
         }
         throw error;
-    });
+    }
 }
 
 export async function deleteSpot(id: string) {
   const docRef = doc(db, 'spots', id);
-  await deleteDoc(docRef).catch(error => {
+  try {
+    await deleteDoc(docRef);
+  } catch (error: any) {
         if (error.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
                 path: `/spots/${id}`,
@@ -301,7 +316,7 @@ export async function deleteSpot(id: string) {
             errorEmitter.emit('permission-error', permissionError);
         }
         throw error;
-    });
+    }
 }
 
 // --- Kiosk Settings Functions ---
@@ -330,7 +345,9 @@ export async function getKioskSettings(): Promise<KioskSettings | null> {
 
 export async function saveKioskSettings(settings: Omit<KioskSettings, 'id'>) {
     const docRef = doc(db, 'kioskSettings', KIOSK_SETTINGS_ID);
-    await setDoc(docRef, settings, { merge: true }).catch(error => {
+    try {
+        await setDoc(docRef, settings, { merge: true })
+    } catch(error: any) {
         if (error.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
                 path: '/kioskSettings/main',
@@ -340,5 +357,5 @@ export async function saveKioskSettings(settings: Omit<KioskSettings, 'id'>) {
             errorEmitter.emit('permission-error', permissionError);
         }
         throw error;
-    });
+    }
 }

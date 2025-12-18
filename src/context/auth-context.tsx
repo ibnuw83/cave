@@ -46,6 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         let profile = await getUserProfile(user.uid);
         if (!profile) {
             console.log('Creating new user profile for:', user.uid);
+            // createUserProfile is now non-blocking for UI, but we still need to
+            // get the result for the initial session.
             profile = await createUserProfile(user);
         }
         setUserProfile(profile);
@@ -53,19 +55,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
         // The error is already handled by the emitter in getUserProfile/createUserProfile
         // Just sign out if profile fails to load/create
+        toast({
+          variant: 'destructive',
+          title: 'Gagal Memuat Profil',
+          description: 'Ada masalah saat memuat atau membuat profil pengguna Anda. Silakan coba lagi.'
+        });
         await firebaseSignOut(auth);
         setUser(null);
         setUserProfile(null);
         return null;
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     const handleRedirect = async () => {
+        setLoading(true); // Start loading when checking for redirect
         try {
             const result = await getRedirectResult(auth);
             if (result) {
-                setLoading(true);
                 await processAuth(result.user);
                 toast({
                     title: "Login Berhasil",
@@ -80,6 +87,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 description: "Terjadi kesalahan saat login.",
                 variant: "destructive",
             });
+        } finally {
+            // Only set loading to false after redirect check is complete
+            // The onAuthStateChanged will handle its own loading state.
+             if (!auth.currentUser) {
+                setLoading(false);
+            }
         }
     }
     handleRedirect();
@@ -87,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setLoading(true);
       if (user) {
+        // Only re-process if the user is different from the one in state
         if (!userProfile || user.uid !== userProfile.uid) {
            await processAuth(user);
         }
@@ -105,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const provider = new GoogleAuthProvider();
     try {
       await signInWithRedirect(auth, provider);
+      // The redirect will be handled by the useEffect above
     } catch (error: any) {
       console.error("Error signing in with Google: ", error);
       toast({
@@ -120,6 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, pass);
+      // onAuthStateChanged will handle the rest
       router.push('/');
        toast({
         title: "Login Berhasil",
@@ -132,8 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: "Email atau password salah.",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
+       setLoading(false); // Only set loading false on error
     }
   }
 
@@ -143,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       await updateProfile(userCredential.user, { displayName: data.name });
       
-      // reload user to get displayName and then create profile
+      // reload user to get displayName, onAuthStateChanged will then pick it up
       await userCredential.user.reload();
       const updatedUser = auth.currentUser;
 
@@ -167,7 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
         }
     } finally {
-        setLoading(false);
+        // Let onAuthStateChanged handle the final loading state
     }
   }
   
@@ -192,8 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     try {
       await firebaseSignOut(auth);
-      setUser(null);
-      setUserProfile(null);
+      // onAuthStateChanged will clear user and profile
       router.push('/login');
       toast({
         title: "Logout Berhasil",
