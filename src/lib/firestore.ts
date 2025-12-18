@@ -116,13 +116,9 @@ export async function addCave(caveData: Omit<Cave, 'id'>): Promise<string> {
                 requestResourceData: caveData,
             });
             errorEmitter.emit('permission-error', permissionError);
-        } else {
-          throw error;
         }
+        throw error;
     }
-    // This part is unreachable because of the throw, so it can be removed or modified.
-    // Assuming we want to stop execution on error.
-    return ''; // Or handle it differently
 }
 
 export async function updateCave(id: string, caveData: Partial<Omit<Cave, 'id'>>) {
@@ -210,11 +206,9 @@ export async function addSpot(spotData: Omit<Spot, 'id'>): Promise<string> {
             requestResourceData: spotData,
         });
         errorEmitter.emit('permission-error', permissionError);
-    } else {
-        throw error;
     }
+    throw error;
   }
-  return '';
 }
 
 export async function updateSpot(id: string, spotData: Partial<Omit<Spot, 'id'>>) {
