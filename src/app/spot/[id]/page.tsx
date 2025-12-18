@@ -1,10 +1,15 @@
 
 import { getSpot } from '@/lib/firestore';
 import { notFound } from 'next/navigation';
-import SpotClient from '@/app/components/spot-client';
 import { Spot } from '@/lib/types';
 import placeholderImagesData from '@/lib/placeholder-images.json';
 import { getOfflineCaveData } from '@/lib/offline';
+import { cookies } from 'next/headers';
+import { auth } from '@/lib/firebase-admin';
+import { getUserProfile } from '@/lib/firestore';
+import LockedScreen from '@/app/components/locked-screen';
+import { GyroViewer } from '@/app/components/gyro-viewer';
+import SpotPlayerUI from '@/app/components/spot-player-ui';
 
 const placeholderImages = placeholderImagesData.placeholderImages;
 
@@ -53,10 +58,11 @@ const staticSpots: Spot[] = [
 export default async function SpotPage({ params }: { params: { id: string } }) {
   let spot: Spot | null = null;
   
+  // 1. Check for static data
   if (params.id.startsWith('static-')) {
     spot = staticSpots.find(s => s.id === params.id) || null;
   } else {
-    // For dynamic spots, try to find them in any offline cache first.
+    // 2. Try to load from offline cache first (only for dynamic spots)
     try {
         const cachesKeys = await caches.keys();
         for (const key of cachesKeys) {
@@ -83,7 +89,7 @@ export default async function SpotPage({ params }: { params: { id: string } }) {
       console.warn("Could not search offline cache for spot:", error);
     }
     
-    // If not found in any offline cache, fetch from Firestore
+    // 3. If not in cache, fetch from Firestore
     if (!spot) {
       try {
         spot = await getSpot(params.id);
@@ -97,5 +103,30 @@ export default async function SpotPage({ params }: { params: { id: string } }) {
     notFound();
   }
 
-  return <SpotClient spot={spot} />;
+  // --- Auth Check (Server Side) ---
+  let userRole = 'free';
+  try {
+    const sessionCookie = cookies().get('__session')?.value;
+    if (sessionCookie) {
+      const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
+      const userProfile = await getUserProfile(decodedToken.uid);
+      if (userProfile) {
+        userRole = userProfile.role;
+      }
+    }
+  } catch (error) {
+    console.log('User not logged in or session expired');
+  }
+
+  const isLocked = spot.isPro && userRole === 'free';
+  
+  if(isLocked) {
+    return <LockedScreen spot={spot} />;
+  }
+
+  return (
+    <GyroViewer imageUrl={spot.imageUrl}>
+       <SpotPlayerUI spot={spot} />
+    </GyroViewer>
+  );
 }

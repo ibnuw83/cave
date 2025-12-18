@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { ReactNode } from 'react';
 
 type Orientation = { yaw: number; pitch: number };
 
@@ -15,8 +16,9 @@ export function GyroViewer(props: {
   imageUrl: string;
   className?: string;
   strength?: number; // 0.6–1.2
+  children?: ReactNode;
 }) {
-  const { imageUrl, className, strength = 0.9 } = props;
+  const { imageUrl, className, strength = 0.9, children } = props;
   const [gyroEnabled, setGyroEnabled] = useState(false);
   const [ori, setOri] = useState<Orientation>({ yaw: 0, pitch: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -109,6 +111,8 @@ export function GyroViewer(props: {
         style={{ backgroundImage: `url(${imageUrl})`, transform }}
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
+
+      {children}
 
       {isMobile && !gyroEnabled && (
         <div className="absolute inset-0 flex items-center justify-center z-10">
