@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Spot, KioskSettings } from '@/lib/types';
 import VisitorCounter from '../components/visitor-counter';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { useKioskHeartbeat, useKioskControl } from '@/hooks/use-kiosk';
+
 
 interface Props {
   spots: (Spot & { duration: number })[];
@@ -57,6 +59,17 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
   );
 
   const current = playlist[index];
+  
+  // Kiosk remote control & heartbeat hooks
+  useKioskHeartbeat(kioskId, current?.id);
+  useKioskControl((controlData) => {
+    console.log('Received kiosk control data:', controlData);
+    // TODO: Implement actions based on control data, e.g., kill switch
+    if (controlData.action === 'RESTART') {
+      window.location.reload();
+    }
+  });
+
 
   useEffect(() => {
     if (timerRef.current) {

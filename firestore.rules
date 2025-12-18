@@ -79,5 +79,20 @@ service cloud.firestore {
       // Hanya admin yang dapat membaca, mengubah, atau menghapus event individual
       allow read, update, delete: if isAdmin();
     }
+    
+    /* ========= KIOSK REMOTE CONTROL ========= */
+    match /kioskDevices/{kioskId} {
+        // Kios dapat menulis statusnya sendiri (heartbeat)
+        allow write: if isSignedIn();
+        // Admin dapat membaca status semua kios
+        allow read: if isAdmin();
+    }
+
+    match /kioskControl/{controlId} {
+        // Kios dapat membaca dokumen kontrol
+        allow read: if isSignedIn();
+        // Hanya admin yang dapat menulis/mengubah perintah kontrol
+        allow write: if isAdmin();
+    }
   }
 }
