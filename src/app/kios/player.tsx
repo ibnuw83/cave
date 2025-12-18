@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
@@ -61,11 +62,10 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
   const current = playlist[index];
   
   // Kiosk remote control & heartbeat hooks
-  useKioskHeartbeat(kioskId, current?.id);
-  useKioskControl((controlData) => {
-    console.log('Received kiosk control data:', controlData);
-    // TODO: Implement actions based on control data, e.g., kill switch
-    if (controlData.action === 'RESTART') {
+  useKioskHeartbeat('kiosk-001', current?.id);
+  useKioskControl((ctrl) => { 
+    /* handle kill-switch / reload */
+    if (ctrl.action === 'RESTART') {
       window.location.reload();
     }
   });
