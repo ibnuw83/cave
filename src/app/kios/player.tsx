@@ -1,9 +1,10 @@
-
 'use client';
 
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { Spot, KioskSettings } from '@/lib/types';
 import VisitorCounter from '../components/visitor-counter';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface Props {
   spots: (Spot & { duration: number })[];
@@ -11,9 +12,41 @@ interface Props {
   kioskId: string;
 }
 
+// Logging functions as provided
+async function logSpotView(kioskId: string, caveId: string, spotId: string) {
+  try {
+    await addDoc(collection(db, 'kioskEvents'), {
+      type: 'SPOT_VIEW',
+      kioskId,
+      caveId,
+      spotId,
+      ts: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Failed to log SPOT_VIEW event:", error);
+  }
+}
+
+async function logEdge(kioskId: string, caveId: string, fromSpotId: string, toSpotId: string) {
+  try {
+    await addDoc(collection(db, 'kioskEvents'), {
+      type: 'SPOT_EDGE',
+      kioskId,
+      caveId,
+      fromSpotId,
+      toSpotId,
+      ts: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Failed to log SPOT_EDGE event:", error);
+  }
+}
+
+
 export default function KioskPlayer({ spots, mode, kioskId }: Props) {
   const [index, setIndex] = useState(0);
   const timerRef = useRef<number | null>(null);
+  const prevSpotIdRef = useRef<string | null>(null);
 
   // Memoize the playlist so shuffle doesn't happen on every render
   const playlist = useMemo(() => 
@@ -31,6 +64,16 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
     }
     
     if (!playlist || playlist.length === 0 || !current) return;
+    
+    // Log the view and edge transition
+    if (current.id) {
+        logSpotView(kioskId, current.caveId, current.id);
+        if (prevSpotIdRef.current) {
+            logEdge(kioskId, current.caveId, prevSpotIdRef.current, current.id);
+        }
+        prevSpotIdRef.current = current.id;
+    }
+
 
     const duration = current.duration ? current.duration * 1000 : 30000; // Default 30 detik
     
@@ -43,7 +86,7 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
         clearTimeout(timerRef.current);
       }
     };
-  }, [index, playlist, current]);
+  }, [index, playlist, current, kioskId]);
 
   if (!current) {
     return (
