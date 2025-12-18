@@ -16,10 +16,12 @@ export default async function KioskSettingsPage() {
         <h1 className="text-2xl md:text-3xl font-bold">Pengaturan Aplikasi</h1>
         <p className="text-muted-foreground">Kelola pengaturan umum dan mode kios.</p>
       </header>
-      <KioskClient 
-        initialCaves={caves}
-        initialSettings={kioskSettings}
-      />
+      <div className="space-y-8">
+        <KioskClient 
+          initialCaves={caves}
+          initialSettings={kioskSettings}
+        />
+      </div>
     </div>
   );
 }

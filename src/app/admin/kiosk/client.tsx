@@ -2,12 +2,12 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Cave, Spot, KioskSettings } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -18,13 +18,19 @@ import { saveKioskSettings } from '@/lib/firestore';
 import Link from 'next/link';
 import { isCaveAvailableOffline, saveCaveForOffline } from '@/lib/offline';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import Image from 'next/image';
 import { useCollection } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
-const kioskSettingsSchema = z.object({
+// Schema untuk pengaturan global
+const globalSettingsSchema = z.object({
   logoUrl: z.string().url({ message: "URL tidak valid." }).optional().or(z.literal('')),
+  mode: z.enum(['loop', 'shuffle']),
+  exitPin: z.string().length(4, 'PIN harus terdiri dari 4 digit.').regex(/^\d{4}$/, 'PIN harus berupa 4 angka.'),
+});
+
+// Schema untuk pengaturan playlist
+const playlistSettingsSchema = z.object({
   caveId: z.string().min(1, 'Gua harus dipilih.'),
   playlist: z.array(z.object({
     spotId: z.string().min(1, 'Spot harus dipilih.'),
@@ -33,11 +39,10 @@ const kioskSettingsSchema = z.object({
     (items) => new Set(items.map(i => i.spotId)).size === items.length,
     { message: 'Spot tidak boleh duplikat dalam playlist.' }
   ),
-  mode: z.enum(['loop', 'shuffle']),
-  exitPin: z.string().length(4, 'PIN harus terdiri dari 4 digit.').regex(/^\d{4}$/, 'PIN harus berupa 4 angka.'),
 });
 
-type KioskSettingsFormValues = z.infer<typeof kioskSettingsSchema>;
+type GlobalSettingsFormValues = z.infer<typeof globalSettingsSchema>;
+type PlaylistSettingsFormValues = z.infer<typeof playlistSettingsSchema>;
 
 interface KioskClientProps {
   initialCaves: Cave[];
@@ -52,23 +57,29 @@ export default function KioskClient({ initialCaves, initialSettings }: KioskClie
   const spotsQuery = useMemo(() => collection(db, 'spots'), []);
   const { data: spots, loading: spotsLoading } = useCollection<Spot>(spotsQuery);
   
-  const form = useForm<KioskSettingsFormValues>({
-    resolver: zodResolver(kioskSettingsSchema),
+  const globalForm = useForm<GlobalSettingsFormValues>({
+    resolver: zodResolver(globalSettingsSchema),
     defaultValues: {
       logoUrl: initialSettings?.logoUrl || '',
-      caveId: initialSettings?.caveId || '',
-      playlist: initialSettings?.playlist || [],
       mode: initialSettings?.mode || 'loop',
       exitPin: initialSettings?.exitPin || '1234',
     },
   });
 
+  const playlistForm = useForm<PlaylistSettingsFormValues>({
+    resolver: zodResolver(playlistSettingsSchema),
+    defaultValues: {
+      caveId: initialSettings?.caveId || '',
+      playlist: initialSettings?.playlist || [],
+    },
+  });
+
   const { fields, append, remove } = useFieldArray({
-    control: form.control,
+    control: playlistForm.control,
     name: 'playlist',
   });
 
-  const watchCaveId = form.watch('caveId');
+  const watchCaveId = playlistForm.watch('caveId');
 
   const availableSpots = useMemo(() => {
     if (!watchCaveId || !spots) return [];
@@ -111,134 +122,158 @@ export default function KioskClient({ initialCaves, initialSettings }: KioskClie
     }
   };
 
-
-  const onSubmit = async (values: KioskSettingsFormValues) => {
+  const onGlobalSubmit = async (values: GlobalSettingsFormValues) => {
     try {
         await saveKioskSettings(values);
-        toast({ title: 'Berhasil', description: 'Pengaturan kios telah disimpan.' });
+        toast({ title: 'Berhasil', description: 'Pengaturan global telah disimpan.' });
     } catch (error: any) {
         if (error.code !== 'permission-denied') {
            toast({
             variant: 'destructive',
             title: 'Gagal',
-            description: 'Terjadi kesalahan saat menyimpan pengaturan kios.',
+            description: 'Terjadi kesalahan saat menyimpan pengaturan global.',
+          });
+        }
+    }
+  };
+  
+  const onPlaylistSubmit = async (values: PlaylistSettingsFormValues) => {
+    try {
+        await saveKioskSettings(values);
+        toast({ title: 'Berhasil', description: 'Pengaturan daftar putar kios telah disimpan.' });
+    } catch (error: any) {
+        if (error.code !== 'permission-denied') {
+           toast({
+            variant: 'destructive',
+            title: 'Gagal',
+            description: 'Terjadi kesalahan saat menyimpan daftar putar kios.',
           });
         }
     }
   };
 
-  const isSubmitting = form.formState.isSubmitting;
+  const isGlobalSubmitting = globalForm.formState.isSubmitting;
+  const isPlaylistSubmitting = playlistForm.formState.isSubmitting;
 
   return (
-    <div className="space-y-8">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <Card>
+    <>
+      <Form {...globalForm}>
+        <form onSubmit={globalForm.handleSubmit(onGlobalSubmit)}>
+          <Card>
+              <CardHeader>
+                  <CardTitle>Pengaturan Global</CardTitle>
+                  <CardDescription>Pengaturan umum untuk seluruh aplikasi.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                 <FormField
+                      control={globalForm.control}
+                      name="logoUrl"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>URL Logo Aplikasi</FormLabel>
+                          <FormControl>
+                              <Input placeholder="https://example.com/logo.png" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField
+                      control={globalForm.control}
+                      name="mode"
+                      render={({ field }) => (
+                          <FormItem className="space-y-3">
+                          <FormLabel>Mode Pemutaran Kios</FormLabel>
+                          <FormControl>
+                              <RadioGroup
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                              className="flex flex-col space-y-1"
+                              >
+                              <FormItem className="flex items-center space-x-3 space-y-0">
+                                  <FormControl>
+                                  <RadioGroupItem value="loop" />
+                                  </FormControl>
+                                  <FormLabel className="font-normal">
+                                  Loop (berurutan)
+                                  </FormLabel>
+                              </FormItem>
+                              <FormItem className="flex items-center space-x-3 space-y-0">
+                                  <FormControl>
+                                  <RadioGroupItem value="shuffle" />
+                                  </FormControl>
+                                  <FormLabel className="font-normal">
+                                  Shuffle (acak)
+                                  </FormLabel>
+                              </FormItem>
+                              </RadioGroup>
+                          </FormControl>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                      />
+                      <FormField
+                          control={globalForm.control}
+                          name="exitPin"
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>PIN Keluar Kios</FormLabel>
+                              <FormControl>
+                              <Input type="password" placeholder="cth: 1234" maxLength={4} {...field} />
+                              </FormControl>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                  </div>
+              </CardContent>
+               <CardFooter>
+                  <Button type="submit" disabled={isGlobalSubmitting} className="ml-auto">
+                      {isGlobalSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                      Simpan Pengaturan Global
+                  </Button>
+              </CardFooter>
+          </Card>
+        </form>
+      </Form>
+
+      <Form {...playlistForm}>
+        <form onSubmit={playlistForm.handleSubmit(onPlaylistSubmit)}>
+          <Card>
             <CardHeader>
-                <CardTitle>Pengaturan Global</CardTitle>
-                <CardDescription>Pengaturan umum untuk seluruh aplikasi.</CardDescription>
+                <div className='flex justify-between items-start gap-4'>
+                    <div>
+                        <CardTitle>Daftar Putar Kios</CardTitle>
+                        <CardDescription>Pilih gua dan atur spot yang akan diputar otomatis.</CardDescription>
+                    </div>
+                    <div className='flex gap-2'>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div>
+                                        <Button onClick={handleDownload} disabled={isDownloading || isOffline || !selectedCave} variant="secondary" type="button">
+                                            {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : isOffline ? <WifiOff className="mr-2 h-4 w-4"/> : <Download className="mr-2 h-4 w-4" />}
+                                            {isOffline ? 'Tersimpan Offline' : 'Simpan Offline'}
+                                        </Button>
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                <p>{isOffline ? 'Konten gua ini sudah bisa diakses offline.' : 'Unduh semua spot di gua ini untuk akses offline.'}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                        <Button asChild variant="outline">
+                            <Link href="/kios" target="_blank">
+                                Buka Mode Kios
+                            </Link>
+                        </Button>
+                    </div>
+                </div>
             </CardHeader>
             <CardContent className="space-y-6">
-               <FormField
-                    control={form.control}
-                    name="logoUrl"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>URL Logo Aplikasi</FormLabel>
-                        <FormControl>
-                            <Input placeholder="https://example.com/logo.png" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                    control={form.control}
-                    name="mode"
-                    render={({ field }) => (
-                        <FormItem className="space-y-3">
-                        <FormLabel>Mode Pemutaran Kios</FormLabel>
-                        <FormControl>
-                            <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="flex flex-col space-y-1"
-                            >
-                            <FormItem className="flex items-center space-x-3 space-y-0">
-                                <FormControl>
-                                <RadioGroupItem value="loop" />
-                                </FormControl>
-                                <FormLabel className="font-normal">
-                                Loop (berurutan)
-                                </FormLabel>
-                            </FormItem>
-                            <FormItem className="flex items-center space-x-3 space-y-0">
-                                <FormControl>
-                                <RadioGroupItem value="shuffle" />
-                                </FormControl>
-                                <FormLabel className="font-normal">
-                                Shuffle (acak)
-                                </FormLabel>
-                            </FormItem>
-                            </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="exitPin"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>PIN Keluar Kios</FormLabel>
-                            <FormControl>
-                            <Input type="password" placeholder="cth: 1234" maxLength={4} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                </div>
-            </CardContent>
-        </Card>
-
-        <Card>
-        <CardHeader>
-            <div className='flex justify-between items-start gap-4'>
-                <div>
-                    <CardTitle>Daftar Putar Kios</CardTitle>
-                    <CardDescription>Pilih gua dan atur spot yang akan diputar otomatis.</CardDescription>
-                </div>
-                <div className='flex gap-2'>
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div>
-                                    <Button onClick={handleDownload} disabled={isDownloading || isOffline || !selectedCave} variant="secondary" type="button">
-                                        {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : isOffline ? <WifiOff className="mr-2 h-4 w-4"/> : <Download className="mr-2 h-4 w-4" />}
-                                        {isOffline ? 'Tersimpan Offline' : 'Simpan Offline'}
-                                    </Button>
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                            <p>{isOffline ? 'Konten gua ini sudah bisa diakses offline.' : 'Unduh semua spot di gua ini untuk akses offline.'}</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-
-                    <Button asChild variant="outline">
-                        <Link href="/kios" target="_blank">
-                            Buka Mode Kios
-                        </Link>
-                    </Button>
-                </div>
-            </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-                <FormField
-                control={form.control}
+              <FormField
+                control={playlistForm.control}
                 name="caveId"
                 render={({ field }) => (
                     <FormItem>
@@ -246,7 +281,7 @@ export default function KioskClient({ initialCaves, initialSettings }: KioskClie
                     <Select 
                         onValueChange={(value) => {
                         field.onChange(value);
-                        form.setValue('playlist', []); 
+                        playlistForm.setValue('playlist', []); 
                         }} 
                         defaultValue={field.value}
                     >
@@ -266,15 +301,15 @@ export default function KioskClient({ initialCaves, initialSettings }: KioskClie
                     <FormMessage />
                     </FormItem>
                 )}
-                />
+              />
 
-                <div className="space-y-4">
+              <div className="space-y-4">
                 <FormLabel>Playlist Spot</FormLabel>
                 {fields.map((field, index) => (
                     <div key={field.id} className="flex items-center gap-2 p-2 border rounded-lg bg-muted/50">
                     <GripVertical className="h-5 w-5 text-muted-foreground" />
                     <FormField
-                        control={form.control}
+                        control={playlistForm.control}
                         name={`playlist.${index}.spotId`}
                         render={({ field }) => (
                         <FormItem className="flex-grow">
@@ -297,7 +332,7 @@ export default function KioskClient({ initialCaves, initialSettings }: KioskClie
                         )}
                     />
                     <FormField
-                        control={form.control}
+                        control={playlistForm.control}
                         name={`playlist.${index}.duration`}
                         render={({ field }) => (
                         <FormItem>
@@ -316,8 +351,8 @@ export default function KioskClient({ initialCaves, initialSettings }: KioskClie
                     </Button>
                     </div>
                 ))}
-                {form.formState.errors.playlist?.root && <FormMessage>{form.formState.errors.playlist.root.message}</FormMessage>}
-                {Array.isArray(form.formState.errors.playlist) && form.formState.errors.playlist.map((error, index) => (
+                {playlistForm.formState.errors.playlist?.root && <FormMessage>{playlistForm.formState.errors.playlist.root.message}</FormMessage>}
+                {Array.isArray(playlistForm.formState.errors.playlist) && playlistForm.formState.errors.playlist.map((error, index) => (
                     error && <FormMessage key={index}>Baris {index + 1}: {error.spotId?.message || error.duration?.message}</FormMessage>
                 ))}
                 </div>
@@ -331,16 +366,15 @@ export default function KioskClient({ initialCaves, initialSettings }: KioskClie
                 <Plus className="mr-2 h-4 w-4" /> Tambah Spot ke Playlist
                 </Button>
             </CardContent>
-        </Card>
-            
-        <div className="flex justify-end pt-4">
-            <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-            Simpan Pengaturan
-            </Button>
-        </div>
+            <CardFooter>
+                <Button type="submit" disabled={isPlaylistSubmitting} className="ml-auto">
+                    {isPlaylistSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                    Simpan Daftar Putar
+                </Button>
+            </CardFooter>
+          </Card>
         </form>
-    </Form>
-    </div>
+      </Form>
+    </>
   );
 }
