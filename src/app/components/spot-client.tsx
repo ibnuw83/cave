@@ -5,6 +5,7 @@ import { Spot } from '@/lib/types';
 import ImmersiveSpot from './immersive-spot';
 import LockedScreen from './locked-screen';
 import { Skeleton } from '@/components/ui/skeleton';
+import { GyroViewer } from './gyro-viewer';
 
 export default function SpotClient({ spot }: { spot: Spot }) {
   const { userProfile, loading } = useAuth();
@@ -28,5 +29,12 @@ export default function SpotClient({ spot }: { spot: Spot }) {
 
   const isLocked = spot.isPro && userProfile?.role === 'free';
 
+  // For the immersive experience, we now have two options:
+  // 1. GyroViewer for a pseudo-VR experience
+  // 2. ImmersiveSpot for the interactive button experience.
+  // Let's use ImmersiveSpot for now as it contains more interactive elements.
+  // To use GyroViewer, you could replace <ImmersiveSpot spot={spot} />
+  // with <GyroViewer imageUrl={spot.imageUrl} />
+  
   return isLocked ? <LockedScreen spot={spot} /> : <ImmersiveSpot spot={spot} />;
 }
