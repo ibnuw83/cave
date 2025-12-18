@@ -1,3 +1,4 @@
+
 'use client';
 
 let currentAudio: HTMLAudioElement | null = null;
@@ -65,7 +66,12 @@ export async function speakPro(text: string): Promise<void> {
     });
 
     if (!res.ok) {
-        const errorData = await res.json();
+        let errorData;
+        try {
+            errorData = await res.json();
+        } catch (e) {
+            errorData = { error: 'Gagal memproses respons galat dari server.' };
+        }
         console.error("TTS API Error:", errorData.details || errorData.error);
         // Fallback ke TTS lokal jika API gagal
         speakLocal("Maaf, narasi pro tidak tersedia saat ini. " + text);
