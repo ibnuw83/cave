@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -5,11 +6,11 @@ import Image from 'next/image';
 import { Spot } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Play, Pause } from 'lucide-react';
+import { Pause } from 'lucide-react';
 
 type PlaylistItem = Spot & { duration: number };
 
-export default function KioskModeClient({ playlist, mode }: { playlist: PlaylistItem[], mode: 'loop' | 'shuffle' }) {
+export default function KioskPlayer({ playlist, mode }: { playlist: PlaylistItem[], mode: 'loop' | 'shuffle' }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -21,7 +22,6 @@ export default function KioskModeClient({ playlist, mode }: { playlist: Playlist
 
   const playNext = useCallback(() => {
     if (mode === 'shuffle') {
-        // Pick a random index that is different from the current one
         let nextIndex;
         do {
             nextIndex = Math.floor(Math.random() * playlist.length);
@@ -33,13 +33,13 @@ export default function KioskModeClient({ playlist, mode }: { playlist: Playlist
   }, [playlist.length, mode, currentIndex]);
 
   useEffect(() => {
-    // Cleanup previous audio
+    if (!currentSpot) return;
+    
     if (audioRef.current) {
       audioRef.current.pause();
     }
     
-    // Setup new audio
-    if (currentSpot?.audioUrl) {
+    if (currentSpot.audioUrl) {
       audioRef.current = new Audio(currentSpot.audioUrl);
       if(!isPaused) {
         audioRef.current.play().catch(e => console.error("Kiosk audio play failed:", e));
@@ -48,18 +48,14 @@ export default function KioskModeClient({ playlist, mode }: { playlist: Playlist
         audioRef.current = null;
     }
 
-    // Reset progress
     setProgress(0);
 
-    // Clear previous timers
     if (timerRef.current) clearInterval(timerRef.current);
     if (progressRef.current) clearInterval(progressRef.current);
     
     if(!isPaused) {
-        // Timer to switch to the next spot
         timerRef.current = setTimeout(playNext, currentSpot.duration * 1000);
     
-        // Timer for progress bar
         const startTime = Date.now();
         progressRef.current = setInterval(() => {
             const elapsedTime = Date.now() - startTime;
@@ -72,8 +68,6 @@ export default function KioskModeClient({ playlist, mode }: { playlist: Playlist
         }, 100);
     }
 
-
-    // Cleanup on component unmount or when spot changes
     return () => {
       audioRef.current?.pause();
       if (timerRef.current) clearTimeout(timerRef.current);
