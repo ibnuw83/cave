@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -31,14 +32,14 @@ export async function POST(req: Request) {
   }
 
   try {
-    // Correct URL for Gemini TTS API with API key in the query string
     const ttsUrl =
-      `https://generativelanguage.googleapis.com/v1beta/text:synthesizeSpeech?key=${geminiApiKey}`;
+      `https://generativelanguage.googleapis.com/v1beta/text:synthesizeSpeech`;
 
     const ttsRes = await fetch(ttsUrl, {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
+        'x-goog-api-key': geminiApiKey, // Kunci API dipindahkan ke header
       },
       body: JSON.stringify({
         input: { text },
@@ -57,6 +58,7 @@ export async function POST(req: Request) {
         details = await ttsRes.text();
       }
 
+      console.error('[GEMINI TTS API ERROR]', details);
       return NextResponse.json(
         {
           error: 'TTS API failed',
@@ -74,14 +76,14 @@ export async function POST(req: Request) {
       return new NextResponse(null, { status: 204 }); // No Content
     }
 
-    // Decode base64 audio and return as a buffer
+    // Decode base64 audio dan return sebagai buffer
     const audioBuffer = Buffer.from(json.audioContent, 'base64');
 
     return new NextResponse(audioBuffer, {
       status: 200,
       headers: {
         'Content-Type': 'audio/mpeg',
-        'Cache-Control': 'no-store',
+        'Cache-Control': 'public, max-age=31536000, immutable',
       },
     });
 
