@@ -18,8 +18,8 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserProfil
 
   const handleRoleChange = async (uid: string, newRole: 'free' | 'pro' | 'admin') => {
     const userToChange = users.find(u => u.uid === uid);
-    if (userToChange?.role === newRole) {
-      return; // Do nothing if role is not changed
+    if (!userToChange || userToChange.role === newRole) {
+      return;
     }
     
     if (currentUser?.uid === uid) {
@@ -32,6 +32,15 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserProfil
       setUsers(users.map(u => u)); 
       return;
     }
+    
+    if (newRole === 'admin') {
+        const ok = confirm('Yakin ingin menjadikan pengguna ini sebagai ADMIN? Tindakan ini memberikan akses penuh ke panel admin.');
+        if (!ok) {
+             setUsers(users.map(u => u)); // Revert UI
+             return;
+        }
+    }
+
 
     setLoadingStates((prev) => ({ ...prev, [uid]: true }));
     try {
