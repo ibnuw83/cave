@@ -7,7 +7,6 @@ import type { Spot, KioskSettings } from '@/lib/types';
 import { getSpot } from '@/lib/firestore';
 import { getOfflineCaveData } from '@/lib/offline';
 import { enterKioskLock, exitKioskLock } from '@/lib/kiosk';
-import { ExitPin } from './exit-pin';
 import KioskPlayer from './player';
 
 type PlaylistSpot = Spot & { duration: number };
@@ -17,34 +16,44 @@ export default function KiosClient({ settings }: { settings: KioskSettings }) {
   const [spots, setSpots] = useState<PlaylistSpot[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [pinOpen, setPinOpen] = useState(false);
 
+  // Kiosk lock (fullscreen, no-sleep) and exit pin logic
   useEffect(() => {
     enterKioskLock();
     
-    const blockKeys = (e: KeyboardEvent) => {
-      if (
-        e.key === 'Escape' ||
-        (e.ctrlKey && e.key === 'r') ||
-        e.key === 'F11'
-      ) {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Block Ctrl+R, F11, etc.
+      if ((e.ctrlKey && e.key === 'r') || e.key === 'F11') {
         e.preventDefault();
       }
+      
+      // Handle Exit PIN on Escape
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        const input = prompt('Masukkan PIN untuk keluar dari mode Kios:');
+        if (input === settings.exitPin) {
+          exitKioskLock();
+          router.push('/admin/kiosk');
+        } else if (input !== null) { // User entered something incorrect
+          alert('PIN salah.');
+        }
+      }
     };
-    window.addEventListener('keydown', blockKeys);
+
+    window.addEventListener('keydown', handleKeyDown);
 
     return () => { 
-        window.removeEventListener('keydown', blockKeys);
+        window.removeEventListener('keydown', handleKeyDown);
+        // Ensure we exit lock if component unmounts unexpectedly
         exitKioskLock(); 
     };
-  }, []);
+  }, [settings.exitPin, router]);
 
   useEffect(() => {
     async function loadSpots() {
       setLoading(true);
       setError(null);
-      const result: PlaylistSpot[] = [];
-
+      
       if (!settings.playlist || settings.playlist.length === 0) {
         setError('Daftar putar kosong. Silakan atur di Panel Admin.');
         setLoading(false);
@@ -89,16 +98,12 @@ export default function KiosClient({ settings }: { settings: KioskSettings }) {
       } else {
         setSpots(loadedSpots);
       }
+      
       setLoading(false);
     }
 
     loadSpots();
   }, [settings]);
-
-  const handleExitSuccess = () => {
-    exitKioskLock();
-    router.push('/admin/kiosk');
-  };
 
   if (loading) {
     return (
@@ -120,19 +125,9 @@ export default function KiosClient({ settings }: { settings: KioskSettings }) {
   }
 
   return (
-    <>
-      <KioskPlayer
+    <KioskPlayer
         spots={spots}
-        playlist={settings.playlist}
         mode={settings.mode || 'loop'}
-        onExitRequested={() => setPinOpen(true)}
       />
-      <ExitPin
-        open={pinOpen}
-        onOpenChange={setPinOpen}
-        pin={settings.exitPin || '1234'}
-        onSuccess={handleExitSuccess}
-      />
-    </>
   );
 }

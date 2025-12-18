@@ -1,49 +1,47 @@
+
 'use client';
 
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { Spot, KioskSettings } from '@/lib/types';
 
 interface Props {
-  settings: KioskSettings;
   spots: (Spot & { duration: number })[];
+  mode: KioskSettings['mode'];
 }
 
-export default function KioskPlayer({ settings, spots }: Props) {
+export default function KioskPlayer({ spots, mode }: Props) {
   const [index, setIndex] = useState(0);
   const timerRef = useRef<number | null>(null);
 
   // Memoize the playlist so shuffle doesn't happen on every render
   const playlist = useMemo(() => 
-    settings.mode === 'shuffle'
+    mode === 'shuffle'
       ? [...spots].sort(() => Math.random() - 0.5)
       : spots,
-    [spots, settings.mode]
+    [spots, mode]
   );
 
   const current = playlist[index];
 
   useEffect(() => {
-    // Jika tidak ada playlist, jangan lakukan apa-apa
-    if (!playlist || playlist.length === 0) return;
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    
+    if (!playlist || playlist.length === 0 || !current) return;
 
-    // fullscreen paksa
-    document.documentElement.requestFullscreen?.().catch(() => {});
-
-    const handleTimeout = () => {
+    const duration = current.duration ? current.duration * 1000 : 30000; // Default 30 detik
+    
+    timerRef.current = window.setTimeout(() => {
       setIndex((prev) => (prev + 1) % playlist.length);
-    };
-    
-    // Pastikan durasi valid sebelum mengatur timer
-    const duration = current?.duration ? current.duration * 1000 : 30000; // Default 30 detik
-    
-    timerRef.current = window.setTimeout(handleTimeout, duration);
+    }, duration);
 
     return () => {
       if (timerRef.current) {
         clearTimeout(timerRef.current);
       }
     };
-  }, [index, playlist, current]); // Menambahkan playlist dan current ke dependency array
+  }, [index, playlist, current]);
 
   if (!current) {
     return (
