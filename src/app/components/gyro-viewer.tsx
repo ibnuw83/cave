@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -16,10 +17,17 @@ export function GyroViewer(props: {
   strength?: number; // 0.6–1.2
 }) {
   const { imageUrl, className, strength = 0.9 } = props;
-  const [enabled, setEnabled] = useState(false);
+  const [gyroEnabled, setGyroEnabled] = useState(false);
   const [ori, setOri] = useState<Orientation>({ yaw: 0, pitch: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
-  const request = async () => {
+  useEffect(() => {
+    // Detect if the device is likely a mobile device.
+    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+  }, []);
+
+  const requestGyro = async () => {
     // iOS needs permission
     const anyDO: any = DeviceOrientationEvent;
     if (typeof anyDO.requestPermission === 'function') {
@@ -28,20 +36,19 @@ export function GyroViewer(props: {
         if (res !== 'granted') return;
       } catch (error) {
         console.error("Gyro permission request failed:", error);
-        // Show a toast or message to the user that it failed
         return;
       }
     }
-    setEnabled(true);
+    setGyroEnabled(true);
   };
 
+  // Gyroscope effect
   useEffect(() => {
-    if (!enabled) return;
+    if (!gyroEnabled) return;
 
     const handler = (e: DeviceOrientationEvent) => {
-      // gamma: left-right, beta: front-back, alpha: compass-ish
-      const yaw = (e.gamma ?? 0) * strength;  // -90..90
-      const pitch = (e.beta ?? 0) * strength; // -180..180
+      const yaw = (e.gamma ?? 0) * strength;
+      const pitch = (e.beta ?? 0) * strength;
 
       setOri({
         yaw: clamp(yaw, -35, 35),
@@ -51,29 +58,66 @@ export function GyroViewer(props: {
 
     window.addEventListener('deviceorientation', handler, true);
     return () => window.removeEventListener('deviceorientation', handler, true);
-  }, [enabled, strength]);
+  }, [gyroEnabled, strength]);
+  
+  // Mouse move effect for desktop
+  useEffect(() => {
+    // Don't run mouse controls if gyro is active
+    if (gyroEnabled || !containerRef.current) return;
+
+    const handler = (e: MouseEvent) => {
+        const rect = containerRef.current!.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        // Calculate position as a percentage from the center
+        const yawPercent = (mouseX / rect.width - 0.5) * 2; // -1 to 1
+        const pitchPercent = (mouseY / rect.height - 0.5) * 2; // -1 to 1
+
+        const YAW_RANGE = 20;
+        const PITCH_RANGE = 15;
+
+        setOri({
+            yaw: yawPercent * YAW_RANGE,
+            pitch: pitchPercent * PITCH_RANGE,
+        });
+    };
+    
+    const leaveHandler = () => {
+        // Reset to center when mouse leaves
+        setOri({ yaw: 0, pitch: 0 });
+    }
+
+    const el = containerRef.current;
+    el.addEventListener('mousemove', handler);
+    el.addEventListener('mouseleave', leaveHandler);
+
+    return () => {
+        el.removeEventListener('mousemove', handler);
+        el.removeEventListener('mouseleave', leaveHandler);
+    }
+  }, [gyroEnabled]);
 
   const transform = useMemo(() => {
-    // “window” effect: move background opposite direction
-    return `translate3d(${ori.yaw * -3}px, ${ori.pitch * -3}px, 0) scale(1.08)`;
+    return `translate3d(${ori.yaw * -3}px, ${ori.pitch * -3}px, 0) scale(1.15)`;
   }, [ori]);
 
   return (
-    <div className={cn('relative w-full h-full overflow-hidden bg-black', className)}>
+    <div ref={containerRef} className={cn('relative w-full h-full overflow-hidden bg-black', className)}>
       <div
         className="absolute inset-0 bg-center bg-cover transition-transform duration-100 ease-linear"
         style={{ backgroundImage: `url(${imageUrl})`, transform }}
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
 
-      {!enabled && (
+      {isMobile && !gyroEnabled && (
         <div className="absolute inset-0 flex items-center justify-center z-10">
-          <Button onClick={request}>Aktifkan Mode Gyro</Button>
+          <Button onClick={requestGyro}>Aktifkan Mode Gyro</Button>
         </div>
       )}
 
-      {enabled && (
-        <div className="absolute bottom-3 left-3 text-xs text-white/70 z-10">
+      {gyroEnabled && (
+        <div className="absolute bottom-3 left-3 text-xs text-white/70 z-10 bg-black/50 px-2 py-1 rounded">
           Gyro ON • yaw {ori.yaw.toFixed(0)}° • pitch {ori.pitch.toFixed(0)}°
         </div>
       )}
