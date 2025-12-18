@@ -51,8 +51,10 @@ export async function createUserProfile(user: User): Promise<UserProfile> {
                 requestResourceData: userProfileData,
             });
             errorEmitter.emit('permission-error', permissionError);
-        }
-        throw error;
+      } else {
+        console.error("Error creating user profile:", error);
+      }
+      throw error;
   }
   return { uid: user.uid, ...userProfileData } as UserProfile;
 }
