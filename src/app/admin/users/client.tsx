@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { collection } from 'firebase/firestore';
 import { UserProfile } from '@/lib/types';
 import { updateUserRole } from '@/lib/firestore';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -9,13 +10,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAuth } from '@/context/auth-context';
+import { useAuth as useFirebaseAuth } from '@/context/auth-context';
+import { useCollection } from '@/firebase';
+import { db } from '@/lib/firebase';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export default function UsersClient({ initialUsers }: { initialUsers: UserProfile[] }) {
-  const [users, setUsers] = useState(initialUsers);
+export default function UsersClient() {
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser } = useFirebaseAuth();
+
+  const usersQuery = useMemo(() => collection(db, 'users'), []);
+  const { data: users = [], loading: usersLoading } = useCollection<UserProfile>(usersQuery);
 
   const handleRoleChange = async (uid: string, newRole: 'free' | 'pro' | 'admin') => {
     const userToChange = users.find(u => u.uid === uid);
@@ -26,8 +32,6 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserProfil
         title: 'Ditolak',
         description: 'Anda tidak dapat mengubah peran akun sendiri.',
       });
-      // Revert the visual state of the select dropdown
-      setUsers(users.map(u => u)); 
       return;
     }
     
@@ -38,7 +42,6 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserProfil
     if (newRole === 'admin') {
         const ok = confirm('Yakin ingin menjadikan pengguna ini sebagai ADMIN? Tindakan ini memberikan akses penuh ke panel admin.');
         if (!ok) {
-             setUsers(users.map(u => u)); // Revert UI
              return;
         }
     }
@@ -47,9 +50,11 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserProfil
     setLoadingStates((prev) => ({ ...prev, [uid]: true }));
     try {
       await updateUserRole(uid, newRole);
-      setUsers(users.map(u => u.uid === uid ? { ...u, role: newRole } : u));
+      // UI will update automatically via the real-time listener.
       toast({ title: "Berhasil", description: "Peran pengguna berhasil diperbarui." });
     } catch (error: any) {
+       // Central error handler in firestore.ts will show a toast.
+       // No need to show a generic one here unless the error is not permission-denied.
        if (error.code !== 'permission-denied') {
             toast({
                 variant: 'destructive',
@@ -57,16 +62,29 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserProfil
                 description: 'Terjadi kesalahan saat memperbarui peran pengguna.',
             });
        }
-       // Revert UI on failure
-       setUsers(users.map(u => u));
     } finally {
       setLoadingStates((prev) => ({ ...prev, [uid]: false }));
     }
   };
+  
+  const sortedUsers = useMemo(() => {
+    return [...users].sort((a, b) => a.displayName?.localeCompare(b.displayName || '') || 0);
+  }, [users]);
+
+
+  if (usersLoading) {
+      return (
+          <div className="space-y-4">
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-24 w-full" />
+          </div>
+      )
+  }
 
   return (
     <div className="space-y-4">
-      {users.map((user) => (
+      {sortedUsers.map((user) => (
         <Card key={user.uid}>
           <CardHeader className="flex flex-row items-center justify-between space-x-4">
              <div className="flex items-center space-x-4">
