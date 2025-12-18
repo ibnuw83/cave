@@ -55,7 +55,7 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
 
   return (
     <div className="h-screen w-screen bg-black relative overflow-hidden">
-      <VisitorCounter kioskId={kioskId} enabled={true} />
+      <VisitorCounter kioskId="kiosk-001" enabled />
       <img
         src={current.imageUrl}
         className="absolute inset-0 w-full h-full object-cover"
