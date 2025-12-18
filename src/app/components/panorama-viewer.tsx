@@ -55,6 +55,7 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, child
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255])); // blue pixel
 
     const image = new Image();
+    image.crossOrigin = "anonymous";
     image.onload = () => {
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
@@ -62,7 +63,13 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, child
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     };
-    image.src = imageUrl;
+
+    if (imageUrl.startsWith('https://images.unsplash.com/')) {
+        image.src = imageUrl.replace('https://images.unsplash.com', '/image-proxy');
+    } else {
+        image.src = imageUrl;
+    }
+
 
     const sphere = createSphere(gl, 50, 50);
 
@@ -379,7 +386,3 @@ const mat4 = {
     return out;
   }
 };
-
-    
-
-    
