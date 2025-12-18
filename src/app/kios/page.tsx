@@ -1,159 +1,93 @@
 
-'use client';
-
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { getKioskSettings, getSpots, getCave } from '@/lib/firestore';
 import { Spot, KioskSettings, Cave } from '@/lib/types';
-import { Loader2 } from 'lucide-react';
-import KioskPlayer from './player';
-import { ExitPin } from './exit-pin';
 import { getOfflineCaveData } from '@/lib/offline';
-import { enterKioskLock, exitKioskLock } from '@/lib/kiosk';
+import { Loader2 } from 'lucide-react';
+import KiosClient from './client';
 
-export default function KiosPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [playlist, setPlaylist] = useState<(Spot & { duration: number })[]>([]);
-  const [cave, setCave] = useState<Cave | null>(null);
-  const [settings, setSettings] = useState<KioskSettings | null>(null);
-  const [showPin, setShowPin] = useState(false);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        let settingsData = await getKioskSettings();
-        let caveData: Cave | null = null;
-        let allSpots: Spot[] = [];
+async function KioskDataContainer() {
+    let settingsData: KioskSettings | null = null;
+    let caveData: Cave | null = null;
+    let allSpots: Spot[] = [];
+    let error: string | null = null;
+    
+    try {
+        settingsData = await getKioskSettings();
         
         if (!settingsData || !settingsData.playlist || settingsData.playlist.length === 0) {
-           setError('Kios belum dikonfigurasi. Silakan atur daftar putar di Panel Admin.');
-           setLoading(false);
-           return;
-        }
-        
-        setSettings(settingsData);
-        
-        // Try to load from offline cache first
-        const offlineData = await getOfflineCaveData(settingsData.caveId);
-        if (offlineData) {
-            caveData = offlineData.cave;
-            allSpots = offlineData.spots;
+           error = 'Kios belum dikonfigurasi. Silakan atur daftar putar di Panel Admin.';
         } else {
-            // Fetch from network if not offline
-            caveData = await getCave(settingsData.caveId);
-            if (caveData) {
-              allSpots = await getSpots(settingsData.caveId);
+             // Try to load from offline cache first
+            const offlineData = await getOfflineCaveData(settingsData.caveId);
+            if (offlineData) {
+                caveData = offlineData.cave;
+                allSpots = offlineData.spots;
+            } else {
+                // Fetch from network if not offline
+                caveData = await getCave(settingsData.caveId);
+                if (caveData) {
+                  allSpots = await getSpots(settingsData.caveId);
+                }
+            }
+
+            if (!caveData) {
+                error = `Gua dengan ID "${settingsData.caveId}" tidak ditemukan.`;
+            } else if (allSpots.length === 0) {
+                error = 'Spot tidak ditemukan untuk gua yang dikonfigurasi.';
             }
         }
-        
-        if (!caveData) {
-            setError(`Gua dengan ID "${settingsData.caveId}" tidak ditemukan.`);
-            setLoading(false);
-            return;
-        }
-        setCave(caveData);
+    } catch (err) {
+        console.error("Failed to load kiosk data:", err);
+        error = "Gagal memuat data kios.";
+    }
 
-        if (allSpots.length === 0) {
-            setError('Spot tidak ditemukan untuk gua yang dikonfigurasi.');
-            setLoading(false);
-            return;
-        }
+    if (error) {
+        return (
+          <div className="flex h-screen w-screen flex-col items-center justify-center bg-black text-white p-8 text-center">
+                <h1 className="text-3xl font-bold mb-4">Mode Kios Tidak Dapat Dimuat</h1>
+                <p className="text-xl text-muted-foreground">{error}</p>
+          </div>
+        );
+    }
 
-        const orderedPlaylist = settingsData.playlist
-          .map(p => {
+    if (!settingsData || allSpots.length === 0) {
+         return (
+            <div className="h-screen flex items-center justify-center bg-black text-white p-8 text-center">
+                 <h1 className="text-3xl font-bold mb-4">Mode Kios Tidak Dapat Dimuat</h1>
+                 <p className="text-xl text-muted-foreground">Data yang diperlukan tidak lengkap.</p>
+            </div>
+        );
+    }
+    
+    // Filter and order spots based on the playlist from settings
+    const playlistSpots = settingsData.playlist
+        .map(p => {
             const spot = allSpots.find(s => s.id === p.spotId);
             if (spot) {
-              return { ...spot, duration: p.duration };
+                return { ...spot, duration: p.duration };
             }
             return null;
-          })
-          .filter(Boolean) as (Spot & { duration: number })[];
+        })
+        .filter(Boolean) as (Spot & { duration: number })[];
         
-        if (orderedPlaylist.length === 0) {
-             setError('Spot yang dikonfigurasi dalam daftar putar tidak dapat ditemukan.');
-             setLoading(false);
-             return;
-        }
-
-        setPlaylist(orderedPlaylist);
-      } catch(err) {
-        console.error("Failed to load kiosk data:", err);
-        setError("Gagal memuat data kios.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    load();
-  }, []);
-
-  const handleExitSuccess = () => {
-    exitKioskLock();
-    router.push('/');
-  };
-
-  useEffect(() => {
-    enterKioskLock();
-    
-     const blockKeys = (e: KeyboardEvent) => {
-      if (
-        e.key === 'Escape' ||
-        (e.ctrlKey && e.key === 'r') ||
-        e.key === 'F11'
-      ) {
-        e.preventDefault();
-      }
-    };
-    window.addEventListener('keydown', blockKeys);
-    
-    return () => {
-       window.removeEventListener('keydown', blockKeys);
-       exitKioskLock();
+    if (playlistSpots.length === 0) {
+        return (
+            <div className="flex h-screen w-screen flex-col items-center justify-center bg-black text-white p-8 text-center">
+                <h1 className="text-3xl font-bold mb-4">Mode Kios Tidak Dapat Dimuat</h1>
+                <p className="text-xl text-muted-foreground">Spot yang dikonfigurasi dalam daftar putar tidak dapat ditemukan.</p>
+          </div>
+        );
     }
-  }, []);
 
-  if (loading) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-black">
-        <Loader2 className="h-10 w-10 animate-spin text-white" />
-      </div>
-    );
-  }
 
-  if (error) {
+    return <KiosClient settings={settingsData} spots={playlistSpots} />;
+}
+
+
+export default function KiosPage() {
     return (
-      <div className="flex h-screen w-screen flex-col items-center justify-center bg-black text-white p-8 text-center">
-            <h1 className="text-3xl font-bold mb-4">Mode Kios Tidak Dapat Dimuat</h1>
-            <p className="text-xl text-muted-foreground">{error}</p>
-      </div>
-    );
-  }
-  
-  if (!cave || !settings || playlist.length === 0) {
-    return (
-        <div className="h-screen flex items-center justify-center bg-black text-white p-8 text-center">
-             <h1 className="text-3xl font-bold mb-4">Mode Kios Tidak Dapat Dimuat</h1>
-             <p className="text-xl text-muted-foreground">Data yang diperlukan tidak lengkap.</p>
+        <div className="h-screen w-screen bg-black text-white overflow-hidden">
+            <KioskDataContainer />
         </div>
-    );
-  }
-
-  return (
-    <div className="h-screen w-screen bg-black text-white overflow-hidden">
-        <KioskPlayer
-            spots={playlist}
-            playlist={settings.playlist}
-            mode={settings.mode}
-            onExitRequested={() => setShowPin(true)}
-        />
-        <ExitPin 
-          open={showPin} 
-          onOpenChange={setShowPin} 
-          pin={settings.exitPin}
-          onSuccess={handleExitSuccess}
-        />
-    </div>
-  );
+    )
 }
