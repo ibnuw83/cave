@@ -66,15 +66,18 @@ export async function speakPro(text: string): Promise<void> {
     });
 
     if (!res.ok) {
+        // Handle non-OK responses gracefully. Prioritize reading as text.
+        const errorText = await res.text();
         let errorData;
         try {
-            errorData = await res.json();
+            // Try to parse as JSON, but don't fail if it's not JSON
+            errorData = JSON.parse(errorText);
         } catch (e) {
-            errorData = { error: 'Gagal memproses respons galat dari server.' };
+            // If parsing fails, use the raw text as the error message
+            errorData = { error: errorText };
         }
-        console.error("TTS API Error:", errorData.details || errorData.error);
-        // Fallback ke TTS lokal jika API gagal
-        speakLocal("Maaf, narasi pro tidak tersedia saat ini. " + text);
+        console.error("TTS API Error:", errorData.details || errorData.error || "Unknown error");
+        speakLocal("Maaf, narasi pro tidak tersedia saat ini. " + text); // Fallback to local TTS
         return;
     }
 
