@@ -31,8 +31,8 @@ service cloud.firestore {
 
     // Rules for the 'caves' collection
     match /caves/{caveId} {
-      // Any signed-in user can read caves
-      allow read: if isSignedIn();
+      // Anyone can read caves now
+      allow read: if true;
       // Only admins can create, update, or delete caves
       allow create, update, delete: if isAdmin();
     }
