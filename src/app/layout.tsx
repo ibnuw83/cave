@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next';
 import { AuthProvider } from '@/context/auth-context';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
+import 'react-pannellum-next/dist/index.css'; // Perbaikan di sini
 import { Providers } from './providers';
 import { getKioskSettings } from '@/lib/firestore';
 
