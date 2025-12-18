@@ -51,20 +51,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUserProfile(profile);
         return profile;
     } catch (error: any) {
-        if (error.code !== 'permission-denied') {
-             toast({
-                variant: 'destructive',
-                title: 'Gagal Memuat Profil',
-                description: 'Terjadi kesalahan saat mengambil data profil Anda.',
-            });
-        }
-        // Sign out if profile can't be fetched or created
+        // The error is already handled by the emitter in getUserProfile/createUserProfile
+        // Just sign out if profile fails to load/create
         await firebaseSignOut(auth);
         setUser(null);
         setUserProfile(null);
         return null;
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     const handleRedirect = async () => {
@@ -164,7 +158,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
     } catch (error: any) {
-       if (error.code !== 'permission-denied') {
+        // The permission error during profile creation is handled in createUserProfile
+        if (error.code !== 'permission-denied') {
             toast({
                 title: "Pendaftaran Gagal",
                 description: error.code === 'auth/email-already-in-use' ? 'Email ini sudah terdaftar.' : 'Terjadi kesalahan saat pendaftaran.',

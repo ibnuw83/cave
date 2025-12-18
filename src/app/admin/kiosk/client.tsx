@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -144,13 +145,7 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
         await saveKioskSettings(values);
         toast({ title: 'Berhasil', description: 'Pengaturan global telah disimpan.' });
     } catch (error: any) {
-        if (error.code !== 'permission-denied') {
-           toast({
-            variant: 'destructive',
-            title: 'Gagal',
-            description: 'Terjadi kesalahan saat menyimpan pengaturan global.',
-          });
-        }
+        // The error is handled by the permission-error emitter in firestore.ts
     }
   };
   
@@ -159,13 +154,7 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
         await saveKioskSettings(values);
         toast({ title: 'Berhasil', description: 'Pengaturan daftar putar kios telah disimpan.' });
     } catch (error: any) {
-        if (error.code !== 'permission-denied') {
-           toast({
-            variant: 'destructive',
-            title: 'Gagal',
-            description: 'Terjadi kesalahan saat menyimpan daftar putar kios.',
-          });
-        }
+        // The error is handled by the permission-error emitter in firestore.ts
     }
   };
 

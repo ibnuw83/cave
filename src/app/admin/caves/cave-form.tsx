@@ -65,15 +65,8 @@ export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
         onSave({ id: newCaveId, ...newCaveData });
       }
     } catch (error: any) {
-        // The error is now handled by the generic permission-error emitter in firestore.ts
-        // We only show a generic toast here if the error is something other than permission denied
-        if (error.code !== 'permission-denied') {
-             toast({
-                variant: 'destructive',
-                title: 'Gagal',
-                description: `Terjadi kesalahan: ${error.message}`,
-            });
-        }
+        // The error is handled by the permission-error emitter in firestore.ts
+        // No need to show a toast here, it will be handled globally.
     }
   };
 

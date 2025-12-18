@@ -50,13 +50,7 @@ export default function SpotsClient({ caves }: { caves: Cave[] }) {
         // Real-time listener will remove the spot from the UI.
         toast({ title: "Berhasil", description: "Spot berhasil dihapus." });
     } catch (error: any) {
-        if (error.code !== 'permission-denied') {
-            toast({
-                variant: 'destructive',
-                title: 'Gagal',
-                description: 'Terjadi kesalahan saat menghapus spot.',
-            });
-        }
+        // The error is handled by the permission-error emitter in firestore.ts
     }
   };
 

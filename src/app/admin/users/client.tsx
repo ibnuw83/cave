@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -53,15 +54,8 @@ export default function UsersClient() {
       // UI will update automatically via the real-time listener.
       toast({ title: "Berhasil", description: "Peran pengguna berhasil diperbarui." });
     } catch (error: any) {
-       // Central error handler in firestore.ts will show a toast.
-       // No need to show a generic one here unless the error is not permission-denied.
-       if (error.code !== 'permission-denied') {
-            toast({
-                variant: 'destructive',
-                title: 'Gagal',
-                description: 'Terjadi kesalahan saat memperbarui peran pengguna.',
-            });
-       }
+       // The central error handler will show the toast. We just need to catch the re-thrown error.
+       // The spinner state will be cleared in the finally block.
     } finally {
       setLoadingStates((prev) => ({ ...prev, [uid]: false }));
     }

@@ -51,9 +51,7 @@ export default function CavesClient({ initialCaves }: { initialCaves: Cave[] }) 
         setCaves(caves.filter((c) => c.id !== id));
         toast({ title: "Berhasil", description: "Gua dan semua spot di dalamnya berhasil dihapus." });
     } catch (error: any) {
-        if (error.code !== 'permission-denied') {
-            toast({ variant: 'destructive', title: 'Gagal', description: 'Terjadi kesalahan saat menghapus gua.' });
-        }
+        // The error is handled by the permission-error emitter in firestore.ts
     }
   };
 

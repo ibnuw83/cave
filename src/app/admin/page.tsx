@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getCaves, getAllUsersAdmin } from '@/lib/firestore';
+import { getCaves, getAllSpotsForAdmin, getAllUsersAdmin } from '@/lib/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mountain, MapPin, Users, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
@@ -29,29 +30,13 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchAllSpots() {
-        try {
-            const spotsSnapshot = await getDocs(collection(db, 'spots'));
-            return spotsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Spot));
-        } catch (error: any) {
-            if (error.code === 'permission-denied') {
-                const permissionError = new FirestorePermissionError({
-                    path: '/spots',
-                    operation: 'list',
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            }
-            console.error("Failed to fetch all spots for admin dashboard:", error);
-            return []; // Return empty array on permission error or other failures
-        }
-    }
-    
     async function fetchData() {
       if (userProfile?.role === 'admin') {
         try {
+          // Promise.all will now correctly throw if any of the fetches fail
           const [caves, spots, users] = await Promise.all([
             getCaves(true),
-            fetchAllSpots(),
+            getAllSpotsForAdmin(),
             getAllUsersAdmin(),
           ]);
           setStats([
@@ -60,8 +45,9 @@ export default function AdminDashboard() {
             { title: 'Total Pengguna', value: users.length, icon: <Users className="h-6 w-6" />, href: '/admin/users', color: 'bg-yellow-900/50 text-yellow-100' },
           ]);
         } catch (error) {
-          console.error("Failed to fetch admin data:", error);
-          // Errors from individual fetches are handled within those functions
+          // The errors are now caught here, but the permission error toast is handled globally.
+          // We can just log that fetching failed.
+          console.error("Failed to fetch admin dashboard data due to permission errors or other issues.");
         } finally {
           setLoading(false);
         }

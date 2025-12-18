@@ -81,13 +81,7 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
         }
       }
     } catch (error: any) {
-        if (error.code !== 'permission-denied') {
-             toast({
-                variant: 'destructive',
-                title: 'Gagal',
-                description: `Terjadi kesalahan: ${error.message}`,
-            });
-        }
+        // The error is handled by the permission-error emitter in firestore.ts
     }
   };
 
