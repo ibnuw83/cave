@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -9,13 +8,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuth } from '@/context/auth-context';
 
 export default function UsersClient({ initialUsers }: { initialUsers: UserProfile[] }) {
   const [users, setUsers] = useState(initialUsers);
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
 
   const handleRoleChange = async (uid: string, newRole: 'free' | 'pro' | 'admin') => {
+    if (currentUser?.uid === uid) {
+      toast({
+        variant: 'destructive',
+        title: 'Ditolak',
+        description: 'Anda tidak dapat mengubah peran akun sendiri.',
+      });
+      // Revert the visual state of the select dropdown
+      setUsers(users.map(u => u)); 
+      return;
+    }
+
     setLoadingStates((prev) => ({ ...prev, [uid]: true }));
     try {
       await updateUserRole(uid, newRole);
@@ -29,6 +41,8 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserProfil
                 description: 'Terjadi kesalahan saat memperbarui peran pengguna.',
             });
        }
+       // Revert UI on failure
+       setUsers(users.map(u => u));
     } finally {
       setLoadingStates((prev) => ({ ...prev, [uid]: false }));
     }
@@ -54,7 +68,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserProfil
               <Select
                 value={user.role}
                 onValueChange={(value: 'free' | 'pro' | 'admin') => handleRoleChange(user.uid, value)}
-                disabled={loadingStates[user.uid]}
+                disabled={loadingStates[user.uid] || currentUser?.uid === user.uid}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Pilih peran" />
