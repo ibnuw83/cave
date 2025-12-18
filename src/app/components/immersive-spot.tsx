@@ -6,12 +6,17 @@ import Link from 'next/link';
 import { Spot } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { X, Waves, VolumeX, Play, Droplets } from 'lucide-react';
+import { X, Waves, VolumeX, Play, Droplets, Mic } from 'lucide-react';
 import { vibrate, VIBRATION_PATTERNS } from '@/lib/haptics';
+import { useAuth } from '@/context/auth-context';
+import { speakLocal, speakPro, stopSpeaking } from '@/lib/tts';
 
 export default function ImmersiveSpot({ spot }: { spot: Spot }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { userProfile } = useAuth();
+  
+  const isPro = userProfile?.role === 'pro' || userProfile?.role === 'admin';
 
   useEffect(() => {
     if (spot.audioUrl) {
@@ -22,12 +27,23 @@ export default function ImmersiveSpot({ spot }: { spot: Spot }) {
     // Cleanup on component unmount
     return () => {
       audioRef.current?.pause();
+      stopSpeaking();
     }
   }, [spot.audioUrl]);
+  
+  const handleNarrate = () => {
+    if (isPro) {
+      speakPro(spot.description);
+    } else {
+      speakLocal(spot.description);
+    }
+     vibrate(VIBRATION_PATTERNS.CLICK);
+  }
 
   const toggleExperience = () => {
     if (isPlaying) {
       audioRef.current?.pause();
+      stopSpeaking(); // Hentikan juga narasi TTS
     } else {
       audioRef.current?.play().catch(e => console.error("Audio play failed:", e));
       if (spot.effects?.vibrationPattern) {
@@ -74,7 +90,7 @@ export default function ImmersiveSpot({ spot }: { spot: Spot }) {
             <CardTitle className="text-2xl md:text-3xl font-headline text-white">{spot.title}</CardTitle>
             <CardDescription className="text-base text-white/80 pt-2">{spot.description}</CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-3 gap-2 md:gap-4 pt-4">
+          <CardContent className="grid grid-cols-4 gap-2 md:gap-4 pt-4">
             <Button
               variant="outline"
               className="h-20 flex-col gap-2 bg-white/10 text-white hover:bg-white/20"
@@ -82,6 +98,14 @@ export default function ImmersiveSpot({ spot }: { spot: Spot }) {
             >
               {isPlaying ? <VolumeX /> : <Play />}
               <span className="text-xs md:text-sm">{isPlaying ? 'Hentikan' : 'Mulai'}</span>
+            </Button>
+             <Button
+              variant="outline"
+              className="h-20 flex-col gap-2 bg-white/10 text-white hover:bg-white/20"
+              onClick={handleNarrate}
+            >
+              <Mic />
+              <span className="text-xs md:text-sm">Narasi</span>
             </Button>
             <Button
               variant="outline"

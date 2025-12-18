@@ -4,7 +4,10 @@ export const canVibrate = (): boolean => {
   if (typeof window !== 'undefined' && 'vibrate' in window.navigator) {
     return true;
   }
-  console.warn('Vibration API not supported.');
+  // Don't warn in non-interactive environments
+  if (typeof window !== 'undefined' && window.navigator) {
+    console.warn('Vibration API not supported.');
+  }
   return false;
 };
 
