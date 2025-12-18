@@ -126,21 +126,23 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
                    <Controller
                       control={form.control}
                       name={`playlist.${index}.spotId`}
-                      render={({ field: selectField }) => (
-                         <Select onValueChange={selectField.onChange} defaultValue={selectField.value}>
+                      render={({ field }) => (
+                        <FormItem className="flex-grow">
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
-                                <SelectTrigger>
+                              <SelectTrigger>
                                 <SelectValue placeholder="Pilih spot..." />
-                                </SelectTrigger>
+                              </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                {availableSpots.map(spot => (
-                                    <SelectItem key={spot.id} value={spot.id}>
-                                        {spot.title}
-                                    </SelectItem>
-                                ))}
+                              {availableSpots.map(spot => (
+                                <SelectItem key={spot.id} value={spot.id}>
+                                  {spot.title}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
-                        </Select>
+                          </Select>
+                        </FormItem>
                       )}
                     />
                   <Controller
