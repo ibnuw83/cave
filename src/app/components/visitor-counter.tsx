@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { FaceDetection } from '@mediapipe/face_detection';
-import { Camera } from '@mediapipe/camera_utils/camera_utils';
+import * as cameraUtils from '@mediapipe/camera_utils';
 import { doc, increment, serverTimestamp, setDoc, addDoc, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
@@ -24,7 +24,7 @@ export default function VisitorCounter({
   cooldownMs?: number;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const cameraRef = useRef<Camera | null>(null);
+  const cameraRef = useRef<cameraUtils.Camera | null>(null);
   const lastCountRef = useRef<number>(0);
   const [running, setRunning] = useState(false);
 
@@ -86,7 +86,7 @@ export default function VisitorCounter({
       }
 
 
-      cameraRef.current = new Camera(videoRef.current, {
+      cameraRef.current = new cameraUtils.Camera(videoRef.current, {
         onFrame: async () => {
           if (!faceDetection || !videoRef.current || videoRef.current.paused || videoRef.current.ended) return;
           try {
