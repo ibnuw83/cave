@@ -1,5 +1,6 @@
 
-import { getKioskSettings, getSpot, getOfflineCaveData } from "@/lib/firestore";
+import { getKioskSettings, getSpot } from "@/lib/firestore";
+import { getOfflineCaveData } from "@/lib/offline";
 import { Spot, KioskSettings } from '@/lib/types';
 import KiosClient from './client';
 
