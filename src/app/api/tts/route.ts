@@ -31,12 +31,17 @@ export async function POST(req: Request) {
   }
 
   try {
+    // Correct URL for Gemini TTS API
     const ttsUrl =
-      `https://generativelanguage.googleapis.com/v1beta/text:synthesizeSpeech?key=${geminiApiKey}`;
+      'https://generativelanguage.googleapis.com/v1beta/text:synthesizeSpeech';
 
     const ttsRes = await fetch(ttsUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        // API key should be in the header, not the URL
+        'x-goog-api-key': geminiApiKey,
+      },
       body: JSON.stringify({
         input: { text },
         voice: { languageCode: 'id-ID' },
@@ -44,12 +49,12 @@ export async function POST(req: Request) {
       }),
     });
 
-    // ========= ERROR DARI GEMINI =========
+    // ========= HANDLE ERROR FROM GEMINI =========
     if (!ttsRes.ok) {
       let details = '';
       try {
         const errJson = await ttsRes.json();
-        details = errJson?.error?.message || '';
+        details = errJson?.error?.message || JSON.stringify(errJson);
       } catch {
         details = await ttsRes.text();
       }
@@ -62,43 +67,28 @@ export async function POST(req: Request) {
         { status: ttsRes.status }
       );
     }
+    
+    // ========= HANDLE SUCCESS =========
+    const json = await ttsRes.json();
 
-    // ========= SUCCESS =========
-    const contentType = ttsRes.headers.get('content-type') || '';
-
-    // Gemini TTS → JSON base64
-    if (contentType.includes('application/json')) {
-      const json = await ttsRes.json();
-
-      if (!json?.audioContent) {
-        return NextResponse.json(
-          { error: 'TTS returned empty audio.' },
-          { status: 502 }
-        );
-      }
-
-      const audioBuffer = Buffer.from(json.audioContent, 'base64');
-
-      return new NextResponse(audioBuffer, {
-        status: 200,
-        headers: {
-          'Content-Type': 'audio/mpeg',
-          'Cache-Control': 'no-store',
-        },
-      });
+    if (!json?.audioContent) {
+      console.warn('TTS API returned success but no audioContent field.');
+      return new NextResponse(null, { status: 204 }); // No Content
     }
 
-    // fallback (should not happen)
-    const raw = await ttsRes.text();
-    if (!raw.trim()) {
-      return new NextResponse(null, { status: 204 });
-    }
+    // Decode base64 audio and return as a buffer
+    const audioBuffer = Buffer.from(json.audioContent, 'base64');
 
-    return NextResponse.json(
-      { error: 'Unexpected TTS response format.' },
-      { status: 502 }
-    );
+    return new NextResponse(audioBuffer, {
+      status: 200,
+      headers: {
+        'Content-Type': 'audio/mpeg',
+        'Cache-Control': 'no-store',
+      },
+    });
+
   } catch (err: any) {
+    console.error('[INTERNAL TTS API ERROR]', err);
     return NextResponse.json(
       { error: 'Internal TTS server error.', details: err?.message },
       { status: 500 }
