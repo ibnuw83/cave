@@ -6,7 +6,9 @@ export const runtime = 'nodejs';
 // This function now uses the Google AI Studio Text-to-Speech API (Gemini)
 // and robustly handles different response types.
 export async function POST(req: Request) {
-  if (!process.env.GEMINI_API_KEY) {
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+
+  if (!geminiApiKey) {
     console.error("GEMINI_API_KEY is not set.");
     return NextResponse.json({ error: "Konfigurasi server tidak lengkap." }, { status: 500 });
   }
@@ -25,10 +27,12 @@ export async function POST(req: Request) {
   }
 
   try {
-    const ttsRes = await fetch('https://generativelanguage.googleapis.com/v1beta/text:synthesizeSpeech', {
+    // Construct the URL with the API key as a query parameter
+    const ttsUrl = `https://generativelanguage.googleapis.com/v1beta/text:synthesizeSpeech?key=${geminiApiKey}`;
+
+    const ttsRes = await fetch(ttsUrl, {
       method: 'POST',
       headers: {
-        'x-goog-api-key': process.env.GEMINI_API_KEY!,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -42,11 +46,9 @@ export async function POST(req: Request) {
     if (!ttsRes.ok) {
         let errorBody = { error: `TTS API failed with status ${ttsRes.status}`, details: '' };
         try {
-            // If the error response is JSON, parse it for details.
             const errorJson = await ttsRes.json();
             errorBody.details = errorJson.error?.message || 'No details provided.';
         } catch (e) {
-            // If parsing JSON fails, read as text as a fallback.
             errorBody.details = await ttsRes.text();
         }
         console.error("Gemini TTS API Error:", errorBody);
@@ -71,15 +73,12 @@ export async function POST(req: Request) {
         }
     }
     
-    // If we reach here, the response was successful (2xx) but not in the expected format.
-    // This could be an empty body for a 200 OK, which we should handle gracefully.
     const raw = await ttsRes.text();
     if (!raw.trim()) {
         console.warn('TTS returned empty body with success status.');
         return new NextResponse(null, { status: 204 }); // 204 No Content
     }
 
-    // Fallback if the response is successful but has an unexpected format
     console.warn("TTS API returned an unexpected but successful response format.", {contentType, body: raw.substring(0, 200)});
     return NextResponse.json({ error: 'TTS API returned an unexpected response format.' }, { status: 502 });
 
@@ -88,4 +87,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Terjadi kesalahan internal pada server.", details: error.message }, { status: 500 });
   }
 }
-
