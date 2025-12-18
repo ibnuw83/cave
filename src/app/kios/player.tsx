@@ -50,6 +50,8 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
   const [index, setIndex] = useState(0);
   const timerRef = useRef<number | null>(null);
   const prevSpotIdRef = useRef<string | null>(null);
+  const [kioskEnabled, setKioskEnabled] = useState(true);
+  const [kioskMsg, setKioskMsg] = useState('');
 
   // Memoize the playlist so shuffle doesn't happen on every render
   const playlist = useMemo(() => 
@@ -64,14 +66,23 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
   // Kiosk remote control & heartbeat hooks
   useKioskHeartbeat('kiosk-001', current?.id);
   useKioskControl((ctrl) => { 
-    /* handle kill-switch / reload */
-    if (ctrl.action === 'RESTART') {
+    if (typeof ctrl.enabled === 'boolean') setKioskEnabled(ctrl.enabled);
+    if (typeof ctrl.message === 'string') setKioskMsg(ctrl.message);
+    if (ctrl.action === 'RESTART' || ctrl.forceReload === true) {
       window.location.reload();
     }
   });
 
 
   useEffect(() => {
+    // Stop timer if kiosk is disabled
+    if (!kioskEnabled) {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+      return;
+    }
+
     if (timerRef.current) {
       clearTimeout(timerRef.current);
     }
@@ -99,7 +110,18 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
         clearTimeout(timerRef.current);
       }
     };
-  }, [index, playlist, current, kioskId]);
+  }, [index, playlist, current, kioskId, kioskEnabled]);
+
+  if (!kioskEnabled) {
+    return (
+      <div className="h-screen w-screen bg-black text-white flex items-center justify-center p-8 text-center">
+        <div>
+          <h1 className="text-3xl font-bold mb-3">Kios Dinonaktifkan</h1>
+          <p className="text-lg text-gray-300">{kioskMsg || 'Silakan hubungi petugas.'}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!current) {
     return (
