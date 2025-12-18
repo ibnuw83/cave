@@ -51,10 +51,9 @@ export async function createUserProfile(user: User): Promise<UserProfile> {
                 requestResourceData: userProfileData,
             });
             errorEmitter.emit('permission-error', permissionError);
-      } else {
-        console.error("Error creating user profile:", error);
-        throw error;
       }
+      // Re-throw the error so the caller knows the operation failed.
+      throw error;
   }
   return { uid: user.uid, ...userProfileData } as UserProfile;
 }
@@ -79,9 +78,9 @@ export async function updateUserRole(uid: string, role: 'free' | 'pro' | 'admin'
             requestResourceData: { role },
         });
         errorEmitter.emit('permission-error', permissionError);
-    } else {
-      throw error;
     }
+    // Re-throw the error so the caller (client component) knows the operation failed.
+    throw error;
   }
 }
 
@@ -133,9 +132,8 @@ export async function updateCave(id: string, caveData: Partial<Omit<Cave, 'id'>>
                 requestResourceData: caveData,
             });
             errorEmitter.emit('permission-error', permissionError);
-        } else {
-          throw error;
         }
+        throw error;
     }
 }
 
@@ -159,9 +157,8 @@ export async function deleteCave(id: string): Promise<void> {
                 operation: 'delete',
             });
             errorEmitter.emit('permission-error', permissionError);
-        } else {
-          throw error;
         }
+        throw error;
   }
 }
 
@@ -223,9 +220,8 @@ export async function updateSpot(id: string, spotData: Partial<Omit<Spot, 'id'>>
             requestResourceData: spotData,
         });
         errorEmitter.emit('permission-error', permissionError);
-    } else {
-        throw error;
     }
+    throw error;
   }
 }
 
@@ -240,9 +236,8 @@ export async function deleteSpot(id: string) {
             operation: 'delete',
         });
         errorEmitter.emit('permission-error', permissionError);
-    } else {
-        throw error;
     }
+    throw error;
   }
 }
 
@@ -271,9 +266,7 @@ export async function saveKioskSettings(settings: Omit<KioskSettings, 'id'>) {
                 requestResourceData: settings,
             });
             errorEmitter.emit('permission-error', permissionError);
-        } else {
-            console.error("Error saving kiosk settings:", error);
-            throw error;
         }
+        throw error;
     }
 }
