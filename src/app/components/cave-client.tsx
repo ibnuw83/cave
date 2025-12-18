@@ -70,7 +70,7 @@ function SpotCard({ spot, isLocked, isOffline }: { spot: Spot; isLocked: boolean
   );
 }
 
-export default function CaveClient({ cave, spots }: { cave: Cave; spots: Spot[];}) {
+export default function CaveClient({ cave, spots }: { cave: Cave; spots?: Spot[];}) {
   const { userProfile, loading } = useAuth();
   const [isOffline, setIsOffline] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -85,6 +85,7 @@ export default function CaveClient({ cave, spots }: { cave: Cave; spots: Spot[];
   }, [cave.id]);
 
   const handleDownload = async () => {
+    if (!spots) return;
     setIsDownloading(true);
     toast({ title: 'Mengunduh...', description: `Konten untuk ${cave.name} sedang disimpan untuk mode offline.` });
     try {
@@ -116,7 +117,7 @@ export default function CaveClient({ cave, spots }: { cave: Cave; spots: Spot[];
 
   const role = userProfile?.role || 'free';
   const isPro = role === 'pro' || role === 'admin';
-  const sortedSpots = [...spots].sort((a, b) => a.order - b.order);
+  const sortedSpots = spots ? [...spots].sort((a, b) => a.order - b.order) : [];
 
   return (
     <div className="container mx-auto min-h-screen max-w-5xl p-4 md:p-8">
