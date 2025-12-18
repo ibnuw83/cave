@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -231,7 +230,7 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
                    <Controller
                       control={form.control}
                       name={`playlist.${index}.spotId`}
-                      render={({ field: controllerField }) => (
+                      render={({ field: controllerField, fieldState }) => (
                         <FormItem className="flex-grow">
                           <Select onValueChange={controllerField.onChange} value={controllerField.value}>
                             <FormControl>
@@ -247,7 +246,9 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
                               ))}
                             </SelectContent>
                           </Select>
-                           <FormMessage />
+                           <FormMessage>
+                               {fieldState.error?.message}
+                           </FormMessage>
                         </FormItem>
                       )}
                     />
@@ -272,7 +273,7 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
                 </div>
               ))}
                {form.formState.errors.playlist?.root && <FormMessage>{form.formState.errors.playlist.root.message}</FormMessage>}
-               {form.formState.errors.playlist && !form.formState.errors.playlist.root && (
+               {form.formState.errors.playlist && !form.formState.errors.playlist.root && Array.isArray(form.formState.errors.playlist) && (
                   <FormMessage>
                     {form.formState.errors.playlist.map((p, i) => (p?.duration?.message && <div key={i}>- {p.duration.message}</div>))}
                   </FormMessage>
@@ -300,3 +301,5 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
     </Card>
   );
 }
+
+    
