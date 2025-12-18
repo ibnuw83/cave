@@ -66,5 +66,18 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
+
+    /* ========= KIOSK STATS & EVENTS ========= */
+    match /kioskStatsDaily/{date} {
+      // Admin bisa mengelola statistik harian
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    match /kioskEvents/{eventId} {
+      // Siapa pun yang login (termasuk kios) dapat membuat event log
+      allow create: if isSignedIn();
+      // Hanya admin yang dapat membaca, mengubah, atau menghapus event individual
+      allow read, update, delete: if isAdmin();
+    }
   }
 }
