@@ -1,3 +1,4 @@
+
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
@@ -18,8 +19,6 @@ import { UserProfile, RegisterData } from '@/lib/types';
 import { getUserProfile, createUserProfile } from '@/lib/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
-import { errorEmitter } from '@/lib/error-emitter';
-import { FirestorePermissionError } from '@/lib/errors';
 
 interface AuthContextType {
   user: User | null;
@@ -52,13 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUserProfile(profile);
         return profile;
     } catch (error: any) {
-        if (error.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: `users/${user.uid}`,
-                operation: 'get',
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        } else {
+        if (error.code !== 'permission-denied') {
              toast({
                 variant: 'destructive',
                 title: 'Gagal Memuat Profil',
@@ -171,14 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
     } catch (error: any) {
-       if (error.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: 'users',
-                operation: 'create',
-                requestResourceData: { email: data.email, name: data.name },
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        } else {
+       if (error.code !== 'permission-denied') {
             toast({
                 title: "Pendaftaran Gagal",
                 description: error.code === 'auth/email-already-in-use' ? 'Email ini sudah terdaftar.' : 'Terjadi kesalahan saat pendaftaran.',

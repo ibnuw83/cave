@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -13,8 +14,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { FileUploader } from '@/components/ui/file-uploader';
-import { errorEmitter } from '@/lib/error-emitter';
-import { FirestorePermissionError } from '@/lib/errors';
 import { auth } from '@/lib/firebase';
 
 const caveSchema = z.object({
@@ -67,16 +66,10 @@ export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
         onSave({ id: newCaveId, ...newCaveData });
       }
     } catch (error: any) {
-        if (error.code === 'permission-denied') {
-            const operation = cave ? 'update' : 'create';
-            const permissionError = new FirestorePermissionError({
-                path: cave ? `caves/${cave.id}` : 'caves',
-                operation,
-                requestResourceData: values,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        } else {
-            toast({
+        // The error is now handled by the generic permission-error emitter in firestore.ts
+        // We only show a generic toast here if the error is something other than permission denied
+        if (error.code !== 'permission-denied') {
+             toast({
                 variant: 'destructive',
                 title: 'Gagal',
                 description: `Terjadi kesalahan: ${error.message}`,

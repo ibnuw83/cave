@@ -12,8 +12,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { deleteSpot } from "@/lib/firestore";
 import { SpotForm } from "./spot-form";
-import { errorEmitter } from '@/lib/error-emitter';
-import { FirestorePermissionError } from '@/lib/errors';
 
 export default function SpotsClient({ initialSpots, caves }: { initialSpots: Spot[]; caves: Cave[] }) {
   const [spots, setSpots] = useState(initialSpots);
@@ -45,13 +43,7 @@ export default function SpotsClient({ initialSpots, caves }: { initialSpots: Spo
         setSpots(spots.filter((s) => s.id !== id));
         toast({ title: "Berhasil", description: "Spot berhasil dihapus." });
     } catch (error: any) {
-        if (error.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: `spots/${id}`,
-                operation: 'delete',
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        } else {
+        if (error.code !== 'permission-denied') {
             toast({
                 variant: 'destructive',
                 title: 'Gagal',

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -14,8 +15,6 @@ import { Trash2, Plus, GripVertical, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { saveKioskSettings } from '@/lib/firestore';
 import Link from 'next/link';
-import { FirestorePermissionError } from '@/lib/errors';
-import { errorEmitter } from '@/lib/error-emitter';
 
 const kioskSettingsSchema = z.object({
   caveId: z.string().min(1, 'Gua harus dipilih.'),
@@ -60,14 +59,7 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
         await saveKioskSettings(values);
         toast({ title: 'Berhasil', description: 'Pengaturan kios telah disimpan.' });
     } catch (error: any) {
-        if (error.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: 'kioskSettings/main',
-                operation: 'update',
-                requestResourceData: values,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        } else {
+        if (error.code !== 'permission-denied') {
            toast({
             variant: 'destructive',
             title: 'Gagal',

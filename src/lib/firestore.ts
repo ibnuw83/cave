@@ -41,7 +41,19 @@ export async function createUserProfile(user: User): Promise<UserProfile> {
   };
   const userRef = doc(db, 'users', user.uid);
   
-  await setDoc(userRef, userProfileData);
+  try {
+      await setDoc(userRef, userProfileData);
+  } catch(error: any) {
+      if (error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: `users/${user.uid}`,
+                operation: 'create',
+                requestResourceData: userProfileData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        }
+        throw error;
+  }
   return { uid: user.uid, ...userProfileData } as UserProfile;
 }
 
@@ -55,7 +67,19 @@ export async function getAllUsers(): Promise<UserProfile[]> {
 export async function updateUserRole(uid: string, role: 'free' | 'pro' | 'admin') {
   const userRef = doc(db, 'users', uid);
   const dataToUpdate = { role, updatedAt: serverTimestamp() };
-  await updateDoc(userRef, dataToUpdate);
+  try {
+    await updateDoc(userRef, dataToUpdate);
+  } catch (error: any) {
+    if (error.code === 'permission-denied') {
+        const permissionError = new FirestorePermissionError({
+            path: `users/${uid}`,
+            operation: 'update',
+            requestResourceData: { role },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    }
+    throw error;
+  }
 }
 
 // --- Cave Functions ---
@@ -78,13 +102,37 @@ export async function getCave(id: string): Promise<Cave | null> {
 }
 
 export async function addCave(caveData: Omit<Cave, 'id'>): Promise<string> {
-    const docRef = await addDoc(collection(db, 'caves'), caveData);
-    return docRef.id;
+    try {
+        const docRef = await addDoc(collection(db, 'caves'), caveData);
+        return docRef.id;
+    } catch(error: any) {
+        if (error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: 'caves',
+                operation: 'create',
+                requestResourceData: caveData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        }
+        throw error;
+    }
 }
 
 export async function updateCave(id: string, caveData: Partial<Omit<Cave, 'id'>>) {
     const docRef = doc(db, 'caves', id);
-    await updateDoc(docRef, caveData);
+    try {
+        await updateDoc(docRef, caveData);
+    } catch(error: any) {
+        if (error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: `caves/${id}`,
+                operation: 'update',
+                requestResourceData: caveData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        }
+        throw error;
+    }
 }
 
 export async function deleteCave(id: string): Promise<void> {
@@ -92,12 +140,24 @@ export async function deleteCave(id: string): Promise<void> {
   const spotsQuery = query(collection(db, 'spots'), where('caveId', '==', id));
   
   const batch = writeBatch(db);
-  const spotsSnapshot = await getDocs(spotsQuery);
-  spotsSnapshot.forEach(spotDoc => {
-      batch.delete(spotDoc.ref);
-  });
-  batch.delete(caveDocRef);
-  await batch.commit();
+  
+  try {
+    const spotsSnapshot = await getDocs(spotsQuery);
+    spotsSnapshot.forEach(spotDoc => {
+        batch.delete(spotDoc.ref);
+    });
+    batch.delete(caveDocRef);
+    await batch.commit();
+  } catch (error: any) {
+      if (error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: `batch write (delete cave: ${id})`,
+                operation: 'delete',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        }
+        throw error;
+  }
 }
 
 

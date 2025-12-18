@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -14,8 +15,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { FileUploader } from '@/components/ui/file-uploader';
-import { errorEmitter } from '@/lib/error-emitter';
-import { FirestorePermissionError } from '@/lib/errors';
 
 const spotSchema = z.object({
   caveId: z.string().min(1, 'Gua harus dipilih.'),
@@ -81,15 +80,7 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
         onSave({ id: newSpotId, ...spotData });
       }
     } catch (error: any) {
-        if (error.code === 'permission-denied') {
-            const operation = spot ? 'update' : 'create';
-            const permissionError = new FirestorePermissionError({
-                path: spot ? `spots/${spot.id}` : 'spots',
-                operation,
-                requestResourceData: spotData,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        } else {
+        if (error.code !== 'permission-denied') {
              toast({
                 variant: 'destructive',
                 title: 'Gagal',
