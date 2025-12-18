@@ -12,6 +12,8 @@ export default async function KiosPage() {
     console.error("Failed to load kiosk settings:", err);
   }
 
+  // Check for settings or playlist existence on the server.
+  // If it's not configured, there's no point in rendering the client component.
   if (!settings || !settings.playlist?.length) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-black text-white text-center p-8">
