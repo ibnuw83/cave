@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Spot, KioskSettings } from '@/lib/types';
-import VisitorCounter from '../components/visitor-counter';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useKioskHeartbeat, useKioskControl } from '@/hooks/use-kiosk';
@@ -132,7 +131,6 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
 
   return (
     <div className="h-screen w-screen bg-black relative overflow-hidden">
-      <VisitorCounter kioskId="kiosk-001" enabled />
       <img
         src={current.imageUrl}
         className="absolute inset-0 w-full h-full object-cover"
