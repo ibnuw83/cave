@@ -1,13 +1,12 @@
+
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import { FaceDetection } from '@mediapipe/face_detection';
 import { doc, increment, serverTimestamp, setDoc, addDoc, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-
-// The camera_utils library attaches the Camera class to the window, so we don't import it directly.
-// We declare it here to satisfy TypeScript.
-declare let Camera: any;
+import { errorEmitter } from '@/lib/error-emitter';
+import { FirestorePermissionError } from '@/lib/errors';
 
 
 function todayKey() {
@@ -28,21 +27,24 @@ export default function VisitorCounter({
   cooldownMs?: number;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const cameraRef = useRef<any | null>(null);
+  const animationFrameId = useRef<number | null>(null);
+  const faceDetectionRef = useRef<FaceDetection | null>(null);
   const lastCountRef = useRef<number>(0);
   const [running, setRunning] = useState(false);
 
   useEffect(() => {
     if (!enabled) return;
 
-    let faceDetection: FaceDetection | null = null;
+    let localStream: MediaStream | null = null;
 
     async function start() {
-      if (!videoRef.current) return;
+      const videoEl = videoRef.current;
+      if (!videoEl) return;
 
-      faceDetection = new FaceDetection({
+      const faceDetection = new FaceDetection({
         locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`,
       });
+      faceDetectionRef.current = faceDetection;
 
       faceDetection.setOptions({
         model: 'short',
@@ -57,68 +59,61 @@ export default function VisitorCounter({
         if (now - lastCountRef.current < cooldownMs) return;
         lastCountRef.current = now;
 
-        // 1) agregasi harian (aman, anonim)
         const dailyDoc = doc(db, 'kioskStatsDaily', todayKey());
         setDoc(
           dailyDoc,
-          {
-            updatedAt: serverTimestamp(),
-            facesDetected: increment(faces),
-            visitors: increment(1),
-          },
+          { updatedAt: serverTimestamp(), facesDetected: increment(faces), visitors: increment(1) },
           { merge: true }
-        ).catch(err => console.error("Firestore error (daily stats):", err));
+        ).catch(error => {
+            if (error.code === 'permission-denied') {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: `/kioskStatsDaily/${todayKey()}`, operation: 'update', requestResourceData: { visitors: increment(1) }
+                }));
+            }
+        });
 
-        // 2) event log (opsional)
         addDoc(collection(db, 'kioskEvents'), {
-          type: 'VISITOR_PING',
-          kioskId,
-          ts: serverTimestamp(),
-        }).catch(err => console.error("Firestore error (event log):", err));
+          type: 'VISITOR_PING', kioskId, ts: serverTimestamp()
+        }).catch(error => {
+            if (error.code === 'permission-denied') {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: '/kioskEvents', operation: 'create', requestResourceData: { type: 'VISITOR_PING' }
+                }));
+            }
+        });
       });
 
-      // Ensure camera access is requested
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        videoEl.srcObject = localStream;
+        await videoEl.play();
+        setRunning(true);
+        
+        const processVideo = async () => {
+          if (videoEl.readyState >= 2 && faceDetectionRef.current) {
+            await faceDetectionRef.current.send({ image: videoEl });
+          }
+          animationFrameId.current = requestAnimationFrame(processVideo);
+        };
+        animationFrameId.current = requestAnimationFrame(processVideo);
+
       } catch (error) {
         console.error("Camera access denied:", error);
-        // Optionally, you could set a state to show a message to the user
-        return;
+        setRunning(false);
       }
-
-
-      cameraRef.current = new Camera(videoRef.current, {
-        onFrame: async () => {
-          if (!faceDetection || !videoRef.current || videoRef.current.paused || videoRef.current.ended) return;
-          try {
-             await faceDetection.send({ image: videoRef.current });
-          } catch(e) {
-            console.error("Face detection send failed:", e);
-          }
-        },
-        width: 640,
-        height: 360,
-      });
-
-      await cameraRef.current.start();
-      setRunning(true);
     }
 
-    start().catch(console.error);
+    start();
 
     return () => {
       setRunning(false);
-      try {
-        cameraRef.current?.stop();
-        const stream = videoRef.current?.srcObject as MediaStream;
-        if (stream) {
-          stream.getTracks().forEach(track => track.stop());
-        }
-      } catch {}
-      faceDetection?.close?.();
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+      faceDetectionRef.current?.close();
     };
   }, [enabled, cooldownMs, kioskId]);
 
