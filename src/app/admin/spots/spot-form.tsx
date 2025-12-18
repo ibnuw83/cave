@@ -77,7 +77,9 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
         onSave({ id: spot.id, ...spotData });
       } else {
         const newSpotId = await addSpot(spotData);
-        onSave({ id: newSpotId, ...spotData });
+        if (newSpotId) {
+          onSave({ id: newSpotId, ...spotData });
+        }
       }
     } catch (error: any) {
         if (error.code !== 'permission-denied') {
