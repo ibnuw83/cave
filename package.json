@@ -48,7 +48,8 @@
     "recharts": "^2.15.1",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "react-pannellum-next": "1.0.2"
   },
   "devDependencies": {
     "@types/node": "^20",
@@ -57,5 +58,11 @@
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
+  },
+  "overrides": {
+    "react-pannellum-next": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    }
   }
 }
