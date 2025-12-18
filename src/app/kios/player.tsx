@@ -12,8 +12,14 @@ interface Props {
 }
 
 export default function KioskPlayer({ cave, spots, settings }: Props) {
-  const { currentSpot } = useKioskPlayer(spots, settings);
+  const { currentSpot, state, durationForCurrent } = useKioskPlayer({
+    spots: spots,
+    mode: settings.mode,
+    getDurationSec: (spot) => spot.duration,
+  });
+  
   const [showPin, setShowPin] = useState(false);
+  const progress = (durationForCurrent - state.secondsLeft) / durationForCurrent * 100;
 
   // fullscreen lock
   useEffect(() => {
@@ -66,9 +72,17 @@ export default function KioskPlayer({ cave, spots, settings }: Props) {
     >
       {/* IMAGE */}
       <div
-        className="flex-1 bg-cover bg-center"
+        className="flex-1 bg-cover bg-center transition-all duration-1000"
         style={{ backgroundImage: `url(${currentSpot.imageUrl})` }}
       />
+      
+      {/* PROGRESS BAR */}
+      <div className="w-full bg-gray-700/50 h-1">
+        <div 
+          className="bg-white h-1" 
+          style={{ width: `${progress}%`, transition: 'width 1s linear' }}
+        />
+      </div>
 
       {/* INFO */}
       <div className="p-6 bg-black/70">
@@ -81,6 +95,7 @@ export default function KioskPlayer({ cave, spots, settings }: Props) {
         <audio
           src={currentSpot.audioUrl}
           autoPlay
+          muted={state.isMuted}
           playsInline
           key={currentSpot.id} // Add key to re-mount audio element on spot change
         />
