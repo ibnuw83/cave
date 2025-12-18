@@ -280,3 +280,5 @@ function resizeCanvasToDisplaySize(canvas: HTMLCanvasElement) {
     }
     return false;
 }
+
+    
