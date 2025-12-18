@@ -5,7 +5,7 @@ import { getKioskSettings, getSpots, getCave } from '@/lib/firestore';
 import { Spot, KioskSettings, Cave } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import KioskPlayer from './player';
-import { notFound } from 'next/navigation';
+import ExitPin from './exit-pin';
 
 export default function KiosPage() {
   const [loading, setLoading] = useState(true);
@@ -14,6 +14,7 @@ export default function KiosPage() {
   const [mode, setMode] = useState<'loop' | 'shuffle'>('loop');
   const [cave, setCave] = useState<Cave | null>(null);
   const [settings, setSettings] = useState<KioskSettings | null>(null);
+  const [showPin, setShowPin] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -100,7 +101,13 @@ export default function KiosPage() {
 
   return (
     <div className="h-screen w-screen bg-black text-white overflow-hidden">
-      <KioskPlayer cave={cave} spots={playlist} settings={settings} />
+        <KioskPlayer
+            spots={playlist}
+            playlist={settings.playlist}
+            mode={settings.mode}
+            onExitRequested={() => setShowPin(true)}
+        />
+        {showPin && <ExitPin onClose={() => setShowPin(false)} />}
     </div>
   );
 }
