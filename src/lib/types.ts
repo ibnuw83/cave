@@ -55,6 +55,7 @@ export interface KioskSettings {
   playlist: KioskPlaylistItem[];
   mode: 'loop' | 'shuffle';
   exitPin: string;
+  logoUrl?: string;
 }
 
     

@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Cave } from '@/lib/types';
+import { Cave, KioskSettings } from '@/lib/types';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { clearOfflineCache } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
-import { getCaves } from '@/lib/firestore';
+import { getCaves, getKioskSettings } from '@/lib/firestore';
 
 
 const AuthSection = () => {
@@ -112,23 +112,32 @@ const AuthSection = () => {
 export default function HomeClient() {
   const { loading: authLoading } = useAuth();
   const [caves, setCaves] = useState<Cave[]>([]);
-  const [loadingCaves, setLoadingCaves] = useState(true);
+  const [settings, setSettings] = useState<KioskSettings | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchCaves() {
-      setLoadingCaves(true);
-      const fetchedCaves = await getCaves(false);
+    async function fetchData() {
+      setLoading(true);
+      const [fetchedCaves, fetchedSettings] = await Promise.all([
+        getCaves(false),
+        getKioskSettings()
+      ]);
       setCaves(fetchedCaves);
-      setLoadingCaves(false);
+      setSettings(fetchedSettings);
+      setLoading(false);
     }
-    fetchCaves();
+    fetchData();
   }, []);
   
   return (
     <div className="container mx-auto min-h-screen max-w-4xl p-4 md:p-8">
       <header className="flex items-center justify-between pb-8">
         <div className="flex items-center gap-3">
-          <Mountain className="h-8 w-8 text-primary" />
+          {settings?.logoUrl ? (
+             <Image src={settings.logoUrl} alt="App Logo" width={32} height={32} className="h-8 w-8" />
+          ) : (
+            <Mountain className="h-8 w-8 text-primary" />
+          )}
           <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl font-headline">
             Penjelajah Gua
           </h1>
@@ -138,7 +147,7 @@ export default function HomeClient() {
 
       <main>
         <h2 className="mb-6 text-xl font-semibold text-foreground/90 md:text-2xl">Gua yang Tersedia</h2>
-        {authLoading || loadingCaves ? (
+        {authLoading || loading ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             <Skeleton className="h-64 w-full" />
             <Skeleton className="h-64 w-full" />
@@ -174,4 +183,3 @@ export default function HomeClient() {
     </div>
   );
 }
-

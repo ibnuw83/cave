@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -6,8 +7,11 @@ import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { Mountain, MapPin, Users, Home, LogOut, ArrowLeft, Airplay } from 'lucide-react';
-
+import { Mountain, MapPin, Users, Home, LogOut, ArrowLeft, Airplay, Settings, Image as ImageIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { getKioskSettings } from '@/lib/firestore';
+import { KioskSettings } from '@/lib/types';
+import Image from 'next/image';
 
 function AdminNavLink({ href, icon, label, color, activeColor }: { href: string; icon: React.ReactNode; label: string; color: string; activeColor: string; }) {
   const pathname = usePathname();
@@ -30,6 +34,11 @@ function AdminNavLink({ href, icon, label, color, activeColor }: { href: string;
 
 export default function AdminSidebar() {
   const { user, userProfile, signOut } = useAuth();
+  const [settings, setSettings] = useState<KioskSettings | null>(null);
+
+  useEffect(() => {
+    getKioskSettings().then(setSettings);
+  }, []);
 
   if (!user || !userProfile || userProfile.role !== 'admin') return null;
 
@@ -41,7 +50,11 @@ export default function AdminSidebar() {
   return (
     <aside className="fixed bottom-0 z-50 w-full border-t bg-card p-2 md:relative md:flex md:h-screen md:flex-col md:border-r md:border-t-0 md:p-0">
       <div className="hidden md:flex items-center gap-2 p-4 border-b">
-        <Mountain className="h-6 w-6 text-primary" />
+         {settings?.logoUrl ? (
+            <Image src={settings.logoUrl} alt="App Logo" width={24} height={24} className="h-6 w-6" />
+          ) : (
+            <Mountain className="h-6 w-6 text-primary" />
+          )}
         <h2 className="text-xl font-bold">Admin Panel</h2>
       </div>
 
@@ -50,7 +63,7 @@ export default function AdminSidebar() {
         <AdminNavLink href="/admin/caves" icon={<Mountain />} label="Gua" color="text-amber-400" activeColor="text-amber-300" />
         <AdminNavLink href="/admin/spots" icon={<MapPin />} label="Spot" color="text-rose-400" activeColor="text-rose-300" />
         <AdminNavLink href="/admin/users" icon={<Users />} label="Pengguna" color="text-emerald-400" activeColor="text-emerald-300" />
-        <AdminNavLink href="/admin/kiosk" icon={<Airplay />} label="Kios" color="text-violet-400" activeColor="text-violet-300" />
+        <AdminNavLink href="/admin/kiosk" icon={<Settings />} label="Pengaturan" color="text-violet-400" activeColor="text-violet-300" />
       </nav>
 
       <div className="hidden md:block mt-auto p-4 border-t">

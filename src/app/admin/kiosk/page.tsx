@@ -1,3 +1,4 @@
+
 import { getCaves, getAllSpotsForAdmin, getKioskSettings } from "@/lib/firestore";
 import KioskClient from "./client";
 
@@ -12,8 +13,8 @@ export default async function KioskSettingsPage() {
   return (
     <div className="p-4 md:p-8">
       <header className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold">Pengaturan Mode Kios</h1>
-        <p className="text-muted-foreground">Atur konten yang akan ditampilkan secara otomatis di halaman kios.</p>
+        <h1 className="text-2xl md:text-3xl font-bold">Pengaturan Aplikasi</h1>
+        <p className="text-muted-foreground">Kelola pengaturan umum dan mode kios.</p>
       </header>
       <KioskClient 
         initialCaves={caves}

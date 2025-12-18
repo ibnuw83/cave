@@ -12,15 +12,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Trash2, Plus, GripVertical, Loader2, Download, WifiOff } from 'lucide-react';
+import { Trash2, Plus, GripVertical, Loader2, Download, WifiOff, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { saveKioskSettings } from '@/lib/firestore';
 import Link from 'next/link';
 import { isCaveAvailableOffline, saveCaveForOffline } from '@/lib/offline';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-
+import { FileUploader } from '@/components/ui/file-uploader';
+import Image from 'next/image';
 
 const kioskSettingsSchema = z.object({
+  logoUrl: z.string().url().optional().or(z.literal('')),
   caveId: z.string().min(1, 'Gua harus dipilih.'),
   playlist: z.array(z.object({
     spotId: z.string().min(1, 'Spot harus dipilih.'),
@@ -45,10 +47,12 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
   const { toast } = useToast();
   const [isOffline, setIsOffline] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   
   const form = useForm<KioskSettingsFormValues>({
     resolver: zodResolver(kioskSettingsSchema),
     defaultValues: {
+      logoUrl: initialSettings?.logoUrl || '',
       caveId: initialSettings?.caveId || '',
       playlist: initialSettings?.playlist || [],
       mode: initialSettings?.mode || 'loop',
@@ -62,6 +66,7 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
   });
 
   const watchCaveId = form.watch('caveId');
+  const watchLogoUrl = form.watch('logoUrl');
 
   const availableSpots = useMemo(() => {
     if (!watchCaveId) return [];
@@ -123,195 +128,229 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
   const isSubmitting = form.formState.isSubmitting;
 
   return (
-    <Card>
-      <CardHeader>
-        <div className='flex justify-between items-start gap-4'>
-            <div>
-                <CardTitle>Daftar Putar Kios</CardTitle>
-                <CardDescription>Pilih gua dan atur spot yang akan diputar otomatis.</CardDescription>
-            </div>
-             <div className='flex gap-2'>
-                 <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div>
-                                <Button onClick={handleDownload} disabled={isDownloading || isOffline || !selectedCave} variant="secondary">
-                                    {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : isOffline ? <WifiOff className="mr-2 h-4 w-4"/> : <Download className="mr-2 h-4 w-4" />}
-                                    {isOffline ? 'Tersimpan Offline' : 'Simpan Offline'}
-                                </Button>
-                             </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                           <p>{isOffline ? 'Konten gua ini sudah bisa diakses offline.' : 'Unduh semua spot di gua ini untuk akses offline.'}</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-
-                <Button asChild variant="outline">
-                    <Link href="/kios" target="_blank">
-                        Buka Mode Kios
-                    </Link>
-                </Button>
-            </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="caveId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Pilih Gua</FormLabel>
-                  <Select 
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      form.setValue('playlist', []); 
-                    }} 
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Pilih gua untuk ditampilkan di kios..." />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {initialCaves.filter(c => c.isActive).map((cave) => (
-                        <SelectItem key={cave.id} value={cave.id}>
-                          {cave.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                control={form.control}
-                name="mode"
-                render={({ field }) => (
-                    <FormItem className="space-y-3">
-                    <FormLabel>Mode Pemutaran</FormLabel>
-                    <FormControl>
-                        <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-col space-y-1"
-                        >
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                            <RadioGroupItem value="loop" />
-                            </FormControl>
-                            <FormLabel className="font-normal">
-                            Loop (berurutan)
-                            </FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                            <RadioGroupItem value="shuffle" />
-                            </FormControl>
-                            <FormLabel className="font-normal">
-                            Shuffle (acak)
-                            </FormLabel>
-                        </FormItem>
-                        </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                 <FormField
+    <div className="space-y-8">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <Card>
+            <CardHeader>
+                <CardTitle>Pengaturan Global</CardTitle>
+                <CardDescription>Pengaturan umum untuk seluruh aplikasi.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+               <FormField
                     control={form.control}
-                    name="exitPin"
+                    name="logoUrl"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>PIN Keluar Kios</FormLabel>
+                        <FormLabel>Logo Aplikasi</FormLabel>
                         <FormControl>
-                        <Input type="password" placeholder="cth: 1234" maxLength={4} {...field} />
+                             <FileUploader
+                                label="Logo Aplikasi (PNG, JPG, maks 1MB)"
+                                filePath="app/logo"
+                                currentFileUrl={field.value}
+                                onUploadSuccess={(url) => {
+                                    field.onChange(url);
+                                    // Manually trigger save after upload
+                                    form.handleSubmit(onSubmit)();
+                                }}
+                                onUploadStateChange={setIsUploading}
+                                allowedTypes={['image/png', 'image/jpeg']}
+                                maxSizeMB={1}
+                            />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
                     )}
                 />
-             </div>
-
-
-            <div className="space-y-4">
-              <FormLabel>Playlist Spot</FormLabel>
-              {fields.map((field, index) => (
-                <div key={field.id} className="flex items-center gap-2 p-2 border rounded-lg bg-muted/50">
-                  <GripVertical className="h-5 w-5 text-muted-foreground" />
-                  <FormField
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
                     control={form.control}
-                    name={`playlist.${index}.spotId`}
+                    name="mode"
                     render={({ field }) => (
-                      <FormItem className="flex-grow">
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Pilih spot..." />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {availableSpots.map(spot => (
-                              <SelectItem key={spot.id} value={spot.id}>
-                                {spot.title}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormItem className="space-y-3">
+                        <FormLabel>Mode Pemutaran Kios</FormLabel>
+                        <FormControl>
+                            <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="flex flex-col space-y-1"
+                            >
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                                <FormControl>
+                                <RadioGroupItem value="loop" />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                Loop (berurutan)
+                                </FormLabel>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                                <FormControl>
+                                <RadioGroupItem value="shuffle" />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                Shuffle (acak)
+                                </FormLabel>
+                            </FormItem>
+                            </RadioGroup>
+                        </FormControl>
                         <FormMessage />
-                      </FormItem>
+                        </FormItem>
                     )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name={`playlist.${index}.duration`}
-                    render={({ field }) => (
-                       <FormItem>
-                         <div className="relative w-48">
-                           <FormControl>
-                              <Input type="number" placeholder="Detik" {...field} className="pr-12"/>
-                           </FormControl>
-                           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">detik</span>
-                         </div>
-                          <FormMessage />
-                       </FormItem>
-                    )}
-                  />
-                  <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                    />
+                    <FormField
+                        control={form.control}
+                        name="exitPin"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>PIN Keluar Kios</FormLabel>
+                            <FormControl>
+                            <Input type="password" placeholder="cth: 1234" maxLength={4} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
                 </div>
-              ))}
-               {form.formState.errors.playlist?.root && <FormMessage>{form.formState.errors.playlist.root.message}</FormMessage>}
-               {Array.isArray(form.formState.errors.playlist) && form.formState.errors.playlist.map((error, index) => (
-                 error && <FormMessage key={index}>Baris {index + 1}: {error.spotId?.message || error.duration?.message}</FormMessage>
-               ))}
-            </div>
+            </CardContent>
+        </Card>
 
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => append({ spotId: '', duration: 30 })}
-              disabled={!watchCaveId}
-            >
-              <Plus className="mr-2 h-4 w-4" /> Tambah Spot ke Playlist
-            </Button>
-            
-            <div className="flex justify-end pt-4">
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                Simpan Pengaturan Kios
-              </Button>
+        <Card>
+        <CardHeader>
+            <div className='flex justify-between items-start gap-4'>
+                <div>
+                    <CardTitle>Daftar Putar Kios</CardTitle>
+                    <CardDescription>Pilih gua dan atur spot yang akan diputar otomatis.</CardDescription>
+                </div>
+                <div className='flex gap-2'>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div>
+                                    <Button onClick={handleDownload} disabled={isDownloading || isOffline || !selectedCave} variant="secondary" type="button">
+                                        {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : isOffline ? <WifiOff className="mr-2 h-4 w-4"/> : <Download className="mr-2 h-4 w-4" />}
+                                        {isOffline ? 'Tersimpan Offline' : 'Simpan Offline'}
+                                    </Button>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                            <p>{isOffline ? 'Konten gua ini sudah bisa diakses offline.' : 'Unduh semua spot di gua ini untuk akses offline.'}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+
+                    <Button asChild variant="outline">
+                        <Link href="/kios" target="_blank">
+                            Buka Mode Kios
+                        </Link>
+                    </Button>
+                </div>
             </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent className="space-y-6">
+                <FormField
+                control={form.control}
+                name="caveId"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Pilih Gua untuk Kios</FormLabel>
+                    <Select 
+                        onValueChange={(value) => {
+                        field.onChange(value);
+                        form.setValue('playlist', []); 
+                        }} 
+                        defaultValue={field.value}
+                    >
+                        <FormControl>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Pilih gua untuk ditampilkan di kios..." />
+                        </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                        {initialCaves.filter(c => c.isActive).map((cave) => (
+                            <SelectItem key={cave.id} value={cave.id}>
+                            {cave.name}
+                            </SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+
+                <div className="space-y-4">
+                <FormLabel>Playlist Spot</FormLabel>
+                {fields.map((field, index) => (
+                    <div key={field.id} className="flex items-center gap-2 p-2 border rounded-lg bg-muted/50">
+                    <GripVertical className="h-5 w-5 text-muted-foreground" />
+                    <FormField
+                        control={form.control}
+                        name={`playlist.${index}.spotId`}
+                        render={({ field }) => (
+                        <FormItem className="flex-grow">
+                            <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                                <SelectTrigger>
+                                <SelectValue placeholder="Pilih spot..." />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {availableSpots.map(spot => (
+                                <SelectItem key={spot.id} value={spot.id}>
+                                    {spot.title}
+                                </SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name={`playlist.${index}.duration`}
+                        render={({ field }) => (
+                        <FormItem>
+                            <div className="relative w-48">
+                            <FormControl>
+                                <Input type="number" placeholder="Detik" {...field} className="pr-12"/>
+                            </FormControl>
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">detik</span>
+                            </div>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                    </div>
+                ))}
+                {form.formState.errors.playlist?.root && <FormMessage>{form.formState.errors.playlist.root.message}</FormMessage>}
+                {Array.isArray(form.formState.errors.playlist) && form.formState.errors.playlist.map((error, index) => (
+                    error && <FormMessage key={index}>Baris {index + 1}: {error.spotId?.message || error.duration?.message}</FormMessage>
+                ))}
+                </div>
+
+                <Button
+                type="button"
+                variant="outline"
+                onClick={() => append({ spotId: '', duration: 30 })}
+                disabled={!watchCaveId}
+                >
+                <Plus className="mr-2 h-4 w-4" /> Tambah Spot ke Playlist
+                </Button>
+            </CardContent>
+        </Card>
+            
+        <div className="flex justify-end pt-4">
+            <Button type="submit" disabled={isSubmitting || isUploading}>
+            {(isSubmitting || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+            Simpan Pengaturan
+            </Button>
+        </div>
+        </form>
+    </Form>
+    </div>
   );
 }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,9 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/auth-context';
-import { Loader2, LogIn, Mountain } from 'lucide-react';
+import { Loader2, Mountain } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import { useEffect, useState } from 'react';
+import { getKioskSettings } from '@/lib/firestore';
+import { KioskSettings } from '@/lib/types';
+import Image from 'next/image';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Email tidak valid.' }),
@@ -32,6 +37,12 @@ function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
 export default function LoginPage() {
   const { signInWithEmail, signInWithGoogle, sendPasswordResetEmail, loading } = useAuth();
   const { toast } = useToast();
+  const [settings, setSettings] = useState<KioskSettings | null>(null);
+
+  useEffect(() => {
+    getKioskSettings().then(setSettings);
+  }, []);
+
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
@@ -54,7 +65,11 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <Mountain className="mx-auto h-12 w-12 text-primary" />
+          {settings?.logoUrl ? (
+            <Image src={settings.logoUrl} alt="App Logo" width={48} height={48} className="mx-auto h-12 w-12" />
+          ) : (
+            <Mountain className="mx-auto h-12 w-12 text-primary" />
+          )}
           <h1 className="mt-4 text-3xl font-bold font-headline">Selamat Datang Kembali</h1>
           <p className="mt-2 text-muted-foreground">Masuk untuk melanjutkan ke Penjelajah Gua.</p>
         </div>

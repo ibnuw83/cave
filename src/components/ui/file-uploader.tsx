@@ -82,7 +82,7 @@ export function FileUploader({
       }
   }
   
-  const isImage = currentFileUrl && (currentFileUrl.includes('image') || allowedTypes.some(t => t.startsWith('image/')));
+  const isImage = (currentFileUrl && (/\.(jpg|jpeg|png|gif|svg)$/i.test(currentFileUrl))) || (allowedTypes.some(t => t.startsWith('image/')));
 
   return (
     <div className="space-y-4 rounded-lg border p-4">
@@ -137,7 +137,7 @@ export function FileUploader({
         <Alert variant="default" className="border-green-500 text-green-700">
             <CheckCircle className="h-4 w-4 !text-green-500" />
             <AlertTitle>Berhasil</AlertTitle>
-            <AlertDescription>File berhasil diunggah. Anda bisa menyimpan sekarang.</AlertDescription>
+            <AlertDescription>File berhasil diunggah. Perubahan akan tersimpan secara otomatis.</AlertDescription>
         </Alert>
       )}
 

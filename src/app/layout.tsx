@@ -1,13 +1,34 @@
-import type { Metadata } from 'next';
+
+import type { Metadata, Viewport } from 'next';
 import { AuthProvider } from '@/context/auth-context';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 import { Providers } from './providers';
+import { getKioskSettings } from '@/lib/firestore';
 
-export const metadata: Metadata = {
-  title: 'Penjelajah Gua 4D',
-  description: 'Pengalaman 4D digital menjelajahi gua Indonesia',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getKioskSettings();
+  const logoUrl = settings?.logoUrl;
+
+  const defaultTitle = 'Penjelajah Gua 4D';
+  const defaultDescription = 'Pengalaman 4D digital menjelajahi gua Indonesia';
+
+  return {
+    title: defaultTitle,
+    description: defaultDescription,
+    icons: {
+      icon: logoUrl || '/favicon.ico',
+      shortcut: logoUrl || '/favicon.ico',
+      apple: logoUrl || '/favicon.ico',
+    },
+    manifest: '/manifest.json',
+  };
+}
+
+export const viewport: Viewport = {
+  themeColor: '#2A2B32',
+}
+
 
 export default function RootLayout({
   children,
