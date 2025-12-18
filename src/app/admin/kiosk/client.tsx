@@ -12,10 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Trash2, Plus, GripVertical, Loader2 } from 'lucide-react';
+import { Trash2, Plus, GripVertical, Loader2, Download, WifiOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { saveKioskSettings } from '@/lib/firestore';
 import Link from 'next/link';
+import { isCaveAvailableOffline, saveCaveForOffline } from '@/lib/offline';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
 
 const kioskSettingsSchema = z.object({
   caveId: z.string().min(1, 'Gua harus dipilih.'),
@@ -39,6 +42,8 @@ interface KioskClientProps {
 
 export default function KioskClient({ initialCaves, initialSpots, initialSettings }: KioskClientProps) {
   const { toast } = useToast();
+  const [isOffline, setIsOffline] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   
   const form = useForm<KioskSettingsFormValues>({
     resolver: zodResolver(kioskSettingsSchema),
@@ -60,7 +65,43 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
     if (!watchCaveId) return [];
     return initialSpots.filter(spot => spot.caveId === watchCaveId);
   }, [watchCaveId, initialSpots]);
+
+  const selectedCave = useMemo(() => {
+    return initialCaves.find(c => c.id === watchCaveId) || null;
+  }, [watchCaveId, initialCaves]);
   
+  useEffect(() => {
+    async function checkOfflineStatus() {
+      if (watchCaveId) {
+        const offline = await isCaveAvailableOffline(watchCaveId);
+        setIsOffline(offline);
+      } else {
+        setIsOffline(false);
+      }
+    }
+    checkOfflineStatus();
+  }, [watchCaveId]);
+
+  const handleDownload = async () => {
+    if (!selectedCave || availableSpots.length === 0) {
+      toast({ variant: 'destructive', title: 'Gagal', description: 'Pilih gua dan pastikan ada spot tersedia untuk diunduh.' });
+      return;
+    }
+
+    setIsDownloading(true);
+    toast({ title: 'Mengunduh...', description: `Konten untuk ${selectedCave.name} sedang disimpan untuk mode offline.` });
+    try {
+      await saveCaveForOffline(selectedCave, availableSpots);
+      setIsOffline(true);
+      toast({ title: 'Berhasil!', description: `${selectedCave.name} telah tersedia untuk mode offline.` });
+    } catch (error) {
+      console.error('Failed to save for offline:', error);
+      toast({ variant: 'destructive', title: 'Gagal', description: 'Gagal menyimpan konten untuk mode offline.' });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
 
   const onSubmit = async (values: KioskSettingsFormValues) => {
     try {
@@ -82,16 +123,34 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
   return (
     <Card>
       <CardHeader>
-        <div className='flex justify-between items-center'>
+        <div className='flex justify-between items-start gap-4'>
             <div>
                 <CardTitle>Daftar Putar Kios</CardTitle>
                 <CardDescription>Pilih gua dan atur spot yang akan diputar otomatis.</CardDescription>
             </div>
-            <Button asChild variant="outline">
-                <Link href="/kios" target="_blank">
-                    Buka Mode Kios
-                </Link>
-            </Button>
+             <div className='flex gap-2'>
+                 <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div>
+                                <Button onClick={handleDownload} disabled={isDownloading || isOffline || !selectedCave} variant="secondary">
+                                    {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : isOffline ? <WifiOff className="mr-2 h-4 w-4"/> : <Download className="mr-2 h-4 w-4" />}
+                                    {isOffline ? 'Tersimpan Offline' : 'Simpan Offline'}
+                                </Button>
+                             </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                           <p>{isOffline ? 'Konten gua ini sudah bisa diakses offline.' : 'Unduh semua spot di gua ini untuk akses offline.'}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+
+                <Button asChild variant="outline">
+                    <Link href="/kios" target="_blank">
+                        Buka Mode Kios
+                    </Link>
+                </Button>
+            </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -169,12 +228,12 @@ export default function KioskClient({ initialCaves, initialSpots, initialSetting
               {fields.map((field, index) => (
                 <div key={field.id} className="flex items-center gap-2 p-2 border rounded-lg bg-muted/50">
                   <GripVertical className="h-5 w-5 text-muted-foreground" />
-                   <FormField
+                   <Controller
                       control={form.control}
                       name={`playlist.${index}.spotId`}
-                      render={({ field }) => (
+                      render={({ field: controllerField }) => (
                         <FormItem className="flex-grow">
-                          <Select onValueChange={field.onChange} value={field.value}>
+                          <Select onValueChange={controllerField.onChange} value={controllerField.value}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Pilih spot..." />
