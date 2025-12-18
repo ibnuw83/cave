@@ -3,16 +3,13 @@ import { getSpot, getUserProfile } from '@/lib/firestore';
 import { notFound } from 'next/navigation';
 import { Spot } from '@/lib/types';
 import placeholderImagesData from '@/lib/placeholder-images.json';
-import { getOfflineCaveData } from '@/lib/offline';
 import { cookies } from 'next/headers';
 import { auth } from '@/lib/firebase-admin';
 import LockedScreen from '@/app/components/locked-screen';
-import { GyroViewer } from '@/app/components/gyro-viewer';
-import SpotPlayerUI from '@/app/components/spot-player-ui';
+import SpotPageClient from './client';
 
 const placeholderImages = placeholderImagesData.placeholderImages;
 
-// Define static spots here as well to handle direct navigation or refresh
 const staticSpots: Spot[] = [
     {
         id: 'static-spot-jomblang-light',
@@ -53,32 +50,30 @@ const staticSpots: Spot[] = [
     }
 ];
 
-
 export default async function SpotPage({ params }: { params: { id: string } }) {
-  let spot: Spot | null = null;
-  
-  // 1. Handle static examples directly
-  if (params.id.startsWith('static-')) {
-    spot = staticSpots.find(s => s.id === params.id) || null;
+  let initialSpot: Spot | null = null;
+  const spotId = params.id;
+
+  // 1. Try to load from static examples first
+  if (spotId.startsWith('static-')) {
+    initialSpot = staticSpots.find(s => s.id === spotId) || null;
   } else {
-    // 2. Try to fetch from Firestore
+    // 2. If not static, fetch from Firestore
     try {
-      spot = await getSpot(params.id);
+      initialSpot = await getSpot(spotId);
     } catch (e) {
-      console.error(`Failed to fetch spot ${params.id} from Firestore`, e);
-      // Don't throw, let it fall through to notFound at the end if needed.
+      console.error(`Failed to fetch spot ${spotId} from Firestore`, e);
+      // Let it fall through, client will try to load from cache.
     }
-  }
-  
-  if (!spot) {
-    notFound();
   }
 
   // --- Auth Check (Server Side) ---
   let userRole = 'free';
+  let isUserLoggedIn = false;
   try {
     const sessionCookie = cookies().get('__session')?.value;
     if (sessionCookie) {
+      isUserLoggedIn = true;
       const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
       const userProfile = await getUserProfile(decodedToken.uid);
       if (userProfile) {
@@ -89,16 +84,17 @@ export default async function SpotPage({ params }: { params: { id: string } }) {
     console.log('User not logged in or session expired');
   }
 
-  const isLocked = spot.isPro && userRole === 'free';
-  
-  if(isLocked) {
-    return <LockedScreen spot={spot} />;
+  // If spot data couldn't be found on the server at all, render client with null.
+  // The client will then try to load from offline cache.
+  if (!initialSpot) {
+      return <SpotPageClient spotId={spotId} initialSpot={null} userRole={userRole} />;
   }
 
-  return (
-    <GyroViewer imageUrl={spot.imageUrl}>
-       <SpotPlayerUI spot={spot} />
-    </GyroViewer>
-  );
-}
+  const isLocked = initialSpot.isPro && userRole === 'free';
+  
+  if (isLocked) {
+    return <LockedScreen spot={initialSpot} />;
+  }
 
+  return <SpotPageClient spotId={spotId} initialSpot={initialSpot} userRole={userRole} />;
+}
