@@ -4,93 +4,79 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
-  const geminiApiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GOOGLE_CLOUD_TTS_KEY;
 
-  if (!geminiApiKey) {
+  if (!apiKey) {
     return NextResponse.json(
-      { error: 'Konfigurasi server tidak lengkap.' },
+      { error: 'GOOGLE_CLOUD_TTS_KEY belum diset' },
       { status: 500 }
     );
   }
 
-  let body: any;
+  let body;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json(
-      { error: 'Invalid JSON body.' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
   const { text } = body;
   if (!text || typeof text !== 'string') {
-    return NextResponse.json(
-      { error: 'Text is required.' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'Text is required' }, { status: 400 });
   }
 
   try {
-    const ttsUrl =
-      `https://generativelanguage.googleapis.com/v1beta/text:synthesizeSpeech`;
-
-    const ttsRes = await fetch(ttsUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': geminiApiKey, // Correct header for this API
-      },
-      body: JSON.stringify({
-        input: { text },
-        voice: { languageCode: 'id-ID' },
-        audioConfig: { audioEncoding: 'MP3' },
-      }),
-    });
-
-    // ========= HANDLE ERROR FROM GEMINI =========
-    if (!ttsRes.ok) {
-      let details = '';
-      try {
-        const errJson = await ttsRes.json();
-        details = errJson?.error?.message || JSON.stringify(errJson);
-      } catch {
-        details = await ttsRes.text();
+    const res = await fetch(
+      `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input: { text },
+          voice: {
+            languageCode: 'id-ID',
+            name: 'id-ID-Wavenet-A',
+          },
+          audioConfig: {
+            audioEncoding: 'MP3',
+            speakingRate: 0.95,
+            pitch: 0,
+          },
+        }),
       }
+    );
 
-      console.error('[GEMINI TTS API ERROR]', details);
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('[TTS ERROR]', errText);
       return NextResponse.json(
-        {
-          error: 'TTS API failed',
-          details: details || `HTTP ${ttsRes.status}`,
-        },
-        { status: ttsRes.status }
+        { error: 'TTS API error', details: errText },
+        { status: res.status }
       );
     }
-    
-    // ========= HANDLE SUCCESS =========
-    const json = await ttsRes.json();
 
-    if (!json?.audioContent) {
-      console.warn('TTS API returned success but no audioContent field.');
-      return new NextResponse(null, { status: 204 }); // No Content
+    const json = await res.json();
+
+    if (!json.audioContent) {
+      return NextResponse.json(
+        { error: 'TTS sukses tapi audio kosong' },
+        { status: 502 }
+      );
     }
 
-    // Decode base64 audio dan return sebagai buffer
-    const audioBuffer = Buffer.from(json.audioContent, 'base64');
+    const buffer = Buffer.from(json.audioContent, 'base64');
 
-    return new NextResponse(audioBuffer, {
+    return new NextResponse(buffer, {
       status: 200,
       headers: {
         'Content-Type': 'audio/mpeg',
-        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': 'no-store',
       },
     });
-
   } catch (err: any) {
-    console.error('[INTERNAL TTS API ERROR]', err);
+    console.error('[INTERNAL TTS ERROR]', err);
     return NextResponse.json(
-      { error: 'Internal TTS server error.', details: err?.message },
+      { error: 'Internal TTS server error', details: err.message },
       { status: 500 }
     );
   }
