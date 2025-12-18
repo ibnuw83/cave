@@ -104,33 +104,34 @@ export async function speakPro(text: string) {
 
       if (data.audioUrl) {
         currentAudio = new Audio(data.audioUrl);
-        await currentAudio.play();
-        return;
-      }
-
-      if (data.audioBase64) {
+      } else if (data.audioBase64) {
         currentAudio = new Audio(`data:audio/mpeg;base64,${data.audioBase64}`);
-        await currentAudio.play();
-        return;
       }
+    } else {
+        // 2) kalau bukan JSON, mungkin server balikin audio binary
+        // cek content-type
+        const ct = res.headers.get('content-type') || '';
+        if (ct.includes('audio/')) {
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            currentAudio = new Audio(url);
+        }
     }
     
-    // 2) kalau bukan JSON, mungkin server balikin audio binary
-    // cek content-type
-    const ct = res.headers.get('content-type') || '';
-    if (ct.includes('audio/')) {
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        currentAudio = new Audio(url);
-        currentAudio.onended = () => URL.revokeObjectURL(url);
+    if (currentAudio) {
+        currentAudio.onended = () => {
+            if (currentAudio?.src.startsWith('blob:')) {
+                URL.revokeObjectURL(currentAudio.src);
+            }
+            currentAudio = null;
+        };
         await currentAudio.play();
-        return;
+    } else {
+        // 3) kalau sampai sini berarti response sukses tapi format nggak sesuai
+        console.warn('TTS API success but no playable audio returned. Raw:', raw?.slice(0, 200));
+        speakLocal(text);
     }
-
-
-    // 3) kalau sampai sini berarti response sukses tapi format nggak sesuai
-    console.warn('TTS API success but no playable audio returned. Raw:', raw?.slice(0, 200));
-    speakLocal(text);
+    
   } catch (e: any) {
     if (session !== ttsSession) return;
     console.error('TTS fetch failed:', e?.message || e);
