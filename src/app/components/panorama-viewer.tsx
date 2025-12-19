@@ -1,3 +1,4 @@
+
 'use client';
 
 import { ReactNode, useRef, useEffect } from 'react';
@@ -135,7 +136,7 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, child
     };
 
     let rotationY = 0;
-    let rotationX = 0;
+    let rotationX = -0.5; // Look slightly down
     let isDragging = false;
     let lastMouseX = 0;
     let lastMouseY = 0;
@@ -311,3 +312,5 @@ function inverse(m: number[]) {
     r[15] = (m20 * b03 - m21 * b01 + m22 * b00) * det;
     return r;
 }
+
+    
