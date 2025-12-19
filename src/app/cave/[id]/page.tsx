@@ -9,7 +9,7 @@ import { getOfflineCaveData } from '@/lib/offline';
 
 const placeholderImages = placeholderImagesData.placeholderImages;
 
-// Define static data here for reliability in case Firestore fails
+// Define static data here for reliability in case Firestore fails or for examples
 const staticCaves: Cave[] = [
     {
         id: 'static-jomblang',
@@ -39,16 +39,15 @@ export default async function CavePage({ params }: { params: { id: string } }) {
   let cave: Cave | null = null;
   let spots: Spot[] = [];
 
-  // If it's a static example, load the static data
-  if (params.id.startsWith('static-')) {
+  const isStaticExample = params.id.startsWith('static-');
+
+  // --- Logic for both Real and Static data ---
+  if (isStaticExample) {
     cave = staticCaves.find(c => c.id === params.id) || null;
-    // We will now fetch spots dynamically even for static examples, or use a static spot list if that exists.
-    // For simplicity and to match user expectation, we now only fetch from firestore/offline for real IDs.
-    // Static spots will be handled on the spot page.
   }
 
   // --- Logic for Firestore/Offline data for REAL IDs ---
-  if (!params.id.startsWith('static-')) {
+  if (!isStaticExample) {
     // 1. Try to load from offline cache first
     try {
       const offlineData = await getOfflineCaveData(params.id);
@@ -68,27 +67,13 @@ export default async function CavePage({ params }: { params: { id: string } }) {
          console.error(`Failed to fetch cave ${params.id} from Firestore.`, e);
       }
     }
-  
-    // 3. If spots were not in cache, fetch them from Firestore now
-    if (spots.length === 0 && cave) {
-       try {
-        spots = await getSpots(params.id);
-      } catch (e) {
-         console.error(`Failed to fetch spots for cave ${params.id} from Firestore.`, e);
-      }
-    }
   }
 
-
-  // If cave still not found, it's a 404
-  if (!cave) {
-    notFound();
-  }
-  
-  // For static caves, we still need to load their spots. Let's do that now.
-  if (params.id.startsWith('static-') && spots.length === 0) {
-      // Re-using the static spots from the spot page for consistency
-      const allStaticSpots = [
+  // If cave is found (either from static or firestore), fetch its spots
+  if (cave) {
+    // For static examples, we must define their spots here
+    if (isStaticExample) {
+         const allStaticSpots = [
           {
               id: 'static-spot-jomblang-light',
               caveId: 'static-jomblang',
@@ -132,6 +117,22 @@ export default async function CavePage({ params }: { params: { id: string } }) {
           }
       ];
       spots = allStaticSpots.filter(s => s.caveId === params.id);
+    } 
+    // For real caves, if spots are not from offline cache, fetch from Firestore
+    else if (spots.length === 0) {
+       try {
+        spots = await getSpots(params.id);
+      } catch (e) {
+         console.error(`Failed to fetch spots for cave ${params.id} from Firestore.`, e);
+         // Set to empty array on failure to prevent showing incorrect static spots
+         spots = [];
+      }
+    }
+  }
+
+  // If cave still not found, it's a 404
+  if (!cave) {
+    notFound();
   }
 
   return <CaveClient cave={cave} spots={spots} />;
