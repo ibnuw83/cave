@@ -60,6 +60,9 @@ export interface KioskSettings {
   facebookUrl?: string;
   instagramUrl?: string;
   twitterUrl?: string;
+  mainTitle?: string;
+  heroTitle?: string;
+  heroSubtitle?: string;
 }
 
     

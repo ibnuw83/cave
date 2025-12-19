@@ -25,11 +25,18 @@ import { Switch } from '@/components/ui/switch';
 import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 const globalSettingsSchema = z.object({
   logoUrl: z.string().url({ message: "URL tidak valid." }).optional().or(z.literal('')),
   mode: z.enum(['loop', 'shuffle']),
   exitPin: z.string().length(4, 'PIN harus terdiri dari 4 digit.').regex(/^\d{4}$/, 'PIN harus berupa 4 angka.'),
+});
+
+const heroSettingsSchema = z.object({
+  mainTitle: z.string().optional(),
+  heroTitle: z.string().optional(),
+  heroSubtitle: z.string().optional(),
 });
 
 const footerSettingsSchema = z.object({
@@ -55,6 +62,7 @@ const remoteControlSchema = z.object({
 });
 
 type GlobalSettingsFormValues = z.infer<typeof globalSettingsSchema>;
+type HeroSettingsFormValues = z.infer<typeof heroSettingsSchema>;
 type FooterSettingsFormValues = z.infer<typeof footerSettingsSchema>;
 type PlaylistSettingsFormValues = z.infer<typeof playlistSettingsSchema>;
 type RemoteControlFormValues = z.infer<typeof remoteControlSchema>;
@@ -192,6 +200,11 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
     defaultValues: { logoUrl: '', mode: 'loop', exitPin: '1234' },
   });
 
+  const heroForm = useForm<HeroSettingsFormValues>({
+    resolver: zodResolver(heroSettingsSchema),
+    defaultValues: { mainTitle: '', heroTitle: '', heroSubtitle: '' },
+  });
+
   const footerForm = useForm<FooterSettingsFormValues>({
     resolver: zodResolver(footerSettingsSchema),
     defaultValues: { footerText: '', facebookUrl: '', instagramUrl: '', twitterUrl: '' },
@@ -209,6 +222,11 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
             mode: kioskSettings.mode || 'loop',
             exitPin: kioskSettings.exitPin || '1234',
         });
+        heroForm.reset({
+            mainTitle: kioskSettings.mainTitle || '',
+            heroTitle: kioskSettings.heroTitle || '',
+            heroSubtitle: kioskSettings.heroSubtitle || '',
+        });
         footerForm.reset({
             footerText: kioskSettings.footerText || '',
             facebookUrl: kioskSettings.facebookUrl || '',
@@ -220,7 +238,7 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
             playlist: kioskSettings.playlist || [],
         });
     }
-  }, [kioskSettings, globalForm, footerForm, playlistForm]);
+  }, [kioskSettings, globalForm, heroForm, footerForm, playlistForm]);
 
   const { fields, append, remove } = useFieldArray({
     control: playlistForm.control,
@@ -275,6 +293,11 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
     toast({ title: 'Berhasil', description: 'Pengaturan global telah disimpan.' });
   };
   
+  const onHeroSubmit = (values: HeroSettingsFormValues) => {
+    saveKioskSettings(values);
+    toast({ title: 'Berhasil', description: 'Pengaturan halaman utama telah disimpan.' });
+  };
+
   const onFooterSubmit = (values: FooterSettingsFormValues) => {
     saveKioskSettings(values);
     toast({ title: 'Berhasil', description: 'Pengaturan footer & media sosial telah disimpan.' });
@@ -300,7 +323,7 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
       <KioskRemoteControl allSpots={spots || []} />
 
       <Form {...globalForm}>
-        <form onSubmit={globalForm.handleSubmit(onGlobalSubmit)}>
+        <form onSubmit={globalForm.handleSubmit(onGlobalSubmit)} className="space-y-8">
           <Card>
               <CardHeader>
                   <CardTitle>Pengaturan Global</CardTitle>
@@ -379,10 +402,68 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
           </Card>
         </form>
       </Form>
+      
+      <Form {...heroForm}>
+        <form onSubmit={heroForm.handleSubmit(onHeroSubmit)} className="space-y-8 mt-8">
+           <Card>
+              <CardHeader>
+                  <CardTitle>Pengaturan Halaman Utama</CardTitle>
+                  <CardDescription>Kelola judul dan subjudul yang tampil di halaman depan.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                 <FormField
+                      control={heroForm.control}
+                      name="mainTitle"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>Judul Utama</FormLabel>
+                          <FormControl>
+                              <Input placeholder="Penjelajah Gua" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
+                  <FormField
+                      control={heroForm.control}
+                      name="heroTitle"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>Judul Hero</FormLabel>
+                          <FormControl>
+                              <Input placeholder="Masuki Dunia Bawah Tanah" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
+                  <FormField
+                      control={heroForm.control}
+                      name="heroSubtitle"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>Subjudul Hero</FormLabel>
+                          <FormControl>
+                              <Textarea placeholder="Rasakan pengalaman 4D..." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
+              </CardContent>
+               <CardFooter>
+                  <Button type="submit" disabled={heroForm.formState.isSubmitting} className="ml-auto">
+                      {heroForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                      Simpan Pengaturan Halaman Utama
+                  </Button>
+              </CardFooter>
+          </Card>
+        </form>
+      </Form>
 
       <Form {...footerForm}>
-        <form onSubmit={footerForm.handleSubmit(onFooterSubmit)}>
-           <Card className="mt-8">
+        <form onSubmit={footerForm.handleSubmit(onFooterSubmit)} className="space-y-8 mt-8">
+           <Card>
               <CardHeader>
                   <CardTitle>Footer &amp; Media Sosial</CardTitle>
                   <CardDescription>Kelola teks di footer dan tautan media sosial.</CardDescription>
@@ -464,8 +545,8 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
 
 
       <Form {...playlistForm}>
-        <form onSubmit={playlistForm.handleSubmit(onPlaylistSubmit)}>
-          <Card className="mt-8">
+        <form onSubmit={playlistForm.handleSubmit(onPlaylistSubmit)} className="space-y-8 mt-8">
+          <Card>
             <CardHeader>
                 <div className='flex justify-between items-start gap-4'>
                     <div>

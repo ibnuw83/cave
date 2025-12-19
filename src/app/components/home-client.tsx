@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -30,7 +31,8 @@ import { getKioskSettings } from '@/lib/firestore';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useAuth, useMemoFirebase } from '@/firebase';
-import { doc, signOut as firebaseSignOut } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
+import { signOut as firebaseSignOut } from 'firebase/auth';
 
 
 const AuthSection = () => {
@@ -67,7 +69,7 @@ const AuthSection = () => {
         title: "Logout Berhasil",
         description: "Anda telah keluar dari akun.",
       });
-    } catch (error) {
+    } catch (error: any) {
        toast({
         title: "Logout Gagal",
         description: "Terjadi kesalahan saat mencoba logout.",
@@ -192,12 +194,12 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
                         <Mountain className="h-12 w-12" />
                     )}
                     <h1 className="text-4xl font-bold tracking-tight md:text-5xl font-headline bg-gradient-to-r from-accent to-white bg-clip-text text-transparent">
-                        Penjelajah Gua
+                        {settings?.mainTitle || 'Penjelajah Gua'}
                     </h1>
                 </div>
-                 <h2 className="text-4xl md:text-6xl font-bold font-headline drop-shadow-2xl animate-wave">Masuki Dunia Bawah Tanah</h2>
+                 <h2 className="text-4xl md:text-6xl font-bold font-headline drop-shadow-2xl animate-wave">{settings?.heroTitle || 'Masuki Dunia Bawah Tanah'}</h2>
                  <p className="mt-4 max-w-xl text-lg md:text-xl text-white/80">
-                    Rasakan pengalaman 4D menjelajahi keindahan gua-gua paling eksotis di Indonesia.
+                    {settings?.heroSubtitle || 'Rasakan pengalaman 4D menjelajahi keindahan gua-gua paling eksotis di Indonesia.'}
                  </p>
                  <Button size="lg" className="mt-8" asChild>
                     <Link href="/login">
