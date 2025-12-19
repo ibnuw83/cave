@@ -1,95 +1,99 @@
-
+/**
+ * Core Philosophy:
+ * This ruleset establishes a security model where content collections ('caves', 'spots') are publicly readable by anyone,
+ * including anonymous users, to support a seamless browsing experience. However, all write operations (create, update, delete)
+ * on this content are strictly limited to users with an 'admin' role. User-specific data in the 'users' collection is
+ * private, following a strict ownership model where only the authenticated user can access and modify their own document.
+ * This prevents users from viewing or altering other users' data.
+ *
+ * Data Structure:
+ * The data is organized into two main top-level collections:
+ * 1. /caves/{caveId}: Contains cave documents. This collection has a subcollection:
+ *    - /spots/{spotId}: Contains the individual spots within a cave.
+ * 2. /users/{userId}: Contains user profile documents, keyed by their Firebase Auth UID.
+ *
+ * Key Security Decisions:
+ * - Public Content, Restricted Writes: 'caves' and 'spots' are open for reading to facilitate easy data access for the client
+ *   application. All modifications are gated behind an administrator role check, ensuring content integrity.
+ * - Strict User Privacy: The /users collection is locked down. Users can only create, read, and update their own document.
+ *   Listing users is explicitly forbidden to prevent user data enumeration.
+ * - Role Immutability: A critical security measure is in place to prevent users from changing their own 'role' field.
+ *   This prevents a user from illegitimately granting themselves 'admin' privileges.
+ * - No Deletes on User Profiles: Users are not permitted to delete their own profile documents to prevent accidental
+ *   loss of account information that might be critical for the application's state.
+ *
+ * Denormalization for Authorization:
+ * To perform efficient role-based access control for content management, an 'admin' check requires a single `get()`
+ * operation on the `/users/{request.auth.uid}` document. This is an intentional and performant choice for privileged
+ * write operations, avoiding complex and slow queries in rules. The 'caveId' is denormalized onto 'spot' documents to
+ * enforce relational integrity directly in the rules without needing extra reads.
+ *
+ * Structural Segregation:
+ * Public content (/caves) and private user data (/users) are kept in separate top-level collections. This clear separation
+ * allows for simple, broad security rules for each data type (e.g., "all of this is public," "all of this is private")
+ * without a risk of data leakage.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /* ========= HELPERS ========= */
+    // Helper functions for reusable logic
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-    
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
     }
 
+    // Checks if the requesting user has the 'admin' role in their user document.
     function isAdmin() {
-      return isSignedIn()
-        && getUserData().role == 'admin';
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    /* ========= USERS ========= */
-    match /users/{userId} {
-      // Admin dapat melihat daftar semua pengguna
-      allow list: if isAdmin();
 
-      // Pengguna dapat membaca profilnya sendiri, admin dapat membaca profil siapa pun
-      allow read: if isSignedIn()
-        && (isOwner(userId) || isAdmin());
-
-      // Pengguna baru dapat membuat profilnya sendiri
-      allow create: if isSignedIn() && isOwner(userId);
-
-      // Pengguna dapat memperbarui profilnya sendiri, selama mereka tidak mengubah 'role'
-      allow update: if isSignedIn()
-        && isOwner(userId)
-        && !('role' in request.resource.data);
-      
-      // Admin dapat memperbarui & menghapus profil siapa pun (termasuk mengubah 'role')
-      allow update, delete: if isAdmin();
-    }
-
-    /* ========= CAVES ========= */
+    /**
+     * @description Controls access to the 'caves' collection. All users can read cave data, but only admins can modify it.
+     * @path /caves/{caveId}
+     * @allow (get) Any user, signed in or not, can read a specific cave document.
+     * @deny (create) A non-admin authenticated user attempts to create a new cave.
+     * @principle Public read access for content, with writes restricted to privileged roles (admin).
+     */
     match /caves/{caveId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
+      allow get, list: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin() && resource != null;
+      allow delete: if isAdmin() && resource != null;
+
+      /**
+       * @description Controls access to the 'spots' subcollection. All users can read spots, but only admins can modify them.
+       * @path /caves/{caveId}/spots/{spotId}
+       * @allow (get) Any user, signed in or not, can read a specific spot document.
+       * @deny (create) An admin user attempts to create a spot with a 'caveId' in its data that doesn't match the path.
+       * @principle Enforces relational integrity by ensuring a spot's internal 'caveId' matches its parent collection path.
+       */
+      match /spots/{spotId} {
+        allow get, list: if true;
+        allow create: if isAdmin() && request.resource.data.caveId == caveId;
+        allow update: if isAdmin() && resource != null && request.resource.data.caveId == resource.data.caveId;
+        allow delete: if isAdmin() && resource != null;
+      }
     }
 
-    /* ========= SPOTS ========= */
-    match /spots/{spotId} {
-        // Izinkan siapa saja membaca daftar spot atau spot individu
-        allow read, list: if true;
-        // Hanya Admin yang bisa membuat, mengubah, dan menghapus spot
-        allow create, update, delete: if isAdmin();
-    }
-
-    /* ========= KIOSK ========= */
-    match /kioskSettings/{id} {
-      // Siapa saja bisa membaca pengaturan kios (mis. untuk logo di halaman login)
-      allow read: if true;
-      // Hanya admin yang bisa mengubahnya
-      allow create, update, delete: if isAdmin();
-    }
-
-    /* ========= KIOSK STATS & EVENTS ========= */
-    match /kioskStatsDaily/{date} {
-      // Admin bisa mengelola statistik harian
-      allow read, create, update, delete: if isAdmin();
-    }
-
-    match /kioskEvents/{eventId} {
-      // Siapa pun yang login (termasuk kios) dapat membuat event log
-      allow create: if isSignedIn();
-      // Hanya admin yang dapat membaca, mengubah, atau menghapus event individual
-      allow read, update, delete: if isAdmin();
-    }
-    
-    /* ========= KIOSK REMOTE CONTROL ========= */
-    match /kioskDevices/{kioskId} {
-        // Kios dapat menulis statusnya sendiri (heartbeat)
-        allow write: if isSignedIn();
-        // Admin dapat membaca status semua kios
-        allow read: if isAdmin();
-    }
-
-    match /kioskControl/{controlId} {
-        // Kios dapat membaca dokumen kontrol
-        allow read: if isSignedIn();
-        // Hanya admin yang dapat menulis/mengubah perintah kontrol
-        allow write: if isAdmin();
+    /**
+     * @description Controls access to user documents. Users can only manage their own data.
+     * @path /users/{userId}
+     * @allow (update) An authenticated user updates their own 'displayName'.
+     * @deny (update) An authenticated user tries to change their own 'role' from 'pro' to 'admin'.
+     * @deny (list) An authenticated user attempts to list all documents in the 'users' collection.
+     * @principle Restricts access to a user's own data tree and prevents self-privilege escalation.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isOwner(userId) && resource != null && request.resource.data.id == resource.data.id && request.resource.data.role == resource.data.role;
+      allow delete: if false;
     }
   }
 }

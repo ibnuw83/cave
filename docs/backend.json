@@ -1,0 +1,189 @@
+{
+  "entities": {
+    "Cave": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Cave",
+      "type": "object",
+      "description": "Represents a cave in the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the cave."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the cave."
+        },
+        "coverImage": {
+          "type": "string",
+          "description": "URL of the cover image for the cave."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates whether the cave is currently active and available."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "coverImage",
+        "isActive"
+      ]
+    },
+    "Spot": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Spot",
+      "type": "object",
+      "description": "Represents a spot within a cave.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the spot."
+        },
+        "caveId": {
+          "type": "string",
+          "description": "Reference to the Cave entity. (Relationship: Cave 1:N Spot)"
+        },
+        "order": {
+          "type": "number",
+          "description": "The order of the spot within the cave."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the spot."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the spot."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of the image for the spot."
+        },
+        "audioUrl": {
+          "type": "string",
+          "description": "URL of the audio for the spot (optional)."
+        },
+        "isPro": {
+          "type": "boolean",
+          "description": "Indicates whether the spot is a PRO spot."
+        },
+        "effects": {
+          "type": "string",
+          "description": "A JSON string of vibration effect configuration."
+        }
+      },
+      "required": [
+        "id",
+        "caveId",
+        "order",
+        "title",
+        "description",
+        "imageUrl",
+        "isPro",
+        "effects"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user (Firebase UID)."
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role (free, pro, admin).",
+          "format": "string"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The user's display name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The timestamp when the user's information was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "role",
+        "displayName",
+        "email",
+        "updatedAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/caves/{caveId}",
+        "definition": {
+          "entityName": "Cave",
+          "schema": {
+            "$ref": "#/backend/entities/Cave"
+          },
+          "description": "Stores information about caves. Publicly readable.",
+          "params": [
+            {
+              "name": "caveId",
+              "description": "Unique identifier for the cave."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/caves/{caveId}/spots/{spotId}",
+        "definition": {
+          "entityName": "Spot",
+          "schema": {
+            "$ref": "#/backend/entities/Spot"
+          },
+          "description": "Stores information about spots within a cave. Publicly readable. `caveId` is denormalized to maintain the relationship.",
+          "params": [
+            {
+              "name": "caveId",
+              "description": "Unique identifier for the cave."
+            },
+            {
+              "name": "spotId",
+              "description": "Unique identifier for the spot."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information, including role (free, pro, admin). Only the authenticated user can read/write their own document.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase UID of the user."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support the \"Cave Explorer 4D\" application, focusing on mobile-first experience, 4D digital immersion (audio, haptics, visuals), and FREE/PRO access control. The structure prioritizes authorization independence using denormalization and structural segregation.  It avoids `get()` calls in security rules to enable atomic operations. All read operations are public, so rules act only as validators, and never as filters (QAPs).  The structure supports the core app features including listing caves and spots, immersive spot experiences, haptic feedback, Google Authentication, access control based on user roles, and personalized ambience.\n\n*   **Authorization Independence:**  Access to PRO spots is controlled by the user's role stored in `/users/{uid}`. Since all reads are public, the main enforcement is UI-based, hiding PRO spots from FREE users. Security rules mainly validate writes and prevent unauthorized role changes.  While spots have a `isPro` property, this is informational for the UI and does not directly control security rules, as all spots are readable regardless of the user's role.\n*   **Structural Segregation:**  The `caves` and `spots` collections are separated to maintain a homogenous security posture. All documents in each collection share the same read permissions (public).\n*   **Access Modeling:**\n    *   User data (`/users/{uid}`) is path-based, ensuring only the authenticated user can read/write their own document.\n*   **QAPs:** The data structure enables secure `list` operations by having public read access to `caves` and `spots`. Security rules only validate the data, and does not filter the data being read."
+  }
+}
