@@ -1,10 +1,11 @@
+
 'use client';
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Cave } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, Edit, Trash2, Loader2 } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
@@ -20,7 +21,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { deleteCave, getCaves } from "@/lib/firestore";
 import { CaveForm } from "./cave-form";
-import { useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function CavesClient() {
@@ -29,6 +29,10 @@ export default function CavesClient() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedCave, setSelectedCave] = useState<Cave | null>(null);
   const { toast } = useToast();
+
+  const sortedCaves = useMemo(() => {
+    return [...caves].sort((a,b) => a.name.localeCompare(b.name));
+  }, [caves]);
 
   useEffect(() => {
     const fetchCaves = () => {
@@ -75,10 +79,6 @@ export default function CavesClient() {
     return <CaveForm cave={selectedCave} onSave={handleFormSuccess} onCancel={() => { setIsFormOpen(false); setSelectedCave(null); }} />;
   }
   
-  const sortedCaves = useMemo(() => {
-    return [...caves].sort((a,b) => a.name.localeCompare(b.name));
-  }, [caves]);
-
   return (
     <div>
       <div className="flex justify-end mb-4">
