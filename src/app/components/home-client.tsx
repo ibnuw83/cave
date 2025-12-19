@@ -141,6 +141,7 @@ export default function HomeClient() {
   const [caves, setCaves] = useState<Cave[]>([]);
   const [settings, setSettings] = useState<KioskSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { user } = useUser();
   
   const heroImage = placeholderImages.placeholderImages.find(img => img.id === 'spot-jomblang-light')?.imageUrl || '/placeholder.jpg';
   
@@ -207,7 +208,7 @@ export default function HomeClient() {
                     {settings?.heroSubtitle || 'Rasakan pengalaman 4D menjelajahi keindahan gua-gua paling eksotis di Indonesia.'}
                  </p>
                  <Button size="lg" className="mt-8 animate-glow text-lg" asChild>
-                    <Link href="#cave-list">
+                    <Link href={user ? "#cave-list" : "/login"}>
                         Mulai Menjelajah
                         <ArrowRight className="ml-2 h-5 w-5" />
                     </Link>
