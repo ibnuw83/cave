@@ -6,9 +6,8 @@ import {
   onAuthStateChanged, 
   User, 
   GoogleAuthProvider, 
-  signInWithRedirect, 
+  signInWithPopup,
   signOut as firebaseSignOut, 
-  getRedirectResult,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendPasswordResetEmail as firebaseSendPasswordResetEmail,
@@ -68,35 +67,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [toast]);
 
   useEffect(() => {
-    const handleRedirect = async () => {
-        setLoading(true); // Start loading when checking for redirect
-        try {
-            const result = await getRedirectResult(auth);
-            if (result) {
-                await processAuth(result.user);
-                toast({
-                    title: "Login Berhasil",
-                    description: "Selamat datang kembali!",
-                });
-                router.push('/');
-            }
-        } catch (error: any) {
-             console.error("Auth redirect error", error);
-             toast({
-                title: "Login Gagal",
-                description: "Terjadi kesalahan saat login.",
-                variant: "destructive",
-            });
-        } finally {
-            // Only set loading to false after redirect check is complete
-            // The onAuthStateChanged will handle its own loading state.
-             if (!auth.currentUser) {
-                setLoading(false);
-            }
-        }
-    }
-    handleRedirect();
-
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setLoading(true);
       if (user) {
@@ -112,22 +82,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [processAuth, userProfile, router, toast]);
+  }, [processAuth, userProfile]);
 
   const signInWithGoogle = async () => {
     setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithRedirect(auth, provider);
-      // The redirect will be handled by the useEffect above
+      const result = await signInWithPopup(auth, provider);
+      await processAuth(result.user);
+      router.push('/');
+      toast({
+        title: "Login Berhasil",
+        description: "Selamat datang kembali!",
+      });
     } catch (error: any) {
       console.error("Error signing in with Google: ", error);
-      toast({
-        title: "Login Gagal",
-        description: error.message || "Terjadi kesalahan saat mencoba login.",
-        variant: "destructive",
-      });
-      setLoading(false);
+      // Handle specific error codes if needed, e.g., 'auth/popup-closed-by-user'
+      if (error.code !== 'auth/popup-closed-by-user') {
+          toast({
+            title: "Login Gagal",
+            description: error.message || "Terjadi kesalahan saat mencoba login dengan Google.",
+            variant: "destructive",
+          });
+      }
+    } finally {
+        setLoading(false);
     }
   };
   
