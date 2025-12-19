@@ -27,7 +27,7 @@ export interface Spot {
   imageUrl: string;
   audioUrl?: string;
   isPro: boolean;
-  viewType?: 'auto' | 'flat' | 'panorama' | 'full360';
+  viewType?: 'flat';
   effects?: {
     vibrationPattern?: number[];
   };

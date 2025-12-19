@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { Spot } from '@/lib/types';
 import LockedScreen from '@/app/components/locked-screen';
 import SpotPlayerUI from '@/app/components/spot-player-ui';
-import HybridViewer from '@/app/components/hybrid-viewer';
+import FlatViewer from '@/app/components/viewer-flat';
 
 async function findSpotOffline(spotId: string): Promise<Spot | null> {
   try {
@@ -56,11 +56,10 @@ export default function SpotPageClient({
   }
 
   return (
-    <HybridViewer
+    <FlatViewer
       imageUrl={spot.imageUrl}
-      forcedType={spot.viewType !== 'auto' ? spot.viewType : undefined}
     >
         <SpotPlayerUI spot={spot} userRole={userRole} />
-    </HybridViewer>
+    </FlatViewer>
   );
 }
