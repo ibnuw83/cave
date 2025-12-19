@@ -27,10 +27,14 @@ function SpotNavigation({ currentSpotId, allSpots, isVisible }: { currentSpotId:
     const currentSpotIndex = allSpots.findIndex(s => s.id === currentSpotId);
 
     return (
-        <div className={cn(
-            "absolute top-16 left-1/2 -translate-x-1/2 w-full max-w-xs md:max-w-sm lg:max-w-md xl:max-w-lg z-20 transition-opacity duration-300",
-            isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
-        )}>
+        <div 
+            className={cn(
+                "absolute top-16 left-1/2 -translate-x-1/2 w-full max-w-xs md:max-w-sm lg:max-w-md xl:max-w-lg z-20 transition-opacity duration-300",
+                isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
+            )}
+            // Prevent this div from blocking interactions with the viewer
+            onClick={(e) => e.stopPropagation()}
+        >
             <Carousel opts={{
                 align: "start",
                 startIndex: currentSpotIndex >= 0 ? currentSpotIndex : 0,
@@ -200,11 +204,17 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
   };
   
   return (
-    // This wrapper listens for taps to toggle UI visibility
-    <div className="absolute inset-0 z-10" onClick={toggleUIVisibility}>
-        {/* Header - Tombol Kembali SELALU TAMPIL */}
+    <>
+        {/* Clickable overlay to toggle UI. This div should not block panorama interaction. */}
+        <div 
+            className="absolute inset-0 z-10" 
+            onClick={toggleUIVisibility}
+        />
+
+        {/* Header - Back button */}
         <div className={cn(
-            "absolute top-0 left-0 right-0 p-4 z-30 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent"
+            "absolute top-0 left-0 right-0 p-4 z-30 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent transition-opacity duration-300",
+             isUIVisible ? "opacity-100" : "opacity-0 pointer-events-none"
         )}>
             <Button variant="ghost" className="text-white hover:bg-white/20 hover:text-white pointer-events-auto" asChild>
                 <Link href={`/cave/${spot.caveId}`}>
@@ -240,6 +250,6 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
                 </div>
             </div>
         </div>
-    </div>
+    </>
   );
 }
