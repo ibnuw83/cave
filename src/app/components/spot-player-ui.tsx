@@ -4,11 +4,63 @@
 import { useState, useEffect, useRef } from 'react';
 import { Spot } from '@/lib/types';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, Play, Pause, Loader2, WandSparkles } from 'lucide-react';
 import { canVibrate, vibrate } from '@/lib/haptics';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import { cn } from '@/lib/utils';
 
-export default function SpotPlayerUI({ spot, userRole }: { spot: Spot, userRole: 'free' | 'pro' | 'admin' }) {
+
+function SpotNavigation({ currentSpotId, allSpots }: { currentSpotId: string, allSpots: Spot[] }) {
+    if (allSpots.length <= 1) {
+        return null;
+    }
+
+    return (
+        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 w-full max-w-sm lg:max-w-md xl:max-w-lg z-20">
+            <Carousel opts={{
+                align: "start",
+                startIndex: allSpots.findIndex(s => s.id === currentSpotId) || 0,
+            }}>
+                <CarouselContent className="-ml-2">
+                    {allSpots.map((spot) => (
+                        <CarouselItem key={spot.id} className="basis-1/3 md:basis-1/4 pl-2 group">
+                            <Link href={`/spot/${spot.id}`} scroll={false}>
+                                <div className={cn(
+                                    "relative aspect-square w-full overflow-hidden rounded-md transition-all",
+                                    spot.id === currentSpotId ? 'ring-2 ring-accent ring-offset-2 ring-offset-black/50' : 'opacity-60 hover:opacity-100 hover:scale-105'
+                                )}>
+                                    <Image
+                                        src={spot.imageUrl}
+                                        alt={spot.title}
+                                        fill
+                                        className="object-cover"
+                                        sizes="(max-width: 768px) 30vw, 15vw"
+                                    />
+                                    {spot.isPro && (
+                                         <div className="absolute inset-0 bg-black/30"></div>
+                                    )}
+                                </div>
+                            </Link>
+                        </CarouselItem>
+                    ))}
+                </CarouselContent>
+                <CarouselPrevious className="hidden sm:flex -left-10 bg-white/20 border-white/30 hover:bg-white/40 text-white"/>
+                <CarouselNext className="hidden sm:flex -right-10 bg-white/20 border-white/30 hover:bg-white/40 text-white"/>
+            </Carousel>
+        </div>
+    );
+}
+
+
+export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot, userRole: 'free' | 'pro' | 'admin', allSpots: Spot[] }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -107,6 +159,9 @@ export default function SpotPlayerUI({ spot, userRole }: { spot: Spot, userRole:
             </Link>
             </Button>
         </div>
+
+        {/* Spot Navigation */}
+        <SpotNavigation currentSpotId={spot.id} allSpots={allSpots} />
 
         {/* Footer Controls */}
         <div className="absolute bottom-0 left-0 right-0 p-6 z-20 text-white bg-gradient-to-t from-black/70 to-transparent">

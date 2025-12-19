@@ -1,5 +1,5 @@
 // lib/view-type.ts
-export async function detectViewType(imageUrl: string): Promise<'flat' | 'panorama' | 'full360'> {
+export async function detectViewType(imageUrl: string): Promise<'flat' | 'panorama'> {
   return new Promise((resolve, reject) => {
     // Check if we're in a browser environment
     if (typeof window === 'undefined' || typeof Image === 'undefined') {
@@ -14,7 +14,6 @@ export async function detectViewType(imageUrl: string): Promise<'flat' | 'panora
 
     img.onload = () => {
       const ratio = img.width / img.height;
-      if (ratio >= 2.8) return resolve('full360');
       if (ratio >= 2) return resolve('panorama');
       resolve('flat');
     };

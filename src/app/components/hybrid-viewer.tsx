@@ -15,9 +15,9 @@ export default function HybridViewer({
 }: {
   imageUrl: string;
   children?: ReactNode;
-  forcedType?: 'auto' | 'flat' | 'panorama' | 'full360';
+  forcedType?: 'auto' | 'flat' | 'panorama';
 }) {
-  const [type, setType] = useState<'flat' | 'panorama' | 'full360' | 'loading'>('loading');
+  const [type, setType] = useState<'flat' | 'panorama' | 'loading'>('loading');
 
   useEffect(() => {
     let isCancelled = false;
@@ -47,7 +47,7 @@ export default function HybridViewer({
     return <FlatViewer imageUrl={imageUrl}>{children}</FlatViewer>;
   }
 
-  // For both 'panorama' and 'full360'
+  // For 'panorama'
   return (
     <PanoramaViewer imageUrl={imageUrl}>
       {children}
