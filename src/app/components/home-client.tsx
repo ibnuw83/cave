@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Cave, KioskSettings, UserProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { clearOfflineCache } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
-import { getKioskSettings } from '@/lib/firestore';
+import { getKioskSettings, getCaves } from '@/lib/firestore';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useAuth, useMemoFirebase } from '@/firebase';
@@ -145,11 +145,23 @@ const AuthSection = () => {
 };
 
 
-export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
+export default function HomeClient() {
+  const [initialCaves, setInitialCaves] = useState<Cave[]>([]);
+  const [loadingCaves, setLoadingCaves] = useState(true);
   const [settings, setSettings] = useState<KioskSettings | null>(null);
   const { isUserLoading } = useUser();
 
   const heroImage = placeholderImages.placeholderImages.find(img => img.id === 'spot-jomblang-light')?.imageUrl || '/placeholder.jpg';
+  
+  useEffect(() => {
+    getCaves(false).then((caves) => {
+      setInitialCaves(caves);
+      setLoadingCaves(false);
+    }).catch(err => {
+        console.error("Failed to fetch caves", err);
+        setLoadingCaves(false);
+    })
+  }, []);
 
   useEffect(() => {
     async function fetchSettings() {
@@ -160,7 +172,7 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
   }, []);
   
 
-  if (isUserLoading) {
+  if (isUserLoading || loadingCaves) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="text-center">

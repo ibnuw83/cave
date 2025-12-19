@@ -1,19 +1,19 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Cave, Spot, UserProfile } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Lock, ChevronLeft, Download, WifiOff, Loader2, Sparkles } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { saveCaveForOffline, isCaveAvailableOffline } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
+import { useRouter, notFound } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import { getCave, getSpots } from '@/lib/firestore';
 
 
 function SpotCard({ spot, isLocked, isOffline }: { spot: Spot; isLocked: boolean, isOffline: boolean }) {
@@ -71,13 +71,18 @@ function SpotCard({ spot, isLocked, isOffline }: { spot: Spot; isLocked: boolean
   );
 }
 
-export default function CaveClient({ cave, spots }: { cave: Cave; spots?: Spot[];}) {
+export default function CaveClient({ caveId }: { caveId: string; }) {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
+
+  const [cave, setCave] = useState<Cave | null>(null);
+  const [spots, setSpots] = useState<Spot[] | undefined>(undefined);
+  const [loadingCaveData, setLoadingCaveData] = useState(true);
+  const [error, setError] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const { toast } = useToast();
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -92,17 +97,44 @@ export default function CaveClient({ cave, spots }: { cave: Cave; spots?: Spot[]
     }
   }, [user, isUserLoading, router]);
 
+  useEffect(() => {
+    if (!caveId) return;
+
+    async function fetchData() {
+      try {
+        setLoadingCaveData(true);
+        const [caveData, spotsData] = await Promise.all([
+          getCave(caveId),
+          getSpots(caveId)
+        ]);
+
+        if (!caveData) {
+          setError(true);
+          return;
+        }
+        setCave(caveData);
+        setSpots(spotsData);
+      } catch (err) {
+        console.error("Failed to fetch cave data:", err);
+        setError(true);
+      } finally {
+        setLoadingCaveData(false);
+      }
+    }
+    fetchData();
+  }, [caveId]);
+
 
   useEffect(() => {
     async function checkOfflineStatus() {
-      const offline = await isCaveAvailableOffline(cave.id);
+      const offline = await isCaveAvailableOffline(caveId);
       setIsOffline(offline);
     }
     checkOfflineStatus();
-  }, [cave.id]);
+  }, [caveId]);
 
   const handleDownload = async () => {
-    if (!spots) return;
+    if (!cave || !spots) return;
     setIsDownloading(true);
     toast({ title: 'Mengunduh...', description: `Konten untuk ${cave.name} sedang disimpan untuk mode offline.` });
     try {
@@ -131,17 +163,21 @@ export default function CaveClient({ cave, spots }: { cave: Cave; spots?: Spot[]
     }
   };
 
-  const loading = isUserLoading || isProfileLoading;
+  const isLoading = isUserLoading || isProfileLoading || loadingCaveData;
 
-  if (loading || !user) {
+  if (isLoading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="text-center">
           <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-          <p className="mt-4 text-lg text-muted-foreground">Memuat sesi pengguna...</p>
+          <p className="mt-4 text-lg text-muted-foreground">Memuat data gua...</p>
         </div>
       </div>
     );
+  }
+  
+  if (error || !cave) {
+    notFound();
   }
 
   const role = userProfile?.role || 'free';

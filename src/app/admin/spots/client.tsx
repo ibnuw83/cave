@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { collection } from 'firebase/firestore';
 import { Cave, Spot } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -11,20 +10,31 @@ import { Plus, Edit, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { deleteSpot } from "@/lib/firestore";
+import { deleteSpot, getCaves } from "@/lib/firestore";
 import { SpotForm } from "./spot-form";
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export default function SpotsClient({ caves }: { caves: Cave[] }) {
+export default function SpotsClient() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState<Spot | null>(null);
   const [filterCaveId, setFilterCaveId] = useState<string>('all');
   const { toast } = useToast();
   const firestore = useFirestore();
 
+  const [caves, setCaves] = useState<Cave[]>([]);
+  const [loadingCaves, setLoadingCaves] = useState(true);
+
   const spotsQuery = useMemoFirebase(() => collection(firestore, 'spots'), [firestore]);
   const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(spotsQuery);
+
+  useEffect(() => {
+    setLoadingCaves(true);
+    getCaves(true).then(c => {
+      setCaves(c);
+      setLoadingCaves(false);
+    });
+  }, []);
 
 
   const handleFormSuccess = () => {
@@ -63,6 +73,16 @@ export default function SpotsClient({ caves }: { caves: Cave[] }) {
   const getCaveName = (caveId: string) => {
     return caves.find(c => c.id === caveId)?.name || 'Gua tidak ditemukan';
   };
+
+  if (loadingCaves) {
+     return (
+        <div className="space-y-4">
+          <Skeleton className="h-12 w-full mb-4" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+      );
+  }
 
   if (isFormOpen) {
     return <SpotForm spot={selectedSpot} caves={caves} onSave={handleFormSuccess} onCancel={() => { setIsFormOpen(false); setSelectedSpot(null); }} />;
