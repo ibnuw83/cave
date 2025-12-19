@@ -6,9 +6,8 @@ import { Spot } from '@/lib/types';
 import LockedScreen from '@/app/components/locked-screen';
 import SpotPlayerUI from '@/app/components/spot-player-ui';
 import HybridViewer from '@/app/components/hybrid-viewer';
-import { getSpotClient, getSpots } from '@/lib/firestore';
+import { getSpotClient } from '@/lib/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-
 
 async function findSpotOffline(spotId: string): Promise<{ spot: Spot | null, spots: Spot[] }> {
   try {
@@ -33,47 +32,48 @@ async function findSpotOffline(spotId: string): Promise<{ spot: Spot | null, spo
 
 export default function SpotPageClient({
   spotId,
-  initialSpot, // This might be null if server-side fetch failed
+  initialSpot,
+  initialAllSpots,
   userRole,
 }: {
   spotId: string;
   initialSpot: Spot | null;
+  initialAllSpots: Spot[];
   userRole: 'free' | 'pro' | 'admin';
 }) {
   const [spot, setSpot] = useState<Spot | null>(initialSpot);
-  const [allSpotsInCave, setAllSpotsInCave] = useState<Spot[]>([]);
+  const [allSpotsInCave, setAllSpotsInCave] = useState<Spot[]>(initialAllSpots.sort((a, b) => a.order - b.order));
   const [loading, setLoading] = useState(!initialSpot);
 
   useEffect(() => {
-    async function fetchSpotAndSiblings() {
+    // This effect now only runs if the server failed to provide the initialSpot.
+    // It serves as a client-side fallback.
+    if (!initialSpot) {
       setLoading(true);
-      let currentSpot: Spot | null = null;
-      let siblingSpots: Spot[] = [];
-
-      try {
-        // First, try to get data using the reliable Firestore call
-        currentSpot = await getSpotClient(spotId);
-        if (currentSpot) {
-          siblingSpots = await getSpots(currentSpot.caveId);
+      const fetchSpotAndSiblings = async () => {
+        try {
+          // Fallback to client-side fetch or offline cache
+          const onlineSpot = await getSpotClient(spotId);
+          if (onlineSpot) {
+            setSpot(onlineSpot);
+            // Note: This fallback doesn't fetch siblings to keep it simple.
+            // The main path is server-side fetching.
+          } else {
+            const { spot: offlineSpot, spots: offlineSiblings } = await findSpotOffline(spotId);
+            setSpot(offlineSpot);
+            setAllSpotsInCave(offlineSiblings.sort((a, b) => a.order - b.order));
+          }
+        } catch (error) {
+          console.error("Client-side fallback failed:", error);
+          setSpot(null);
+        } finally {
+          setLoading(false);
         }
-      } catch (e) {
-        console.warn("Client-side online fetch failed, trying offline.", e);
-        // If online fails, try to get everything from offline cache
-        const offlineData = await findSpotOffline(spotId);
-        currentSpot = offlineData.spot;
-        siblingSpots = offlineData.spots;
-      }
-
-      setSpot(currentSpot);
-      setAllSpotsInCave(siblingSpots.sort((a, b) => a.order - b.order));
-      setLoading(false);
+      };
+      
+      fetchSpotAndSiblings();
     }
-    
-    // We only need to run this on the initial load or if the spotId changes.
-    // The initialSpot from SSR is just a performance optimization.
-    fetchSpotAndSiblings();
-
-  }, [spotId]);
+  }, [spotId, initialSpot]);
 
 
   if (loading) {
