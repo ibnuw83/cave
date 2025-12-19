@@ -18,6 +18,10 @@ export default function SpotPlayerUI({ spot, userRole }: { spot: Spot, userRole:
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
+        // If the src is an object URL, revoke it
+        if (audioRef.current.src.startsWith('blob:')) {
+          URL.revokeObjectURL(audioRef.current.src);
+        }
         audioRef.current = null;
       }
       if (canVibrate()) {
@@ -43,26 +47,38 @@ export default function SpotPlayerUI({ spot, userRole }: { spot: Spot, userRole:
     } else {
       setIsLoading(true);
       try {
-        // Now we send the existing description for TTS directly.
-        const response = await fetch('/api/narrate', {
+        const narrationText = spot.description; // Always use the spot's description
+
+        const response = await fetch('/api/tts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: spot.description }),
+            body: JSON.stringify({ text: narrationText }),
         });
 
         if (!response.ok) {
             throw new Error(`Narration API failed with status: ${response.status}`);
         }
 
-        const { audioUrl } = await response.json();
-        
+        // Stop any currently playing audio
         if (audioRef.current) {
-            audioRef.current.pause();
+          audioRef.current.pause();
+          if (audioRef.current.src.startsWith('blob:')) {
+            URL.revokeObjectURL(audioRef.current.src);
+          }
         }
+        
+        // Handle audio blob response
+        const audioBlob = await response.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
 
-        audioRef.current = new Audio(audioUrl);
-        audioRef.current.onended = handlePlaybackEnd;
-        await audioRef.current.play();
+        const audio = new Audio(audioUrl);
+        audio.onended = () => {
+            URL.revokeObjectURL(audioUrl); // Clean up the object URL
+            handlePlaybackEnd();
+        };
+        
+        audioRef.current = audio;
+        await audio.play();
 
         setIsPlaying(true);
 
@@ -73,6 +89,7 @@ export default function SpotPlayerUI({ spot, userRole }: { spot: Spot, userRole:
       } catch (error) {
         console.error("Failed to play AI narration:", error);
         alert("Gagal memuat narasi AI. Silakan coba lagi.");
+        setIsPlaying(false); // Ensure playing state is reset on error
       } finally {
         setIsLoading(false);
       }
