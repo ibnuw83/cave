@@ -30,6 +30,9 @@ const globalSettingsSchema = z.object({
   logoUrl: z.string().url({ message: "URL tidak valid." }).optional().or(z.literal('')),
   mode: z.enum(['loop', 'shuffle']),
   exitPin: z.string().length(4, 'PIN harus terdiri dari 4 digit.').regex(/^\d{4}$/, 'PIN harus berupa 4 angka.'),
+});
+
+const footerSettingsSchema = z.object({
   footerText: z.string().optional(),
   facebookUrl: z.string().url({ message: "URL tidak valid." }).optional().or(z.literal('')),
   instagramUrl: z.string().url({ message: "URL tidak valid." }).optional().or(z.literal('')),
@@ -52,6 +55,7 @@ const remoteControlSchema = z.object({
 });
 
 type GlobalSettingsFormValues = z.infer<typeof globalSettingsSchema>;
+type FooterSettingsFormValues = z.infer<typeof footerSettingsSchema>;
 type PlaylistSettingsFormValues = z.infer<typeof playlistSettingsSchema>;
 type RemoteControlFormValues = z.infer<typeof remoteControlSchema>;
 type KioskDevice = { id: string, status: string, currentSpotId?: string, updatedAt: Timestamp };
@@ -185,7 +189,12 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
   
   const globalForm = useForm<GlobalSettingsFormValues>({
     resolver: zodResolver(globalSettingsSchema),
-    defaultValues: { logoUrl: '', mode: 'loop', exitPin: '1234', footerText: '', facebookUrl: '', instagramUrl: '', twitterUrl: '' },
+    defaultValues: { logoUrl: '', mode: 'loop', exitPin: '1234' },
+  });
+
+  const footerForm = useForm<FooterSettingsFormValues>({
+    resolver: zodResolver(footerSettingsSchema),
+    defaultValues: { footerText: '', facebookUrl: '', instagramUrl: '', twitterUrl: '' },
   });
 
   const playlistForm = useForm<PlaylistSettingsFormValues>({
@@ -199,6 +208,8 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
             logoUrl: kioskSettings.logoUrl || '',
             mode: kioskSettings.mode || 'loop',
             exitPin: kioskSettings.exitPin || '1234',
+        });
+        footerForm.reset({
             footerText: kioskSettings.footerText || '',
             facebookUrl: kioskSettings.facebookUrl || '',
             instagramUrl: kioskSettings.instagramUrl || '',
@@ -209,7 +220,7 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
             playlist: kioskSettings.playlist || [],
         });
     }
-  }, [kioskSettings, globalForm, playlistForm]);
+  }, [kioskSettings, globalForm, footerForm, playlistForm]);
 
   const { fields, append, remove } = useFieldArray({
     control: playlistForm.control,
@@ -264,6 +275,11 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
     toast({ title: 'Berhasil', description: 'Pengaturan global telah disimpan.' });
   };
   
+  const onFooterSubmit = (values: FooterSettingsFormValues) => {
+    saveKioskSettings(values);
+    toast({ title: 'Berhasil', description: 'Pengaturan footer & media sosial telah disimpan.' });
+  };
+
   const onPlaylistSubmit = (values: PlaylistSettingsFormValues) => {
     saveKioskSettings(values);
     toast({ title: 'Berhasil', description: 'Pengaturan daftar putar kios telah disimpan.' });
@@ -361,7 +377,11 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
                   </Button>
               </CardFooter>
           </Card>
+        </form>
+      </Form>
 
+      <Form {...footerForm}>
+        <form onSubmit={footerForm.handleSubmit(onFooterSubmit)}>
            <Card className="mt-8">
               <CardHeader>
                   <CardTitle>Footer &amp; Media Sosial</CardTitle>
@@ -369,7 +389,7 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
               </CardHeader>
               <CardContent className="space-y-6">
                  <FormField
-                      control={globalForm.control}
+                      control={footerForm.control}
                       name="footerText"
                       render={({ field }) => (
                       <FormItem>
@@ -383,7 +403,7 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
                   />
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <FormField
-                          control={globalForm.control}
+                          control={footerForm.control}
                           name="twitterUrl"
                           render={({ field }) => (
                           <FormItem>
@@ -399,7 +419,7 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
                           )}
                       />
                       <FormField
-                          control={globalForm.control}
+                          control={footerForm.control}
                           name="instagramUrl"
                           render={({ field }) => (
                           <FormItem>
@@ -415,7 +435,7 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
                           )}
                       />
                        <FormField
-                          control={globalForm.control}
+                          control={footerForm.control}
                           name="facebookUrl"
                           render={({ field }) => (
                           <FormItem>
@@ -433,14 +453,15 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
                   </div>
               </CardContent>
                <CardFooter>
-                  <Button type="submit" disabled={globalForm.formState.isSubmitting} className="ml-auto">
-                      {globalForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                  <Button type="submit" disabled={footerForm.formState.isSubmitting} className="ml-auto">
+                      {footerForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                       Simpan Pengaturan Footer
                   </Button>
               </CardFooter>
           </Card>
         </form>
       </Form>
+
 
       <Form {...playlistForm}>
         <form onSubmit={playlistForm.handleSubmit(onPlaylistSubmit)}>
@@ -583,3 +604,5 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
     </>
   );
 }
+
+    
