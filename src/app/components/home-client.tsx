@@ -149,7 +149,7 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
                         Penjelajah Gua
                     </h1>
                 </div>
-                 <h2 className="text-4xl md:text-6xl font-bold font-headline drop-shadow-2xl">Masuki Dunia Bawah Tanah</h2>
+                 <h2 className="text-4xl md:text-6xl font-bold font-rimba drop-shadow-2xl">Masuki Dunia Bawah Tanah</h2>
                  <p className="mt-4 max-w-xl text-lg md:text-xl text-white/80">
                     Rasakan pengalaman 4D menjelajahi keindahan gua-gua paling eksotis di Indonesia.
                  </p>
