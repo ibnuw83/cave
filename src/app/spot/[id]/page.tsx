@@ -1,68 +1,16 @@
 
-
 import { cookies } from 'next/headers';
 import { auth } from '@/lib/firebase-admin';
 import { getSpotAdmin, getUserProfileAdmin } from '@/lib/firebase-admin';
 import SpotPageClient from './client';
 import { Spot } from '@/lib/types';
-import placeholderImagesData from '@/lib/placeholder-images.json';
-
-const placeholderImages = placeholderImagesData.placeholderImages;
-
-const staticSpots: Spot[] = [
-    {
-        id: 'static-spot-jomblang-light',
-        caveId: 'static-jomblang',
-        order: 1,
-        title: 'Cahaya dari Surga',
-        description: 'Sinar matahari yang masuk melalui lubang gua, menciptakan pemandangan magis.',
-        imageUrl: placeholderImages.find(p => p.id === 'spot-jomblang-light')?.imageUrl || '',
-        isPro: false,
-        viewType: 'panorama',
-    },
-    {
-        id: 'static-spot-jomblang-mud',
-        caveId: 'static-jomblang',
-        order: 2,
-        title: 'Jalur Berlumpur (PRO)',
-        description: 'Tantangan jalur berlumpur sebelum mencapai dasar gua.',
-        imageUrl: placeholderImages.find(p => p.id === 'spot-jomblang-mud')?.imageUrl || '',
-        isPro: true,
-        viewType: 'flat',
-        effects: { vibrationPattern: [60, 40, 60] }
-    },
-    {
-        id: 'static-spot-gong-stalactite',
-        caveId: 'static-gong',
-        order: 1,
-        title: 'Stalaktit Raksasa',
-        description: 'Formasi batuan kapur yang menjulang dari langit-langit gua.',
-        imageUrl: placeholderImages.find(p => p.id === 'spot-gong-stalactite')?.imageUrl || '',
-        isPro: false,
-        viewType: 'panorama',
-    },
-    {
-        id: 'static-spot-gong-pool',
-        caveId: 'static-gong',
-        order: 2,
-        title: 'Kolam Bawah Tanah (PRO)',
-        description: 'Kolam air jernih yang terbentuk secara alami di dalam gua.',
-        imageUrl: placeholderImages.find(p => p.id === 'spot-gong-pool')?.imageUrl || '',
-        isPro: true,
-        viewType: 'flat',
-    }
-];
-
 
 export default async function SpotPage({ params }: { params: { id: string } }) {
-  let spot: Spot | null = null;
   const spotId = params.id;
-
-  if (spotId.startsWith('static-')) {
-    spot = staticSpots.find(s => s.id === spotId) || null;
-  } else {
-    spot = await getSpotAdmin(spotId);
-  }
+  
+  // LOGIKA DIPERBAIKI: Selalu ambil data spot dari database.
+  // Semua data statis dan logika 'if' yang membingungkan dihapus.
+  const spot: Spot | null = await getSpotAdmin(spotId);
 
   let userRole: 'free' | 'pro' | 'admin' = 'free';
   try {
@@ -75,9 +23,11 @@ export default async function SpotPage({ params }: { params: { id: string } }) {
       }
     }
   } catch (error) {
+    // Pengguna tidak login atau sesi telah berakhir, 'userRole' tetap 'free'.
     console.log('User not logged in or session expired');
   }
 
+  // Jika spot tidak ditemukan sama sekali baik di database, client akan menanganinya.
   return (
     <SpotPageClient
       spotId={spotId}
