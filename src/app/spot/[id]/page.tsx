@@ -1,4 +1,5 @@
 
+
 import { cookies } from 'next/headers';
 import { auth } from '@/lib/firebase-admin';
 import { getSpotAdmin, getUserProfileAdmin } from '@/lib/firebase-admin';

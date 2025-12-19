@@ -1,4 +1,5 @@
 
+
 import { getCave, getSpots } from '@/lib/firestore';
 import { notFound } from 'next/navigation';
 import CaveClient from '@/app/components/cave-client';
