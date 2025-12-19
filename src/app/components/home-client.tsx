@@ -201,7 +201,7 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
                  <p className="mt-4 max-w-xl text-lg md:text-xl text-white/80">
                     {settings?.heroSubtitle || 'Rasakan pengalaman 4D menjelajahi keindahan gua-gua paling eksotis di Indonesia.'}
                  </p>
-                 <Button size="lg" className="mt-8" asChild>
+                 <Button size="lg" className="mt-8 animate-glow" asChild>
                     <Link href="/login">
                         Mulai Menjelajah
                         <ArrowRight className="ml-2 h-5 w-5" />
