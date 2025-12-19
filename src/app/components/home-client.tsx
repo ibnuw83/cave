@@ -100,13 +100,7 @@ const AuthSection = () => {
     );
   }
 
-  return (
-    <Button asChild>
-      <Link href="/login">
-        <LogIn className="mr-2 h-4 w-4" /> Masuk
-      </Link>
-    </Button>
-  );
+  return null;
 };
 
 
@@ -140,21 +134,21 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
         </div>
 
         <div className="relative z-10 flex h-full flex-col justify-between p-4 md:p-8 w-full">
-           <div className="flex items-center justify-between w-full">
-                <div className="flex items-center gap-3">
-                    {settings?.logoUrl ? (
-                        <Image src={settings.logoUrl} alt="App Logo" width={32} height={32} className="h-8 w-8" />
-                    ) : (
-                        <Mountain className="h-8 w-8" />
-                    )}
-                    <h1 className="text-2xl font-bold tracking-tight md:text-3xl font-headline">
-                        Penjelajah Gua
-                    </h1>
-                </div>
+           <div className="absolute top-4 right-4">
                 <AuthSection />
             </div>
 
             <div className="flex flex-col items-center">
+                 <div className="flex items-center gap-3 mb-4">
+                    {settings?.logoUrl ? (
+                        <Image src={settings.logoUrl} alt="App Logo" width={40} height={40} className="h-10 w-10" />
+                    ) : (
+                        <Mountain className="h-10 w-10" />
+                    )}
+                    <h1 className="text-3xl font-bold tracking-tight md:text-4xl font-headline">
+                        Penjelajah Gua
+                    </h1>
+                </div>
                  <h2 className="text-4xl md:text-6xl font-bold font-headline drop-shadow-2xl">Masuki Dunia Bawah Tanah</h2>
                  <p className="mt-4 max-w-xl text-lg md:text-xl text-white/80">
                     Rasakan pengalaman 4D menjelajahi keindahan gua-gua paling eksotis di Indonesia.
