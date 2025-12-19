@@ -201,7 +201,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
   
   return (
     // This wrapper listens for taps to toggle UI visibility, but DOES NOT block underlying events
-    <div className="absolute inset-0 z-10 pointer-events-none" onClick={toggleUIVisibility}>
+    <div className="absolute inset-0 z-10" onClick={toggleUIVisibility}>
         {/* Header - Tombol Kembali SELALU TAMPIL */}
         <div className={cn(
             "absolute top-0 left-0 right-0 p-4 z-20 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent transition-opacity duration-300"
@@ -221,7 +221,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
         <div 
             className={cn(
                 "absolute bottom-0 left-0 right-0 p-6 z-20 text-white bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-300",
-                isUIVisible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+                isVisible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
             )}
             onClick={(e) => e.stopPropagation()} // Prevent taps inside footer from hiding UI
         >
