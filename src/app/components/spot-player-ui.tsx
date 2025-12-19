@@ -43,7 +43,7 @@ function SpotNavigation({ currentSpotId, allSpots, isVisible }: { currentSpotId:
                         <CarouselItem key={spot.id} className="basis-1/5 md:basis-1/6 pl-1 group">
                              <Link href={`/spot/${spot.id}`} scroll={false} className="pointer-events-auto">
                                 <div className={cn(
-                                    "relative aspect-square w-full overflow-hidden rounded-md transition-all",
+                                    "relative aspect-[4/3] w-full overflow-hidden rounded-md transition-all",
                                     spot.id === currentSpotId ? 'ring-2 ring-accent ring-offset-2 ring-offset-black/50' : 'opacity-60 hover:opacity-100 hover:scale-105'
                                 )}>
                                     <Image
@@ -234,12 +234,6 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
   
   return (
     <>
-        {/* Clickable area to toggle UI */}
-        <div
-            className="absolute inset-0 z-10"
-            onClick={() => setIsUIVisible(true)}
-        />
-
         {/* Header - Back button */}
         <div className={cn(
             "absolute top-0 left-0 right-0 p-4 z-30 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent transition-opacity duration-300",
@@ -262,6 +256,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
                 "absolute bottom-0 left-0 right-0 p-6 z-20 text-white bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-300",
                 isUIVisible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
             )}
+            onClick={(e) => e.stopPropagation()}
         >
             <div className="flex items-end justify-between gap-4">
                 <div className="flex items-start gap-4">
