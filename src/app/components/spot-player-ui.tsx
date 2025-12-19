@@ -28,7 +28,7 @@ function SpotNavigation({ currentSpotId, allSpots, isVisible }: { currentSpotId:
 
     return (
         <div className={cn(
-            "absolute top-20 left-1/2 -translate-x-1/2 w-full max-w-xs md:max-w-sm lg:max-w-md xl:max-w-lg z-20 transition-opacity duration-300",
+            "absolute top-16 left-1/2 -translate-x-1/2 w-full max-w-xs md:max-w-sm lg:max-w-md xl:max-w-lg z-20 transition-opacity duration-300",
             isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
         )}>
             <Carousel opts={{
