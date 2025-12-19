@@ -43,10 +43,11 @@ export default function SpotPlayerUI({ spot, userRole }: { spot: Spot, userRole:
     } else {
       setIsLoading(true);
       try {
+        // Now we send the existing description for TTS directly.
         const response = await fetch('/api/narrate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: spot.title, description: spot.description }),
+            body: JSON.stringify({ text: spot.description }),
         });
 
         if (!response.ok) {
