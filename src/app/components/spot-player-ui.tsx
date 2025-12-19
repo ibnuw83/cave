@@ -183,13 +183,13 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
   };
   
   return (
-    // This wrapper listens for taps to toggle UI visibility, but doesn't block underlying events
-    <div className="absolute inset-0 z-10" onClick={toggleUIVisibility}>
+    // This wrapper listens for taps to toggle UI visibility, but DOES NOT block underlying events
+    <div className="absolute inset-0 z-10 pointer-events-none" onClick={toggleUIVisibility}>
         {/* Header - Tombol Kembali SELALU TAMPIL */}
         <div className={cn(
             "absolute top-0 left-0 right-0 p-4 z-20 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent transition-opacity duration-300"
         )}>
-            <Button variant="ghost" className="text-white hover:bg-white/20 hover:text-white" asChild onClick={(e) => e.stopPropagation()}>
+            <Button variant="ghost" className="text-white hover:bg-white/20 hover:text-white pointer-events-auto" asChild onClick={(e) => e.stopPropagation()}>
                 <Link href={`/cave/${spot.caveId}`}>
                     <ChevronLeft className="mr-2 h-5 w-5" />
                     Kembali
@@ -203,8 +203,8 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
         {/* Footer Controls */}
         <div 
             className={cn(
-                "absolute bottom-0 left-0 right-0 p-6 z-20 text-white bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-300",
-                isUIVisible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+                "absolute bottom-0 left-0 right-0 p-6 z-20 text-white bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-300 pointer-events-auto",
+                isUIVisible ? "opacity-100" : "opacity-0"
             )}
             onClick={(e) => e.stopPropagation()} // Prevent taps inside footer from hiding UI
         >
