@@ -1,4 +1,4 @@
-
+// This file is no longer used for primary TTS but kept as a potential fallback.
 'use client';
 
 let currentAudio: HTMLAudioElement | null = null;

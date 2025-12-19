@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Spot } from '@/lib/types';
 import LockedScreen from '@/app/components/locked-screen';
-import { PanoramaViewer } from '@/app/components/panorama-viewer';
+import Image from 'next/image';
 import SpotPlayerUI from '@/app/components/spot-player-ui';
 
 async function findSpotOffline(spotId: string): Promise<Spot | null> {
@@ -24,6 +24,21 @@ async function findSpotOffline(spotId: string): Promise<Spot | null> {
   } catch {
     return null;
   }
+}
+
+// Fallback component since PanoramaViewer was removed
+function PanoramaViewer({ imageUrl, children }: { imageUrl: string, children: React.ReactNode }) {
+    return (
+        <div className="relative w-full h-screen bg-black overflow-hidden">
+            <Image
+                src={imageUrl}
+                alt="Panorama background"
+                fill
+                className="object-cover"
+            />
+            {children}
+        </div>
+    );
 }
 
 export default function SpotPageClient({
