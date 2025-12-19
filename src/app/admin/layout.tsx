@@ -1,13 +1,13 @@
 'use client';
 
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import AdminSidebar from './admin-sidebar';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { UserProfile } from '@/lib/types';
-import { doc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
@@ -15,13 +15,29 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   const firestore = useFirestore();
-
-  const userProfileRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [user, firestore]);
   
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) {
+      setUserProfile(null);
+      setIsProfileLoading(false);
+      return;
+    }
+
+    setIsProfileLoading(true);
+    const ref = doc(firestore, 'users', user.uid);
+    getDoc(ref)
+      .then(snap => {
+        if (snap.exists()) {
+          setUserProfile({ id: snap.id, ...snap.data() } as UserProfile);
+        } else {
+          setUserProfile(null);
+        }
+      })
+      .finally(() => setIsProfileLoading(false));
+  }, [user, firestore]);
 
   const loading = isUserLoading || isProfileLoading;
 

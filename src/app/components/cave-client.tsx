@@ -11,8 +11,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { saveCaveForOffline, isCaveAvailableOffline } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter, notFound } from 'next/navigation';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useUser, useFirestore } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { getCave, getSpots } from '@/lib/firestore';
 
 
@@ -84,12 +84,28 @@ export default function CaveClient({ caveId }: { caveId: string; }) {
   const [isOffline, setIsOffline] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const userProfileRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'users', user.uid);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) {
+      setUserProfile(null);
+      setIsProfileLoading(false);
+      return;
+    }
+
+    setIsProfileLoading(true);
+    const ref = doc(firestore, 'users', user.uid);
+    getDoc(ref)
+      .then(snap => {
+        if (snap.exists()) {
+          setUserProfile({ id: snap.id, ...snap.data() } as UserProfile);
+        } else {
+          setUserProfile(null);
+        }
+      })
+      .finally(() => setIsProfileLoading(false));
   }, [user, firestore]);
-  
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
 
   useEffect(() => {
     if (!isUserLoading && !user) {

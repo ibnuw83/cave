@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, notFound } from 'next/navigation';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import SpotPageClient from './client';
 import { getSpotClient, getSpots } from '@/lib/firestore';
 import { Spot, UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { doc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function SpotPage() {
   const params = useParams();
@@ -21,12 +21,28 @@ export default function SpotPage() {
   const [isSpotLoading, setIsSpotLoading] = useState(true);
   const [error, setError] = useState(false);
   
-  const userProfileRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [user, firestore]);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
 
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
+  useEffect(() => {
+    if (!user) {
+      setUserProfile(null);
+      setIsProfileLoading(false);
+      return;
+    }
+    
+    setIsProfileLoading(true);
+    const ref = doc(firestore, 'users', user.uid);
+    getDoc(ref)
+      .then(snap => {
+        if (snap.exists()) {
+          setUserProfile({ id: snap.id, ...snap.data() } as UserProfile);
+        } else {
+          setUserProfile(null);
+        }
+      })
+      .finally(() => setIsProfileLoading(false));
+  }, [user, firestore]);
 
   useEffect(() => {
       if (!spotId) {

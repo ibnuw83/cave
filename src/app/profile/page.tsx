@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { useUser, useFirestore, useCollection } from '@/firebase';
 import { UserProfile, Artifact, UserArtifact } from '@/lib/types';
-import { doc, collection, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, collection, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Loader2, User as UserIcon, Gem, Award, ShieldCheck, Mail, ArrowLeft, BookUser, Edit } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -90,6 +89,7 @@ function EditProfileDialog({ userProfile, onOpenChange, open }: { userProfile: U
             });
             toast({ title: 'Berhasil', description: 'Profil Anda telah diperbarui.' });
             onOpenChange(false);
+            // This component does not refetch, the parent component will need to handle re-validation
         } catch (error) {
             console.error(error);
             toast({ variant: 'destructive', title: 'Gagal', description: 'Gagal memperbarui profil.' });
@@ -138,24 +138,42 @@ export default function ProfilePage() {
   const router = useRouter();
   const [isEditProfileOpen, setEditProfileOpen] = useState(false);
 
-  // Get all artifacts from DB
-  const allArtifactsQuery = useMemoFirebase(() => collection(firestore, 'artifacts'), [firestore]);
-  const { data: allArtifacts, isLoading: isAllArtifactsLoading } = useCollection<Artifact>(allArtifactsQuery);
-
-
   // Get user profile
-  const userProfileRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [user, firestore]);
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+
+  // Re-fetch profile when edit dialog closes
+  useEffect(() => {
+    if (isEditProfileOpen) return; // Don't refetch while open
+
+    if (!user) {
+      setUserProfile(null);
+      setIsProfileLoading(false);
+      return;
+    }
+
+    setIsProfileLoading(true);
+    const ref = doc(firestore, 'users', user.uid);
+    getDoc(ref)
+      .then(snap => {
+        if (snap.exists()) {
+          setUserProfile({ id: snap.id, ...snap.data() } as UserProfile);
+        } else {
+          setUserProfile(null);
+        }
+      })
+      .finally(() => setIsProfileLoading(false));
+  }, [user, firestore, isEditProfileOpen]);
+
+  // Get all artifacts from DB
+  const { data: allArtifacts, isLoading: isAllArtifactsLoading } = useCollection<Artifact>(
+    collection(firestore, 'artifacts')
+  );
 
   // Get user's found artifacts
-  const userArtifactsRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return collection(firestore, 'users', user.uid, 'artifacts');
-  }, [user, firestore]);
-  const { data: foundArtifacts, isLoading: isFoundArtifactsLoading } = useCollection<UserArtifact>(userArtifactsRef);
+  const { data: foundArtifacts, isLoading: isFoundArtifactsLoading } = useCollection<UserArtifact>(
+    user ? collection(firestore, 'users', user.uid, 'artifacts') : null
+  );
 
 
   useEffect(() => {
@@ -256,5 +274,3 @@ export default function ProfilePage() {
     </>
   );
 }
-
-    

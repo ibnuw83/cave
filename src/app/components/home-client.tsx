@@ -29,8 +29,8 @@ import { useToast } from '@/hooks/use-toast';
 import { getKioskSettings, getCaves } from '@/lib/firestore';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore, useDoc, useAuth, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useUser, useFirestore, useAuth } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { signOut as firebaseSignOut } from 'firebase/auth';
 
 
@@ -41,12 +41,28 @@ const AuthSection = () => {
   const router = useRouter();
   const { toast } = useToast();
 
-  const userProfileRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'users', user.uid);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) {
+      setUserProfile(null);
+      setIsProfileLoading(false);
+      return;
+    }
+
+    setIsProfileLoading(true);
+    const ref = doc(firestore, 'users', user.uid);
+    getDoc(ref)
+      .then(snap => {
+        if (snap.exists()) {
+          setUserProfile({ id: snap.id, ...snap.data() } as UserProfile);
+        } else {
+          setUserProfile(null);
+        }
+      })
+      .finally(() => setIsProfileLoading(false));
   }, [user, firestore]);
-  
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
 
   const handleClearCache = async () => {
     if (!confirm('Anda yakin ingin menghapus semua konten offline? Ini tidak dapat diurungkan.')) {
