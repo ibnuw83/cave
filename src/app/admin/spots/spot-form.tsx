@@ -23,7 +23,7 @@ const spotSchema = z.object({
   imageUrl: z.string().url('URL gambar tidak valid.'),
   audioUrl: z.string().url('URL audio tidak valid.').optional().or(z.literal('')),
   isPro: z.boolean(),
-  viewType: z.enum(['flat']).optional(),
+  viewType: z.enum(['auto', 'flat', 'panorama', 'full360']),
   vibrationPattern: z.string().optional().refine(
     (val) => {
       if (!val) return true;
@@ -55,7 +55,7 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
       imageUrl: spot?.imageUrl || '',
       audioUrl: spot?.audioUrl || '',
       isPro: spot?.isPro ?? false,
-      viewType: spot?.viewType || 'flat',
+      viewType: spot?.viewType || 'auto',
       vibrationPattern: spot?.effects?.vibrationPattern?.join(',') || '',
     },
   });
@@ -196,14 +196,17 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
                 render={({ field }) => (
                 <FormItem>
                     <FormLabel>Tipe Tampilan</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value || 'flat'}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value || 'auto'}>
                     <FormControl>
                         <SelectTrigger>
                         <SelectValue placeholder="Pilih tipe tampilan..." />
                         </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                        <SelectItem value="auto">Deteksi Otomatis</SelectItem>
                         <SelectItem value="flat">Gambar Datar</SelectItem>
+                        <SelectItem value="panorama">Panorama</SelectItem>
+                        <SelectItem value="full360">360 Penuh</SelectItem>
                     </SelectContent>
                     </Select>
                     <FormDescription>Pilih bagaimana gambar akan ditampilkan di halaman detail.</FormDescription>

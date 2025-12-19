@@ -43,7 +43,7 @@ const staticSpots: Spot[] = [
         description: 'Sinar matahari yang masuk melalui lubang gua, menciptakan pemandangan magis.',
         imageUrl: placeholderImages.find(p => p.id === 'spot-jomblang-light')?.imageUrl || '',
         isPro: false,
-        viewType: 'flat',
+        viewType: 'panorama',
     },
     {
         id: 'static-spot-jomblang-mud',
