@@ -63,9 +63,15 @@ export default function PanoramaViewer({
     const onMouseUp = () => (isDown = false);
     
     // === ZOOM CONTROL ===
-    const onMouseWheel = (e: WheelEvent) => {
-        camera.fov += e.deltaY * 0.05;
-        camera.fov = Math.max(20, Math.min(100, camera.fov)); // Clamp FOV
+    let fov = 75;
+    const MIN_FOV = 30;
+    const MAX_FOV = 100;
+    
+    const onWheel = (e: WheelEvent) => {
+        e.preventDefault();
+        fov += e.deltaY * 0.05;
+        fov = Math.max(MIN_FOV, Math.min(MAX_FOV, fov));
+        camera.fov = fov;
         camera.updateProjectionMatrix();
     };
 
@@ -73,7 +79,7 @@ export default function PanoramaViewer({
     renderer.domElement.addEventListener('mousedown', onMouseDown);
     renderer.domElement.addEventListener('mousemove', onMouseMove);
     renderer.domElement.addEventListener('mouseup', onMouseUp);
-    renderer.domElement.addEventListener('wheel', onMouseWheel);
+    renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
 
     // === RENDER LOOP ===
     const animate = () => {
@@ -109,7 +115,7 @@ export default function PanoramaViewer({
       renderer.domElement.removeEventListener('mousedown', onMouseDown);
       renderer.domElement.removeEventListener('mousemove', onMouseMove);
       renderer.domElement.removeEventListener('mouseup', onMouseUp);
-      renderer.domElement.removeEventListener('wheel', onMouseWheel);
+      renderer.domElement.removeEventListener('wheel', onWheel);
       window.removeEventListener('resize', handleResize);
       renderer.dispose();
       if(mountRef.current && renderer.domElement){
