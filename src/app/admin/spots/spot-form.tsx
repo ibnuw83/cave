@@ -181,10 +181,11 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
             name="audioUrl"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>URL Audio Narasi (Opsional)</FormLabel>
+                <FormLabel>URL Audio Suara Alam (Opsional)</FormLabel>
                 <FormControl>
-                  <Input placeholder="https://..." {...field} />
+                  <Input placeholder="https://.../suara-tetesan.mp3" {...field} />
                 </FormControl>
+                <FormDescription>URL ke file audio (mp3, wav) untuk suara latar.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
