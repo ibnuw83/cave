@@ -188,7 +188,7 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const [isOffline, setIsOffline] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(isDownloading(false));
 
   const spotsQuery = useMemoFirebase(() => collection(firestore, 'spots'), [firestore]);
   const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(spotsQuery);
@@ -323,7 +323,7 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
       <KioskRemoteControl allSpots={spots || []} />
 
       <Form {...globalForm}>
-        <form onSubmit={globalForm.handleSubmit(onGlobalSubmit)} className="space-y-8">
+        <form onSubmit={globalForm.handleSubmit(onGlobalSubmit)} className="space-y-8 mt-8">
           <Card>
               <CardHeader>
                   <CardTitle>Pengaturan Global</CardTitle>
@@ -660,7 +660,7 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
                 ))}
                 {playlistForm.formState.errors.playlist?.root && <FormMessage>{playlistForm.formState.errors.playlist.root.message}</FormMessage>}
                 {Array.isArray(playlistForm.formState.errors.playlist) && playlistForm.formState.errors.playlist.map((error, index) => (
-                    error && <FormMessage key={index}>Baris {index + 1}: {error.spotId?.message || error.duration?.message}</FormMessage></FormMessage>
+                    error && <FormMessage key={index}>Baris {index + 1}: {error.spotId?.message || error.duration?.message}</FormMessage>
                 ))}
                 </div>
 
@@ -686,5 +686,4 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
   );
 }
 
-    
     
