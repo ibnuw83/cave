@@ -25,6 +25,26 @@ import { useToast } from '@/hooks/use-toast';
 import { getKioskSettings } from '@/lib/firestore';
 import placeholderImages from '@/lib/placeholder-images.json';
 
+// Komponen Bat untuk animasi kelelawar
+function Bat({ style }: { style: React.CSSProperties }) {
+  return (
+    <div
+      className="absolute top-0 left-0 text-black will-change-transform"
+      style={{ animation: 'fly linear infinite', ...style }}
+    >
+      <div className="will-change-transform" style={{ animation: 'flap 0.2s ease-in-out infinite alternate' }}>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          className="w-full h-full"
+        >
+          <path d="M12.383 1.575C12.183 1.525 11.817 1.525 11.617 1.575C7.947 2.455 5.097 5.105 4.317 8.575C4.217 9.045 3.947 9.385 3.517 9.535C2.557 9.875 1.547 10.035 0.5170000000000001 10.075L0 10.085V13.915L0.5170000000000001 13.925C1.547 13.965 2.557 14.125 3.517 14.465C3.947 14.615 4.217 14.955 4.317 15.425C5.097 18.895 7.947 21.545 11.617 22.425C11.817 22.475 12.183 22.475 12.383 22.425C16.053 21.545 18.903 18.895 19.683 15.425C19.783 14.955 20.053 14.615 20.483 14.465C21.443 14.125 22.453 13.965 23.483 13.925L24 13.915V10.085L23.483 10.075C22.453 10.035 21.443 9.875 20.483 9.535C20.053 9.385 19.783 9.045 19.683 8.575C18.903 5.105 16.053 2.455 12.383 1.575Z" />
+        </svg>
+      </div>
+    </div>
+  );
+}
 
 const AuthSection = () => {
   const { user, userProfile, loading, signOut } = useAuth();
@@ -120,7 +140,7 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
   
   return (
     <div className="min-h-screen">
-      <header className="relative flex h-[70vh] w-full flex-col items-center justify-center text-center text-white">
+      <header className="relative flex h-[70vh] w-full flex-col items-center justify-center text-center text-white overflow-hidden">
         <div className="absolute inset-0 z-0">
           <Image
             src={heroImage}
@@ -131,6 +151,13 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
             data-ai-hint="dramatic cave"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black" />
+          
+          {/* Animasi Kelelawar */}
+          <Bat style={{ '--scale': 0.1, '--y-start': '20vh', '--y-end': '50vh', animationDuration: '15s', animationDelay: '0s' } as React.CSSProperties} />
+          <Bat style={{ '--scale': 0.08, '--y-start': '30vh', '--y-end': '60vh', animationDuration: '20s', animationDelay: '3s' } as React.CSSProperties} />
+          <Bat style={{ '--scale': 0.12, '--y-start': '40vh', '--y-end': '55vh', animationDuration: '18s', animationDelay: '5s' } as React.CSSProperties} />
+          <Bat style={{ '--scale': 0.09, '--y-start': '25vh', '--y-end': '45vh', animationDuration: '22s', animationDelay: '8s' } as React.CSSProperties} />
+
         </div>
 
         <div className="relative z-10 flex h-full flex-col justify-center p-4 md:p-8 w-full">
