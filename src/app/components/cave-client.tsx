@@ -223,7 +223,7 @@ export default function CaveClient({ caveId }: { caveId: string; }) {
         <h3 className="text-lg font-semibold md:text-xl mb-4 mt-8">Daftar Spot</h3>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {sortedSpots.map((spot) => (
-            <SpotCard key={spot.id} spot={spot} isLocked={spot.isPro && role === 'free'} isOffline={isOffline} />
+            <SpotCard key={spot.id} spot={spot} isLocked={spot.isPro && !isPro} isOffline={isOffline} />
           ))}
         </div>
       </main>
