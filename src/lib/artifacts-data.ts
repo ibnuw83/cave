@@ -41,5 +41,13 @@ export const ALL_ARTIFACTS: Artifact[] = [
         name: 'Permata Sungai',
         description: 'Batu mulia yang terkikis halus oleh aliran sungai bawah tanah yang deras.',
         imageUrl: 'https://picsum.photos/seed/gem/400/400'
+    },
+    {
+        id: 'permata-tersembunyi', // ID unik untuk artefak ini
+        caveId: 'gua-baru', // ID gua tempat spot berada
+        spotId: 'ruang-kristal-123', // PENTING: ID spot tempat artefak disembunyikan
+        name: 'Permata Tersembunyi',
+        description: 'Sebuah permata langka yang berkilau dalam kegelapan Ruang Kristal.',
+        imageUrl: 'https://picsum.photos/seed/newgem/400/400' // URL gambar untuk artefak
     }
 ];
