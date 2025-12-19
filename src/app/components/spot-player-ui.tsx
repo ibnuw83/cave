@@ -79,6 +79,8 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
   const uiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
 
+  const isProUser = userRole === 'pro' || userRole === 'admin';
+
    const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen();
@@ -172,6 +174,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
 
   const handleTogglePlay = async (e: React.MouseEvent) => {
     e.stopPropagation(); 
+    if (!isProUser) return;
 
     if (isPlaying && audioRef.current) {
       audioRef.current.pause();
@@ -182,12 +185,10 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
     } else {
       setIsLoading(true);
       try {
-        const narrationText = spot.description;
-
-        const response = await fetch('/api/tts', {
+        const response = await fetch('/api/narrate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: narrationText }),
+            body: JSON.stringify({ spotId: spot.id }),
         });
 
         if (!response.ok) {
@@ -260,9 +261,11 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
         >
             <div className="flex items-end justify-between gap-4">
                 <div className="flex items-start gap-4">
-                    <Button size="icon" className="rounded-full h-16 w-16 bg-white/30 text-white backdrop-blur-sm hover:bg-white/50 flex-shrink-0" onClick={handleTogglePlay} disabled={isLoading}>
-                        {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
-                    </Button>
+                    {isProUser && (
+                        <Button size="icon" className="rounded-full h-16 w-16 bg-white/30 text-white backdrop-blur-sm hover:bg-white/50 flex-shrink-0" onClick={handleTogglePlay} disabled={isLoading}>
+                            {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
+                        </Button>
+                    )}
                     <div>
                         <h1 className="text-3xl font-bold font-headline mb-1">{spot.title}</h1>
                          <p className={cn("text-base text-white/80 max-w-prose", !isDescriptionExpanded && "line-clamp-1")}>

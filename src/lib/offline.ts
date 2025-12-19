@@ -75,7 +75,6 @@ export async function saveCaveForOffline(cave: Cave, spots: Spot[]): Promise<voi
   const mediaUrls = [
     cave.coverImage,
     ...spots.map(spot => spot.imageUrl),
-    ...spots.map(spot => spot.audioUrl).filter(Boolean), // Filter out undefined/empty audioUrls
   ];
   await cacheFiles(mediaUrls as string[]);
 }

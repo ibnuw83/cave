@@ -157,9 +157,6 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
         <p className="text-lg text-white/80 mt-2 max-w-3xl">{current.description}</p>
       </div>
 
-      {current.audioUrl && (
-        <audio src={current.audioUrl} autoPlay loop muted />
-      )}
     </div>
   );
 }

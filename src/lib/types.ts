@@ -25,7 +25,6 @@ export interface Spot {
   title: string;
   description: string;
   imageUrl: string;
-  audioUrl?: string;
   isPro: boolean;
   viewType: 'auto' | 'flat' | 'panorama';
   effects?: {

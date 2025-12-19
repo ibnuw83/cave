@@ -21,7 +21,6 @@ const spotSchema = z.object({
   title: z.string().min(1, 'Judul tidak boleh kosong.'),
   description: z.string().min(1, 'Deskripsi tidak boleh kosong.'),
   imageUrl: z.string().url('URL gambar tidak valid.'),
-  audioUrl: z.string().url('URL audio tidak valid.').optional().or(z.literal('')),
   isPro: z.boolean(),
   viewType: z.enum(['auto', 'flat', 'panorama']),
   vibrationPattern: z.string().optional().refine(
@@ -53,7 +52,6 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
       title: spot?.title || '',
       description: spot?.description || '',
       imageUrl: spot?.imageUrl || '',
-      audioUrl: spot?.audioUrl || '',
       isPro: spot?.isPro ?? false,
       viewType: spot?.viewType || 'auto',
       vibrationPattern: spot?.effects?.vibrationPattern?.join(',') || '',
@@ -171,21 +169,6 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
                 <FormControl>
                   <Input placeholder="https://..." {...field} />
                 </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-           <FormField
-            control={form.control}
-            name="audioUrl"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>URL Audio Suara Alam (Opsional)</FormLabel>
-                <FormControl>
-                  <Input placeholder="https://.../suara-tetesan.mp3" {...field} />
-                </FormControl>
-                <FormDescription>URL ke file audio (mp3, wav) untuk suara latar.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
