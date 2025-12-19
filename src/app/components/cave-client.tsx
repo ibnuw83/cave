@@ -79,75 +79,53 @@ export default function CaveClient({ caveId }: { caveId: string; }) {
 
   const [cave, setCave] = useState<Cave | null>(null);
   const [spots, setSpots] = useState<Spot[] | undefined>(undefined);
-  const [loadingCaveData, setLoadingCaveData] = useState(true);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [isProfileLoading, setIsProfileLoading] = useState(true);
-
   useEffect(() => {
-    if (!user) {
-      setUserProfile(null);
-      setIsProfileLoading(false);
+    if (!caveId) {
+      setError(true);
+      setLoading(false);
       return;
     }
-
-    setIsProfileLoading(true);
-    const ref = doc(firestore, 'users', user.uid);
-    getDoc(ref)
-      .then(snap => {
-        if (snap.exists()) {
-          setUserProfile({ id: snap.id, ...snap.data() } as UserProfile);
-        } else {
-          setUserProfile(null);
-        }
-      })
-      .finally(() => setIsProfileLoading(false));
-  }, [user, firestore]);
-
-  useEffect(() => {
+    
+    setLoading(true);
+    
+    // Auth check
     if (!isUserLoading && !user) {
       router.push('/login');
+      return; // Stop execution if not logged in
     }
-  }, [user, isUserLoading, router]);
 
-  useEffect(() => {
-    if (!caveId) return;
-
-    async function fetchData() {
-      try {
-        setLoadingCaveData(true);
-        const [caveData, spotsData] = await Promise.all([
-          getCave(caveId),
-          getSpots(caveId)
-        ]);
-
+    // If user is authenticated, fetch all data
+    if (user) {
+      Promise.all([
+        getCave(caveId),
+        getSpots(caveId),
+        getDoc(doc(firestore, 'users', user.uid)),
+        isCaveAvailableOffline(caveId)
+      ]).then(([caveData, spotsData, userProfileSnap, offlineStatus]) => {
         if (!caveData) {
           setError(true);
           return;
         }
         setCave(caveData);
         setSpots(spotsData);
-      } catch (err) {
+        setUserProfile(userProfileSnap.exists() ? { id: userProfileSnap.id, ...userProfileSnap.data() } as UserProfile : null);
+        setIsOffline(offlineStatus);
+      }).catch(err => {
         console.error("Failed to fetch cave data:", err);
         setError(true);
-      } finally {
-        setLoadingCaveData(false);
-      }
+      }).finally(() => {
+        setLoading(false);
+      });
     }
-    fetchData();
-  }, [caveId]);
 
-
-  useEffect(() => {
-    async function checkOfflineStatus() {
-      const offline = await isCaveAvailableOffline(caveId);
-      setIsOffline(offline);
-    }
-    checkOfflineStatus();
-  }, [caveId]);
+  }, [caveId, user, isUserLoading, router, firestore]);
 
   const handleDownload = async () => {
     if (!cave || !spots) return;
@@ -179,9 +157,7 @@ export default function CaveClient({ caveId }: { caveId: string; }) {
     }
   };
 
-  const isLoading = isUserLoading || isProfileLoading || loadingCaveData;
-
-  if (isLoading || !user) {
+  if (loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="text-center">

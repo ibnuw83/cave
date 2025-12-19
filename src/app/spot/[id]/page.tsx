@@ -4,79 +4,67 @@ import { useEffect, useState } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { useUser, useFirestore } from '@/firebase';
 import SpotPageClient from './client';
-import { getSpotClient, getSpots } from '@/lib/firestore';
+import { getSpotClient, getSpots, getUserProfileClient } from '@/lib/firestore';
 import { Spot, UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { doc, getDoc } from 'firebase/firestore';
 
 export default function SpotPage() {
   const params = useParams();
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
   
   const spotId = Array.isArray(params.id) ? params.id[0] : params.id;
 
   const [spot, setSpot] = useState<Spot | null>(null);
   const [allSpots, setAllSpots] = useState<Spot[]>([]);
-  const [isSpotLoading, setIsSpotLoading] = useState(true);
-  const [error, setError] = useState(false);
-  
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [isProfileLoading, setIsProfileLoading] = useState(true);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (!user) {
-      setUserProfile(null);
-      setIsProfileLoading(false);
+    if (!spotId) {
+      setError(true);
+      setLoading(false);
       return;
     }
     
-    setIsProfileLoading(true);
-    const ref = doc(firestore, 'users', user.uid);
-    getDoc(ref)
-      .then(snap => {
-        if (snap.exists()) {
-          setUserProfile({ id: snap.id, ...snap.data() } as UserProfile);
-        } else {
-          setUserProfile(null);
+    // Wait for user loading to finish
+    if (isUserLoading) {
+      return;
+    }
+
+    setLoading(true);
+
+    const fetchData = async () => {
+      try {
+        const spotData = await getSpotClient(spotId);
+        if (!spotData) {
+          setError(true);
+          return;
         }
-      })
-      .finally(() => setIsProfileLoading(false));
-  }, [user, firestore]);
+        
+        const siblingSpotsPromise = getSpots(spotData.caveId);
+        const userProfilePromise = user ? getUserProfileClient(user.uid) : Promise.resolve(null);
+        
+        const [siblingSpots, profile] = await Promise.all([siblingSpotsPromise, userProfilePromise]);
 
-  useEffect(() => {
-      if (!spotId) {
+        setSpot(spotData);
+        setAllSpots(siblingSpots);
+        setUserProfile(profile);
+
+      } catch (err) {
+        console.error("Failed to fetch spot data", err);
         setError(true);
-        return;
-      };
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      const fetchSpotData = async () => {
-          try {
-              setIsSpotLoading(true);
-              const spotData = await getSpotClient(spotId);
-              if (spotData) {
-                  setSpot(spotData);
-                  // Fetch all spots in the same cave for navigation
-                  const siblingSpots = await getSpots(spotData.caveId);
-                  setAllSpots(siblingSpots);
-              } else {
-                  setError(true);
-              }
-          } catch (err) {
-              console.error("Failed to fetch spot data", err);
-              setError(true);
-          } finally {
-              setIsSpotLoading(false);
-          }
-      };
+    fetchData();
 
-      fetchSpotData();
+  }, [spotId, user, isUserLoading]);
 
-  }, [spotId]);
-
-  const isLoading = isUserLoading || isSpotLoading || isProfileLoading;
-
-  if (isLoading) {
+  if (loading) {
     return <Skeleton className="h-screen w-screen bg-black" />;
   }
   

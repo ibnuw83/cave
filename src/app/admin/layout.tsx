@@ -20,9 +20,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const [isProfileLoading, setIsProfileLoading] = useState(true);
 
   useEffect(() => {
+    if (isUserLoading) return; // Wait until user auth state is resolved
+
     if (!user) {
-      setUserProfile(null);
-      setIsProfileLoading(false);
+      router.replace('/login');
       return;
     }
 
@@ -30,41 +31,33 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     const ref = doc(firestore, 'users', user.uid);
     getDoc(ref)
       .then(snap => {
-        if (snap.exists()) {
-          setUserProfile({ id: snap.id, ...snap.data() } as UserProfile);
-        } else {
-          setUserProfile(null);
+        const profile = snap.exists() ? { id: snap.id, ...snap.data() } as UserProfile : null;
+        setUserProfile(profile);
+
+        if (profile?.role !== 'admin') {
+          toast({
+            variant: 'destructive',
+            title: 'Akses Ditolak',
+            description: 'Halaman ini khusus untuk admin.',
+          });
+          router.replace('/');
         }
       })
+      .catch(error => {
+        console.error("Failed to fetch user profile:", error);
+        toast({
+          variant: 'destructive',
+          title: 'Gagal Memuat Profil',
+          description: 'Tidak dapat memverifikasi peran pengguna.',
+        });
+        router.replace('/');
+      })
       .finally(() => setIsProfileLoading(false));
-  }, [user, firestore]);
+  }, [user, isUserLoading, firestore, router, toast]);
 
-  const loading = isUserLoading || isProfileLoading;
+  const isLoading = isUserLoading || isProfileLoading;
 
-  useEffect(() => {
-    if (loading) return;
-
-    if (!user) {
-      router.replace('/login');
-      return;
-    }
-    
-    if (userProfile && userProfile.role !== 'admin') {
-      toast({
-        variant: 'destructive',
-        title: 'Akses Ditolak',
-        description: 'Halaman ini khusus untuk admin.',
-      });
-      router.replace('/');
-    } else if (user && !userProfile && !isProfileLoading) {
-        // This can happen briefly while the profile is being created.
-        // If it persists, it's an issue.
-        console.warn("User is logged in, but profile data is not yet available.");
-    }
-
-  }, [user, userProfile, loading, router, toast, isProfileLoading]);
-
-  if (loading || !userProfile || !user) {
+  if (isLoading || !userProfile || userProfile.role !== 'admin') {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="text-center">
@@ -74,9 +67,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       </div>
     );
   }
-
-  if (userProfile.role !== 'admin') return null;
-
+  
   return (
     <div className="md:grid md:grid-cols-[250px_1fr]">
       <AdminSidebar user={user} userProfile={userProfile} />

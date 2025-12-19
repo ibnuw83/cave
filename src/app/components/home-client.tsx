@@ -26,11 +26,10 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { clearOfflineCache } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
-import { getKioskSettings, getCaves } from '@/lib/firestore';
+import { getKioskSettings, getCaves, getUserProfileClient } from '@/lib/firestore';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useAuth } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
 import { signOut as firebaseSignOut } from 'firebase/auth';
 
 
@@ -52,17 +51,14 @@ const AuthSection = () => {
     }
 
     setIsProfileLoading(true);
-    const ref = doc(firestore, 'users', user.uid);
-    getDoc(ref)
-      .then(snap => {
-        if (snap.exists()) {
-          setUserProfile({ id: snap.id, ...snap.data() } as UserProfile);
-        } else {
-          setUserProfile(null);
-        }
+    getUserProfileClient(user.uid)
+      .then(profile => {
+        setUserProfile(profile);
       })
-      .finally(() => setIsProfileLoading(false));
-  }, [user, firestore]);
+      .finally(() => {
+        setIsProfileLoading(false);
+      });
+  }, [user]);
 
   const handleClearCache = async () => {
     if (!confirm('Anda yakin ingin menghapus semua konten offline? Ini tidak dapat diurungkan.')) {
@@ -163,32 +159,41 @@ const AuthSection = () => {
 
 export default function HomeClient() {
   const [initialCaves, setInitialCaves] = useState<Cave[]>([]);
-  const [loadingCaves, setLoadingCaves] = useState(true);
   const [settings, setSettings] = useState<KioskSettings | null>(null);
-  const { isUserLoading } = useUser();
+  const [loading, setLoading] = useState(true);
+  const { isUserLoading, user } = useUser();
 
   const heroImage = placeholderImages.placeholderImages.find(img => img.id === 'spot-jomblang-light')?.imageUrl || '/placeholder.jpg';
   
   useEffect(() => {
-    getCaves(false).then((caves) => {
-      setInitialCaves(caves);
-      setLoadingCaves(false);
-    }).catch(err => {
-        console.error("Failed to fetch caves", err);
-        setLoadingCaves(false);
-    })
-  }, []);
+    // Wait for user auth state to be resolved
+    if (isUserLoading) return;
 
-  useEffect(() => {
-    async function fetchSettings() {
-      const fetchedSettings = await getKioskSettings();
-      setSettings(fetchedSettings);
+    // If user is not logged in, redirect
+    if (!user) {
+        // Using a router push inside a useEffect is fine for auth redirects
+        const router = (window as any).next.router;
+        if(router) router.push('/login');
+        return;
     }
-    fetchSettings();
-  }, []);
+    
+    setLoading(true);
+    Promise.all([
+      getCaves(false),
+      getKioskSettings()
+    ]).then(([caves, settings]) => {
+      setInitialCaves(caves);
+      setSettings(settings);
+    }).catch(err => {
+      console.error("Failed to fetch initial data", err);
+    }).finally(() => {
+      setLoading(false);
+    });
+
+  }, [isUserLoading, user]);
   
 
-  if (isUserLoading || loadingCaves) {
+  if (isUserLoading || loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="text-center">
