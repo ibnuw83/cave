@@ -139,13 +139,13 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
             </div>
 
             <div className="flex flex-col items-center">
-                 <div className="flex items-center gap-3 mb-4">
+                 <div className="flex items-center gap-4 mb-4">
                     {settings?.logoUrl ? (
-                        <Image src={settings.logoUrl} alt="App Logo" width={40} height={40} className="h-10 w-10" />
+                        <Image src={settings.logoUrl} alt="App Logo" width={48} height={48} className="h-12 w-12" />
                     ) : (
-                        <Mountain className="h-10 w-10" />
+                        <Mountain className="h-12 w-12" />
                     )}
-                    <h1 className="text-3xl font-bold tracking-tight md:text-4xl font-headline">
+                    <h1 className="text-4xl font-bold tracking-tight md:text-5xl font-headline bg-gradient-to-r from-accent to-white bg-clip-text text-transparent">
                         Penjelajah Gua
                     </h1>
                 </div>
@@ -204,3 +204,5 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
     </div>
   );
 }
+
+    
