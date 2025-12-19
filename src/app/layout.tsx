@@ -1,48 +1,42 @@
+'use client';
 
-import type { Metadata, Viewport } from 'next';
+import type { Viewport } from 'next';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';
-import { getKioskSettings } from '@/lib/firestore';
+import { useEffect } from 'react';
 import Footer from '@/app/components/footer';
-
-export async function generateMetadata(): Promise<Metadata> {
-  const settings = await getKioskSettings();
-  const logoUrl = settings?.logoUrl;
-
-  const defaultTitle = 'Penjelajah Gua 4D';
-  const defaultDescription = 'Pengalaman 4D digital menjelajahi gua Indonesia';
-
-  return {
-    title: defaultTitle,
-    description: defaultDescription,
-    icons: {
-      icon: logoUrl || '/favicon.ico',
-      shortcut: logoUrl || '/favicon.ico',
-      apple: logoUrl || '/favicon.ico',
-    },
-    manifest: '/manifest.json',
-  };
-}
-
-export const viewport: Viewport = {
-  themeColor: '#2A2B32',
-}
-
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+
+  useEffect(() => {
+    // This is a client-side effect to update metadata
+    async function setMetadata() {
+        // Since getKioskSettings is client-side, we can call it here.
+        // But for simplicity and to avoid fetching data just for a favicon,
+        // we might rely on a static one or handle it differently.
+        // For now, let's just log a message.
+        console.log("RootLayout mounted, can fetch client-side data here.");
+    }
+    setMetadata();
+  }, []);
+
   return (
     <html lang="en" className="dark">
       <head>
+        <title>Penjelajah Gua 4D</title>
+        <meta name="description" content="Pengalaman 4D digital menjelajahi gua Indonesia" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Rye&display=swap" rel="stylesheet" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#2A2B32" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/favicon.ico" />
       </head>
       <body className="font-body antialiased">
         <FirebaseClientProvider>

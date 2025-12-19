@@ -1,3 +1,4 @@
+'use client';
 
 import {
   doc,
@@ -18,7 +19,8 @@ import { initializeFirebase } from '@/firebase';
 import type { UserProfile, Cave, Spot, KioskSettings } from './types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { db } from '@/lib/firebase-admin';
+
+const { firestore: db } = initializeFirebase();
 
 // --- User Profile Functions (Client-Side) ---
 

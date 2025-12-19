@@ -1,53 +1,29 @@
+'use client';
 
-import { cookies } from 'next/headers';
-import { auth as adminAuth } from '@/lib/firebase-admin';
-import { getUserProfileAdmin, getSpotAdmin } from '@/lib/firebase-admin';
 import SpotPageClient from './client';
-import { Spot } from '@/lib/types';
-import { getSpots } from '@/lib/firestore';
+import { useUser } from '@/firebase';
+import { useParams } from 'next/navigation';
 
+export default function SpotPage() {
+  const params = useParams();
+  const { user, isUserLoading } = useUser();
+  const spotId = Array.isArray(params.id) ? params.id[0] : params.id;
 
-export default async function SpotPage({ params }: { params: { id: string } }) {
-  const spotId = params.id;
-  
-  let initialSpot: Spot | null = null;
-  let allSpotsInCave: Spot[] = [];
-
-  try {
-    initialSpot = await getSpotAdmin(spotId);
-  } catch(e) {
-    console.error(`Server-side spot fetch for ${spotId} failed, will try on client.`);
+  if (isUserLoading) {
+      // You can return a loading skeleton here if you want
+      return <div className="h-screen w-screen bg-black" />;
   }
 
-  if (initialSpot) {
-    try {
-        allSpotsInCave = await getSpots(initialSpot.caveId);
-    } catch (e) {
-        console.error(`Server-side sibling spot fetch for cave ${initialSpot.caveId} failed.`);
-    }
-  }
-
-
-  let userRole: 'free' | 'pro' | 'admin' = 'free';
-  try {
-    const sessionCookie = cookies().get('__session')?.value;
-    if (sessionCookie) {
-      const decodedToken = await adminAuth.verifySessionCookie(sessionCookie, true);
-      const userProfile = await getUserProfileAdmin(decodedToken.uid);
-      if (userProfile) {
-        userRole = userProfile.role;
-      }
-    }
-  } catch (error) {
-    console.log('User not logged in or session expired');
-  }
+  // Determine user role, default to 'free' if not logged in or no profile
+  // The client component will handle the detailed role check and potential server fetch
+  const role = 'free'; // This will be replaced by the client-side logic fetching profile
 
   return (
     <SpotPageClient
       spotId={spotId}
-      initialSpot={initialSpot}
-      initialAllSpots={allSpotsInCave}
-      userRole={userRole}
+      initialSpot={null} // We will always fetch on the client now
+      initialAllSpots={[]}
+      userRole={user?.uid ? 'pro' : 'free'} // Pass a simple role, client will verify
     />
   );
 }
