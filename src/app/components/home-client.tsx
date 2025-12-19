@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { Mountain, LogIn, LogOut, User, Trash2 } from 'lucide-react';
+import { Mountain, LogIn, LogOut, User, Trash2, ArrowDown } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { clearOfflineCache } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
 import { getKioskSettings } from '@/lib/firestore';
+import placeholderImages from '@/lib/placeholder-images.json';
 
 
 const AuthSection = () => {
@@ -113,6 +114,8 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
   const { loading: authLoading } = useAuth();
   const [settings, setSettings] = useState<KioskSettings | null>(null);
 
+  const heroImage = placeholderImages.placeholderImages.find(img => img.id === 'spot-jomblang-light')?.imageUrl || '/placeholder.jpg';
+
   useEffect(() => {
     async function fetchSettings() {
       const fetchedSettings = await getKioskSettings();
@@ -122,55 +125,88 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
   }, []);
   
   return (
-    <div className="container mx-auto min-h-screen max-w-4xl p-4 md:p-8">
-      <header className="flex items-center justify-between pb-8">
-        <div className="flex items-center gap-3">
-          {settings?.logoUrl ? (
-             <Image src={settings.logoUrl} alt="App Logo" width={32} height={32} className="h-8 w-8" />
-          ) : (
-            <Mountain className="h-8 w-8 text-primary" />
-          )}
-          <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl font-headline">
-            Penjelajah Gua
-          </h1>
+    <div className="min-h-screen">
+      <header className="relative flex h-[60vh] md:h-[80vh] w-full flex-col items-center justify-center text-center text-white">
+        <div className="absolute inset-0 z-0">
+          <Image
+            src={heroImage}
+            alt="Pemandangan dramatis di dalam gua"
+            fill
+            className="object-cover"
+            priority
+            data-ai-hint="dramatic cave"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black" />
         </div>
-        <AuthSection />
+
+        <div className="relative z-10 flex h-full flex-col justify-between p-4 md:p-8 w-full">
+           <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-3">
+                    {settings?.logoUrl ? (
+                        <Image src={settings.logoUrl} alt="App Logo" width={32} height={32} className="h-8 w-8" />
+                    ) : (
+                        <Mountain className="h-8 w-8" />
+                    )}
+                    <h1 className="text-2xl font-bold tracking-tight md:text-3xl font-headline">
+                        Penjelajah Gua
+                    </h1>
+                </div>
+                <AuthSection />
+            </div>
+
+            <div className="flex flex-col items-center">
+                 <h2 className="text-4xl md:text-6xl font-bold font-headline drop-shadow-2xl">Masuki Dunia Bawah Tanah</h2>
+                 <p className="mt-4 max-w-xl text-lg md:text-xl text-white/80">
+                    Rasakan pengalaman 4D menjelajahi keindahan gua-gua paling eksotis di Indonesia.
+                 </p>
+                 <Button size="lg" className="mt-8" asChild>
+                    <Link href="#cave-list">
+                        Mulai Menjelajah
+                        <ArrowDown className="ml-2 h-5 w-5" />
+                    </Link>
+                 </Button>
+            </div>
+             <div></div>
+        </div>
       </header>
 
-      <main>
-        <h2 className="mb-6 text-xl font-semibold text-foreground/90 md:text-2xl">Gua yang Tersedia</h2>
-        {authLoading ? (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-64 w-full" />
-          </div>
-        ) : initialCaves.length > 0 ? (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {initialCaves.map((cave) => (
-              <Link href={`/cave/${cave.id}`} key={cave.id} className="group">
-                <Card className="h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:scale-105">
-                  <CardHeader className="p-0">
-                    <div className="relative h-48 w-full">
-                      <Image
-                        src={cave.coverImage}
-                        alt={`Gambar ${cave.name}`}
-                        fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-110"
-                        data-ai-hint="cave entrance"
-                      />
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-4">
-                    <CardTitle className="text-lg font-bold font-headline">{cave.name}</CardTitle>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <p className="text-muted-foreground">Tidak ada gua yang tersedia saat ini. Silakan tambahkan melalui Panel Admin.</p>
-        )}
+      <main id="cave-list" className="bg-black py-16 md:py-24">
+         <div className="container mx-auto max-w-5xl px-4 md:px-8">
+            <h2 className="mb-8 text-center text-3xl font-semibold text-white/90 md:text-4xl">Gua yang Tersedia</h2>
+            {authLoading ? (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <Skeleton className="h-80 w-full" />
+                <Skeleton className="h-80 w-full" />
+                <Skeleton className="h-80 w-full" />
+            </div>
+            ) : initialCaves.length > 0 ? (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {initialCaves.map((cave) => (
+                <Link href={`/cave/${cave.id}`} key={cave.id} className="group">
+                    <Card className="h-full overflow-hidden transition-all duration-300 hover:shadow-primary/20 hover:shadow-2xl hover:border-primary/50 hover:-translate-y-2 bg-card border-border/50">
+                    <CardHeader className="p-0">
+                        <div className="relative h-56 w-full">
+                        <Image
+                            src={cave.coverImage}
+                            alt={`Gambar ${cave.name}`}
+                            fill
+                            className="object-cover transition-transform duration-300 group-hover:scale-110"
+                            data-ai-hint="cave entrance"
+                        />
+                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                        <CardTitle className="text-lg font-bold font-headline text-foreground">{cave.name}</CardTitle>
+                    </CardContent>
+                    </Card>
+                </Link>
+                ))}
+            </div>
+            ) : (
+            <p className="text-center text-muted-foreground">Tidak ada gua yang tersedia saat ini. Silakan tambahkan melalui Panel Admin.</p>
+            )}
+        </div>
       </main>
     </div>
   );

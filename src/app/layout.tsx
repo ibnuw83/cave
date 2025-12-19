@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 import { Providers } from './providers';
 import { getKioskSettings } from '@/lib/firestore';
+import Footer from '@/app/components/footer';
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getKioskSettings();
@@ -45,7 +46,10 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <Providers>
           <AuthProvider>
-            {children}
+            <div className="flex flex-col min-h-screen">
+              <main className="flex-grow">{children}</main>
+              <Footer />
+            </div>
             <Toaster />
           </AuthProvider>
         </Providers>
