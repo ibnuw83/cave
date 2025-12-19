@@ -93,7 +93,7 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   useEffect(() => {
     if (!services) return;
 
-    setUserAuthState({ user: null, isUserLoading: true, userError: null, userProfile: null, isProfileLoading: true });
+    setUserAuthState(prev => ({ ...prev, isUserLoading: true, isProfileLoading: true }));
     
     const unsubscribe = onAuthStateChanged(
       services.auth,
@@ -116,9 +116,15 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     ...userAuthState,
   }), [services, userAuthState]);
 
+  // Wait until services are initialized before rendering children
+  if (!services) {
+    // You can render a global loader here if you want
+    return null; 
+  }
+
   return (
     <FirebaseContext.Provider value={contextValue}>
-      {contextValue.areServicesAvailable ? <FirebaseErrorListener /> : null}
+      <FirebaseErrorListener />
       {children}
     </FirebaseContext.Provider>
   );
