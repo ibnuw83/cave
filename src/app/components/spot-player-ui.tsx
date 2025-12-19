@@ -29,7 +29,7 @@ function SpotNavigation({ currentSpotId, allSpots, isVisible }: { currentSpotId:
     return (
         <div 
             className={cn(
-                "absolute top-16 left-1/2 -translate-x-1/2 w-full max-w-xs md:max-w-sm lg:max-w-md xl:max-w-lg z-20 transition-opacity duration-300",
+                "absolute top-16 left-1/2 -translate-x-1/2 w-full max-w-xs md:max-w-sm lg:max-w-lg xl:max-w-lg z-20 transition-opacity duration-300",
                 isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
             )}
             // Prevent this div from blocking interactions with the viewer
@@ -42,7 +42,7 @@ function SpotNavigation({ currentSpotId, allSpots, isVisible }: { currentSpotId:
                 <CarouselContent className="-ml-1">
                     {allSpots.map((spot) => (
                         <CarouselItem key={spot.id} className="basis-1/4 md:basis-1/5 pl-1 group">
-                            <Link href={`/spot/${spot.id}`} scroll={false}>
+                             <Link href={`/spot/${spot.id}`} scroll={false} className="pointer-events-auto">
                                 <div className={cn(
                                     "relative aspect-video w-full overflow-hidden rounded-md transition-all",
                                     spot.id === currentSpotId ? 'ring-2 ring-accent ring-offset-2 ring-offset-black/50' : 'opacity-60 hover:opacity-100 hover:scale-105'
@@ -62,8 +62,8 @@ function SpotNavigation({ currentSpotId, allSpots, isVisible }: { currentSpotId:
                         </CarouselItem>
                     ))}
                 </CarouselContent>
-                <CarouselPrevious className="hidden sm:flex -left-10 bg-white/20 border-white/30 hover:bg-white/40 text-white"/>
-                <CarouselNext className="hidden sm:flex -right-10 bg-white/20 border-white/30 hover:bg-white/40 text-white"/>
+                <CarouselPrevious className="hidden sm:flex -left-10 bg-white/20 border-white/30 hover:bg-white/40 text-white pointer-events-auto"/>
+                <CarouselNext className="hidden sm:flex -right-10 bg-white/20 border-white/30 hover:bg-white/40 text-white pointer-events-auto"/>
             </Carousel>
         </div>
     );
@@ -98,10 +98,13 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
     if (uiTimeoutRef.current) {
         clearTimeout(uiTimeoutRef.current);
     }
-    uiTimeoutRef.current = setTimeout(() => {
-        setIsUIVisible(false);
-    }, 5000); // 5 seconds
-  }, []);
+    // Only set timeout if not currently playing
+    if (!isPlaying) {
+         uiTimeoutRef.current = setTimeout(() => {
+            setIsUIVisible(false);
+        }, 5000); // 5 seconds
+    }
+  }, [isPlaying]);
 
   useEffect(() => {
     if (isUIVisible) {
@@ -144,7 +147,13 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
 
   const handleTogglePlay = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent this click from toggling the UI visibility
-    resetUiTimeout(); // Keep UI visible when interacting
+    
+    // Keep UI visible while interacting
+    setIsUIVisible(true);
+    if (uiTimeoutRef.current) {
+        clearTimeout(uiTimeoutRef.current);
+    }
+
     if (isPlaying && audioRef.current) {
       audioRef.current.pause();
       if (canVibrate()) {
@@ -214,9 +223,9 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
         {/* Header - Back button */}
         <div className={cn(
             "absolute top-0 left-0 right-0 p-4 z-30 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent transition-opacity duration-300",
-             isUIVisible ? "opacity-100" : "opacity-0 pointer-events-none"
+            isUIVisible ? "opacity-100" : "opacity-0 pointer-events-none"
         )}>
-            <Button variant="ghost" className="text-white hover:bg-white/20 hover:text-white pointer-events-auto" asChild>
+             <Button variant="ghost" className="text-white hover:bg-white/20 hover:text-white pointer-events-auto" asChild>
                 <Link href={`/cave/${spot.caveId}`}>
                     <ChevronLeft className="mr-2 h-5 w-5" />
                     Kembali
@@ -235,18 +244,13 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
             )}
             onClick={(e) => e.stopPropagation()} // Prevent taps inside footer from hiding UI
         >
-            <h1 className="text-3xl font-bold font-headline mb-1">{spot.title}</h1>
-            <p className="text-base text-white/80 max-w-prose">{spot.description}</p>
-            
-            <div className="mt-6 flex items-center gap-4">
-                <Button size="lg" className="rounded-full h-16 w-16 bg-white/30 text-white backdrop-blur-sm hover:bg-white/50" onClick={handleTogglePlay} disabled={isLoading}>
+            <div className="flex items-start gap-4">
+                 <Button size="lg" className="rounded-full h-16 w-16 bg-white/30 text-white backdrop-blur-sm hover:bg-white/50 flex-shrink-0" onClick={handleTogglePlay} disabled={isLoading}>
                     {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
                 </Button>
-                <div className="flex flex-col">
-                    <p className="font-bold">Mainkan Narasi</p>
-                    {(userRole === 'pro' || userRole === 'admin') && (
-                      <p className="text-sm text-white/70 flex items-center gap-1"><WandSparkles className="h-4 w-4"/>Didukung oleh AI</p>
-                    )}
+                <div>
+                    <h1 className="text-3xl font-bold font-headline mb-1">{spot.title}</h1>
+                    <p className="text-base text-white/80 max-w-prose">{spot.description}</p>
                 </div>
             </div>
         </div>
