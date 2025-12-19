@@ -121,7 +121,8 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
     }
   };
 
-  const handleTogglePlay = async () => {
+  const handleTogglePlay = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent this click from toggling the UI visibility
     resetUiTimeout(); // Keep UI visible when interacting
     if (isPlaying && audioRef.current) {
       audioRef.current.pause();
@@ -183,11 +184,10 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
   
   return (
     // This wrapper listens for taps to toggle UI visibility, but doesn't block underlying events
-    <div className="absolute inset-0 z-10 pointer-events-none" onClick={toggleUIVisibility}>
-        {/* Header */}
+    <div className="absolute inset-0 z-10" onClick={toggleUIVisibility}>
+        {/* Header - Tombol Kembali SELALU TAMPIL */}
         <div className={cn(
-            "absolute top-0 left-0 right-0 p-4 z-20 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent transition-opacity duration-300",
-            isUIVisible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+            "absolute top-0 left-0 right-0 p-4 z-20 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent transition-opacity duration-300"
         )}>
             <Button variant="ghost" className="text-white hover:bg-white/20 hover:text-white" asChild onClick={(e) => e.stopPropagation()}>
                 <Link href={`/cave/${spot.caveId}`}>
