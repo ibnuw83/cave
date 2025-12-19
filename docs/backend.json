@@ -205,6 +205,27 @@
         }
       },
       "required": ["id", "userId", "caveId", "foundAt"]
+    },
+    "KioskStat": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Kiosk Stat",
+      "type": "object",
+      "description": "Represents heatmap statistics for a cave in kiosk mode.",
+      "properties": {
+        "spots": {
+          "type": "object",
+          "description": "A map where keys are spot IDs and values are view counts.",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the stats were last updated."
+        }
+      },
+      "required": ["spots", "updatedAt"]
     }
   },
   "auth": {
@@ -282,6 +303,22 @@
           "entityName": "UserArtifact",
           "schema": { "$ref": "#/backend/entities/UserArtifact" },
           "description": "Stores artifacts found by a specific user. Only the user can write to their own subcollection."
+        }
+      },
+      {
+        "path": "/kioskStats/{caveId}",
+        "definition": {
+          "entityName": "KioskStat",
+          "schema": {
+            "$ref": "#/backend/entities/KioskStat"
+          },
+          "description": "Stores heatmap data for kiosk views per cave.",
+          "params": [
+            {
+              "name": "caveId",
+              "description": "The ID of the cave."
+            }
+          ]
         }
       }
     ],
