@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Spot } from '@/lib/types';
+import { Spot, Artifact } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Play, Pause, Loader2, Maximize, Minimize, ScanSearch } from 'lucide-react';
+import { ChevronLeft, Play, Pause, Loader2, Maximize, Minimize, ScanSearch, Sparkles, Trophy } from 'lucide-react';
 import { canVibrate, vibrate } from '@/lib/haptics';
 import {
   Carousel,
@@ -17,6 +17,8 @@ import {
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/firebase';
+import { findArtifactForSpot, foundArtifact } from '@/lib/firestore';
 
 
 function SpotNavigation({ currentSpotId, allSpots, isUIVisible }: { currentSpotId: string, allSpots: Spot[], isUIVisible: boolean }) {
@@ -70,6 +72,7 @@ function SpotNavigation({ currentSpotId, allSpots, isUIVisible }: { currentSpotI
 
 
 export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot, userRole: 'free' | 'pro' | 'admin', allSpots: Spot[] }) {
+  const { user } = useUser();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
@@ -233,15 +236,47 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
   
   const handleScanArea = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!user) {
+        toast({ variant: 'destructive', title: 'Harus Login', description: 'Anda harus login untuk mencari artefak.'});
+        return;
+    }
+
     setIsScanning(true);
     toast({
         title: 'Memindai Area...',
-        description: 'Fitur AI untuk memindai artefak sedang dikembangkan.',
+        description: 'Mencari artefak tersembunyi...',
+        duration: 2000
     });
-    // Placeholder for future AI logic
-    setTimeout(() => {
-        setIsScanning(false);
-    }, 2000);
+
+    // Simulate scanning delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    const artifact = findArtifactForSpot(spot.id);
+
+    if (artifact) {
+        foundArtifact(user.uid, artifact);
+        vibrate([100, 50, 100, 50, 200]);
+        toast({
+            title: 'Artefak Ditemukan!',
+            description: `Anda menemukan: ${artifact.name}`,
+            action: (
+                <div className='flex items-center gap-2'>
+                    <Trophy className='h-5 w-5 text-yellow-400' />
+                    <Button variant="secondary" size="sm" onClick={() => router.push('/profile')}>
+                        Lihat Koleksi
+                    </Button>
+                </div>
+            )
+        });
+    } else {
+        toast({
+            title: 'Tidak Ada Apapun',
+            description: 'Tidak ada artefak yang ditemukan di area ini.',
+        });
+        vibrate(50);
+    }
+    
+    setIsScanning(false);
   };
 
   const handleToggleDescription = (e: React.MouseEvent) => {

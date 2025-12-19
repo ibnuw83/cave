@@ -53,7 +53,27 @@ service cloud.firestore {
       allow create: if isOwner(userId);
       allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin();
       allow delete: if false;
+
+      /**
+       * @description Controls access to a user's found artifacts. A user can only write to their own artifact subcollection.
+       * Reading is implicitly allowed if the parent user document is readable.
+       */
+       match /artifacts/{artifactId} {
+         allow read: if isOwner(userId);
+         allow list: if isOwner(userId);
+         allow create: if isOwner(userId) && request.resource.data.userId == userId;
+         allow update, delete: if false;
+       }
     }
+    
+    /**
+     * @description Publicly readable master list of all artifacts. Only admins can modify.
+     */
+    match /artifacts/{artifactId} {
+        allow get, list: if true;
+        allow write: if isAdmin();
+    }
+
 
     /**
      * @description Public read for kiosk settings, admin write.

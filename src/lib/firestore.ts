@@ -16,9 +16,10 @@ import {
 } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
 import { initializeFirebase } from '@/firebase'; // Menggunakan inisialisasi terpusat
-import type { UserProfile, Cave, Spot, KioskSettings } from './types';
+import type { UserProfile, Cave, Spot, KioskSettings, Artifact, UserArtifact } from './types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { ALL_ARTIFACTS } from './artifacts-data';
 
 // HANYA MENGGUNAKAN SATU INSTANCE DB DARI INISIALISASI PUSAT
 const { firestore: db } = initializeFirebase();
@@ -30,7 +31,7 @@ export async function getUserProfileClient(uid: string): Promise<UserProfile | n
   try {
     const docSnap = await getDoc(userRef);
     if (docSnap.exists()) {
-      return { id: uid, ...docSnap.data() } as UserProfile;
+      return { id: docSnap.id, ...docSnap.data() } as UserProfile;
     }
     return null;
   } catch (error: any) {
@@ -59,7 +60,7 @@ export function createUserProfile(user: User): Promise<UserProfile> {
     setDoc(userRef, userProfileData)
       .then(() => {
         const resolvedProfile: UserProfile = {
-            uid: user.uid,
+            id: user.uid,
             email: user.email,
             displayName: user.displayName,
             photoURL: user.photoURL,
@@ -324,6 +325,34 @@ export function deleteSpot(id: string) {
             errorEmitter.emit('permission-error', permissionError);
         }
     });
+}
+
+// --- Artifact Functions ---
+export function getAllArtifacts(): Artifact[] {
+    return ALL_ARTIFACTS;
+}
+
+export function findArtifactForSpot(spotId: string): Artifact | undefined {
+    return ALL_ARTIFACTS.find(artifact => artifact.spotId === spotId);
+}
+
+export function foundArtifact(userId: string, artifact: Artifact) {
+  const artifactRef = doc(db, 'users', userId, 'artifacts', artifact.id);
+  const data: Omit<UserArtifact, 'id'> = {
+      userId: userId,
+      caveId: artifact.caveId,
+      foundAt: serverTimestamp(),
+  };
+  setDoc(artifactRef, data).catch((error) => {
+     if (error.code === 'permission-denied') {
+        const permissionError = new FirestorePermissionError({
+            path: `/users/${userId}/artifacts/${artifact.id}`,
+            operation: 'create',
+            requestResourceData: data,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+     }
+  });
 }
 
 // --- Kiosk Settings Functions ---

@@ -2,9 +2,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { UserProfile, Artifact } from '@/lib/types';
-import { doc } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { UserProfile, Artifact, UserArtifact } from '@/lib/types';
+import { doc, collection } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Loader2, User as UserIcon, Gem, Award, ShieldCheck, Mail, ArrowLeft, BookUser } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -19,26 +19,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { getAllArtifacts } from '@/lib/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// Placeholder data until we create the artifacts in the database
-const placeholderArtifacts: Artifact[] = [
-    {
-        id: 'crystal-of-light',
-        caveId: 'jomblang',
-        spotId: 'light-from-heaven',
-        name: 'Kristal Cahaya',
-        description: 'Sebuah kristal yang memancarkan cahaya surgawi, ditemukan di jantung Gua Jomblang.',
-        imageUrl: 'https://picsum.photos/seed/crystal/400/400'
-    },
-    {
-        id: 'echo-stone',
-        caveId: 'gong',
-        spotId: 'great-stalactite',
-        name: 'Batu Gema',
-        description: 'Batu yang beresonansi dengan suara tetesan air di Gua Gong.',
-        imageUrl: 'https://picsum.photos/seed/stone/400/400'
-    }
-];
 
 function ArtifactCard({ artifact, isFound }: { artifact: Artifact; isFound: boolean }) {
   return (
@@ -79,12 +62,22 @@ export default function ProfilePage() {
   const firestore = useFirestore();
   const router = useRouter();
 
+  const allArtifacts = getAllArtifacts();
+
+  // Get user profile
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
-  
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
+
+  // Get user's found artifacts
+  const userArtifactsRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, 'users', user.uid, 'artifacts');
+  }, [user, firestore]);
+  const { data: foundArtifacts, isLoading: isArtifactsLoading } = useCollection<UserArtifact>(userArtifactsRef);
+
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -92,7 +85,7 @@ export default function ProfilePage() {
     }
   }, [user, isUserLoading, router]);
 
-  const loading = isUserLoading || isProfileLoading;
+  const loading = isUserLoading || isProfileLoading || isArtifactsLoading;
 
   if (loading || !userProfile) {
     return (
@@ -109,6 +102,8 @@ export default function ProfilePage() {
         default: return <UserIcon className="h-4 w-4 text-gray-400" />;
     }
   }
+
+  const foundArtifactIds = new Set(foundArtifacts?.map(a => a.id) || []);
 
   return (
     <div className="container mx-auto max-w-5xl min-h-screen p-4 md:p-8">
@@ -154,12 +149,20 @@ export default function ProfilePage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                       {placeholderArtifacts.map((artifact) => (
-                           // For now, we'll pretend the user found the first one.
-                           <ArtifactCard key={artifact.id} artifact={artifact} isFound={artifact.id === 'crystal-of-light'} />
-                       ))}
-                    </div>
+                    {isArtifactsLoading ? (
+                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                                <Skeleton key={i} className="aspect-square w-full" />
+                            ))}
+                         </div>
+                    ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                           {allArtifacts.map((artifact) => (
+                               <ArtifactCard key={artifact.id} artifact={artifact} isFound={foundArtifactIds.has(artifact.id)} />
+                           ))}
+                           {allArtifacts.length === 0 && <p className="col-span-full text-center text-muted-foreground">Belum ada artefak yang bisa ditemukan.</p>}
+                        </div>
+                    )}
                 </CardContent>
            </Card>
         </main>
