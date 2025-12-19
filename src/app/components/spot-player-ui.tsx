@@ -6,7 +6,7 @@ import { Spot } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Play, Pause, Loader2, WandSparkles } from 'lucide-react';
+import { ChevronLeft, Play, Pause, Loader2 } from 'lucide-react';
 import { canVibrate, vibrate } from '@/lib/haptics';
 import {
   Carousel,
@@ -32,7 +32,7 @@ function SpotNavigation({ currentSpotId, allSpots, isVisible }: { currentSpotId:
                 "absolute top-16 left-1/2 -translate-x-1/2 w-full max-w-xs md:max-w-sm lg:max-w-lg xl:max-w-2xl z-30 transition-opacity duration-300",
                 isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
             )}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()} // Prevent carousel clicks from hiding UI
         >
             <Carousel opts={{
                 align: "start",
@@ -84,19 +84,12 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
     }
     uiTimeoutRef.current = setTimeout(() => {
         setIsUIVisible(false);
-    }, 5000); // 5 seconds
+    }, 5000); // 5 seconds of inactivity
   }, []);
 
-  const toggleUIVisibility = useCallback(() => {
-      setIsUIVisible(prev => {
-          const nextState = !prev;
-          if(nextState) {
-              resetUiTimeout();
-          } else if (uiTimeoutRef.current) {
-              clearTimeout(uiTimeoutRef.current);
-          }
-          return nextState;
-      });
+  const showUI = useCallback(() => {
+    setIsUIVisible(true);
+    resetUiTimeout();
   }, [resetUiTimeout]);
 
   // Handle Escape key to go back
@@ -104,35 +97,38 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         router.push(`/cave/${spot.caveId}`);
+      } else {
+        showUI(); // Show UI on any other key press
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [router, spot.caveId]);
+  }, [router, spot.caveId, showUI]);
 
   // Auto-hide UI after a few seconds of inactivity
   useEffect(() => {
     if (isUIVisible) {
-        resetUiTimeout();
+      resetUiTimeout();
+    } else if (uiTimeoutRef.current) {
+      clearTimeout(uiTimeoutRef.current);
     }
-    // Add event listeners to reset timeout on activity
-    window.addEventListener('mousemove', resetUiTimeout);
-    window.addEventListener('mousedown', resetUiTimeout);
-    window.addEventListener('touchstart', resetUiTimeout);
-    window.addEventListener('keydown', resetUiTimeout);
+    
+    // Add listeners to show UI on activity
+    window.addEventListener('mousemove', showUI);
+    window.addEventListener('mousedown', showUI);
+    window.addEventListener('touchstart', showUI);
 
     return () => {
         if (uiTimeoutRef.current) {
             clearTimeout(uiTimeoutRef.current);
         }
-        window.removeEventListener('mousemove', resetUiTimeout);
-        window.removeEventListener('mousedown', resetUiTimeout);
-        window.removeEventListener('touchstart', resetUiTimeout);
-        window.removeEventListener('keydown', resetUiTimeout);
+        window.removeEventListener('mousemove', showUI);
+        window.removeEventListener('mousedown', showUI);
+        window.removeEventListener('touchstart', showUI);
     }
-  }, [isUIVisible, resetUiTimeout]);
+  }, [isUIVisible, resetUiTimeout, showUI]);
   
   // Cleanup audio and vibration on unmount or spot change
   useEffect(() => {
@@ -159,9 +155,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
 
   const handleTogglePlay = async (e: React.MouseEvent) => {
     e.stopPropagation(); 
-    
-    setIsUIVisible(true);
-    resetUiTimeout();
+    showUI();
 
     if (isPlaying && audioRef.current) {
       audioRef.current.pause();
@@ -220,18 +214,12 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
 
   const handleToggleDescription = (e: React.MouseEvent) => {
       e.stopPropagation();
-      resetUiTimeout();
+      showUI();
       setIsDescriptionExpanded(prev => !prev);
   }
   
   return (
     <>
-        {/* Clickable overlay to toggle UI. This div should not block panorama interaction. */}
-        <div 
-            className="absolute inset-0 z-10" 
-            onClick={toggleUIVisibility}
-        />
-
         {/* Header - Back button */}
         <div className={cn(
             "absolute top-0 left-0 right-0 p-4 z-30 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent transition-opacity duration-300",
@@ -254,7 +242,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
                 "absolute bottom-0 left-0 right-0 p-6 z-20 text-white bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-300",
                 isUIVisible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
             )}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); showUI(); }}
         >
             <div className="flex items-start gap-4">
                  <Button size="lg" className="rounded-full h-16 w-16 bg-white/30 text-white backdrop-blur-sm hover:bg-white/50 flex-shrink-0" onClick={handleTogglePlay} disabled={isLoading}>
