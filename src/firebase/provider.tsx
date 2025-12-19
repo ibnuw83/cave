@@ -57,118 +57,118 @@ export interface UserHookResult {
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
 
-export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
+// This internal component contains all the hooks and logic.
+// It will only be rendered when all Firebase services are available.
+const FirebaseProviderContent: React.FC<FirebaseProviderProps> = ({
   children,
   firebaseApp,
   firestore,
   auth,
 }) => {
-  const { toast } = useToast();
-  const [userAuthState, setUserAuthState] = useState<UserAuthState>({
-    user: null,
-    isUserLoading: true, 
-    userError: null,
-    userProfile: null,
-    isProfileLoading: true,
-  });
+    const { toast } = useToast();
+    const [userAuthState, setUserAuthState] = useState<UserAuthState>({
+        user: null,
+        isUserLoading: true, 
+        userError: null,
+        userProfile: null,
+        isProfileLoading: true,
+    });
 
-  const handleProfile = useCallback(async (user: User | null) => {
-    if (user) {
-      setUserAuthState(prev => ({ ...prev, isProfileLoading: true }));
-      try {
-        let profile = await getUserProfileClient(user.uid);
-        if (!profile) {
-          toast({ title: "Membuat Profil...", description: "Selamat datang! Kami sedang menyiapkan akun Anda." });
-          profile = await createUserProfile(user);
-          toast({ title: "Selamat Datang!", description: "Profil baru Anda telah dibuat." });
+    const handleProfile = useCallback(async (user: User | null) => {
+        if (user) {
+        setUserAuthState(prev => ({ ...prev, isProfileLoading: true }));
+        try {
+            let profile = await getUserProfileClient(user.uid);
+            if (!profile) {
+            toast({ title: "Membuat Profil...", description: "Selamat datang! Kami sedang menyiapkan akun Anda." });
+            profile = await createUserProfile(user);
+            toast({ title: "Selamat Datang!", description: "Profil baru Anda telah dibuat." });
+            }
+            setUserAuthState(prev => ({ ...prev, userProfile: profile, isProfileLoading: false, userError: null }));
+        } catch (error: any) {
+            console.error("Critical error handling user profile:", error);
+            toast({
+            variant: 'destructive',
+            title: 'Gagal Memuat Profil',
+            description: 'Ada masalah saat memuat data akun Anda. Silakan coba login kembali.'
+            });
+            await firebaseSignOut(auth);
+            setUserAuthState({
+                user: null,
+                isUserLoading: false,
+                userError: error,
+                userProfile: null,
+                isProfileLoading: false,
+            });
         }
-        setUserAuthState(prev => ({ ...prev, userProfile: profile, isProfileLoading: false, userError: null }));
-      } catch (error: any) {
-        console.error("Critical error handling user profile:", error);
-        toast({
-          variant: 'destructive',
-          title: 'Gagal Memuat Profil',
-          description: 'Ada masalah saat memuat data akun Anda. Silakan coba login kembali.'
-        });
-        // Log out the user to prevent being in a broken state
-        await firebaseSignOut(auth);
-        setUserAuthState({
-            user: null,
-            isUserLoading: false,
-            userError: error,
-            userProfile: null,
-            isProfileLoading: false,
-        });
-      }
-    } else {
-      // User is logged out, clear profile info
-      setUserAuthState(prev => ({ ...prev, userProfile: null, isProfileLoading: false }));
-    }
-  }, [auth, toast]);
+        } else {
+        setUserAuthState(prev => ({ ...prev, userProfile: null, isProfileLoading: false }));
+        }
+    }, [auth, toast]);
 
-  useEffect(() => {
-    if (!auth) {
-      toast({
-        variant: 'destructive',
-        title: 'Kesalahan Konfigurasi Firebase',
-        description: 'Layanan autentikasi tidak tersedia.'
-      });
-      setUserAuthState({ 
-          user: null, 
-          isUserLoading: false, 
-          userError: new Error("Auth service not provided."), 
-          userProfile: null, 
-          isProfileLoading: false 
-      });
-      return;
-    }
+    useEffect(() => {
+        setUserAuthState({ user: null, isUserLoading: true, userError: null, userProfile: null, isProfileLoading: true });
+        const unsubscribe = onAuthStateChanged(
+        auth,
+        (firebaseUser) => {
+            setUserAuthState(prev => ({ ...prev, user: firebaseUser, isUserLoading: false, userError: null }));
+            handleProfile(firebaseUser);
+        },
+        (error) => {
+            console.error("FirebaseProvider: onAuthStateChanged error:", error);
+            setUserAuthState({ user: null, isUserLoading: false, userError: error, userProfile: null, isProfileLoading: false });
+        }
+        );
+        return () => unsubscribe();
+    }, [auth, handleProfile]);
 
-    setUserAuthState({ user: null, isUserLoading: true, userError: null, userProfile: null, isProfileLoading: true });
+    const contextValue = useMemo((): FirebaseContextState => ({
+        areServicesAvailable: true,
+        firebaseApp: firebaseApp,
+        firestore: firestore,
+        auth: auth,
+        ...userAuthState,
+    }), [firebaseApp, firestore, auth, userAuthState]);
 
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      (firebaseUser) => {
-        setUserAuthState(prev => ({ ...prev, user: firebaseUser, isUserLoading: false, userError: null }));
-        handleProfile(firebaseUser);
-      },
-      (error) => {
-        console.error("FirebaseProvider: onAuthStateChanged error:", error);
-        setUserAuthState({ user: null, isUserLoading: false, userError: error, userProfile: null, isProfileLoading: false });
-      }
-    );
-    return () => unsubscribe();
-  }, [auth, handleProfile, toast]);
-
-  const contextValue = useMemo((): FirebaseContextState => {
-    const servicesAvailable = !!(firebaseApp && firestore && auth);
-    return {
-      areServicesAvailable: servicesAvailable,
-      firebaseApp: servicesAvailable ? firebaseApp : null,
-      firestore: servicesAvailable ? firestore : null,
-      auth: servicesAvailable ? auth : null,
-      user: userAuthState.user,
-      isUserLoading: userAuthState.isUserLoading,
-      userError: userAuthState.userError,
-      userProfile: userAuthState.userProfile,
-      isProfileLoading: userAuthState.isProfileLoading,
-    };
-  }, [firebaseApp, firestore, auth, userAuthState]);
-
-  if (!auth) {
     return (
+        <FirebaseContext.Provider value={contextValue}>
+            <FirebaseErrorListener />
+            {children}
+        </FirebaseContext.Provider>
+    );
+};
+
+
+export const FirebaseProvider: React.FC<FirebaseProviderProps> = (props) => {
+  const { children, auth } = props;
+
+  // This is the only conditional logic, happening BEFORE any hooks are called.
+  // It renders either the content or a fallback, ensuring hook consistency.
+  if (!auth) {
+    const errorState: FirebaseContextState = {
+        areServicesAvailable: false,
+        firebaseApp: null,
+        firestore: null,
+        auth: null,
+        user: null,
+        isUserLoading: false,
+        userError: new Error("Auth service not provided."),
+        userProfile: null,
+        isProfileLoading: false,
+    };
+    return (
+      <FirebaseContext.Provider value={errorState}>
         <div className="flex h-screen w-full items-center justify-center bg-background">
             <p className="text-destructive">Firebase Auth not configured.</p>
         </div>
+      </FirebaseContext.Provider>
     );
   }
-
-  return (
-    <FirebaseContext.Provider value={contextValue}>
-      <FirebaseErrorListener />
-      {children}
-    </FirebaseContext.Provider>
-  );
+  
+  // If auth exists, we render the internal component which safely calls hooks.
+  return <FirebaseProviderContent {...props}>{children}</FirebaseProviderContent>;
 };
+
 
 
 export const useFirebase = (): FirebaseServicesAndUser => {
