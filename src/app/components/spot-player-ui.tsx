@@ -28,19 +28,19 @@ function SpotNavigation({ currentSpotId, allSpots, isVisible }: { currentSpotId:
 
     return (
         <div className={cn(
-            "absolute bottom-48 md:bottom-52 left-1/2 -translate-x-1/2 w-full max-w-sm lg:max-w-md xl:max-w-lg z-20 transition-opacity duration-300",
+            "absolute top-20 left-1/2 -translate-x-1/2 w-full max-w-xs md:max-w-sm lg:max-w-md xl:max-w-lg z-20 transition-opacity duration-300",
             isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
         )}>
             <Carousel opts={{
                 align: "start",
                 startIndex: currentSpotIndex >= 0 ? currentSpotIndex : 0,
             }}>
-                <CarouselContent className="-ml-2">
+                <CarouselContent className="-ml-1">
                     {allSpots.map((spot) => (
-                        <CarouselItem key={spot.id} className="basis-1/3 md:basis-1/4 pl-2 group">
+                        <CarouselItem key={spot.id} className="basis-1/4 md:basis-1/5 pl-1 group">
                             <Link href={`/spot/${spot.id}`} scroll={false}>
                                 <div className={cn(
-                                    "relative aspect-square w-full overflow-hidden rounded-md transition-all",
+                                    "relative aspect-video w-full overflow-hidden rounded-md transition-all",
                                     spot.id === currentSpotId ? 'ring-2 ring-accent ring-offset-2 ring-offset-black/50' : 'opacity-60 hover:opacity-100 hover:scale-105'
                                 )}>
                                     <Image
@@ -48,7 +48,7 @@ function SpotNavigation({ currentSpotId, allSpots, isVisible }: { currentSpotId:
                                         alt={spot.title}
                                         fill
                                         className="object-cover"
-                                        sizes="(max-width: 768px) 30vw, 15vw"
+                                        sizes="(max-width: 768px) 20vw, 10vw"
                                     />
                                     {spot.isPro && (
                                          <div className="absolute inset-0 bg-black/30"></div>
@@ -204,7 +204,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
     <div className="absolute inset-0 z-10" onClick={toggleUIVisibility}>
         {/* Header - Tombol Kembali SELALU TAMPIL */}
         <div className={cn(
-            "absolute top-0 left-0 right-0 p-4 z-30 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent transition-opacity duration-300 pointer-events-none"
+            "absolute top-0 left-0 right-0 p-4 z-30 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent"
         )}>
             <Button variant="ghost" className="text-white hover:bg-white/20 hover:text-white pointer-events-auto" asChild>
                 <Link href={`/cave/${spot.caveId}`}>
