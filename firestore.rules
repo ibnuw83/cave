@@ -34,6 +34,13 @@ service cloud.firestore {
         allow delete: if isAdmin() && resource != null;
       }
     }
+    
+    /**
+     * @description Allow admins to list all spots for the admin panel.
+     */
+    match /spots/{spotId} {
+        allow get, list: if isAdmin();
+    }
 
     /**
      * @description Controls access to user documents. Users can only manage their own data.
