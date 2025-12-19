@@ -3,23 +3,26 @@
 
 import { useState, useEffect } from 'react';
 import { Spot } from '@/lib/types';
-import { useAuth } from '@/context/auth-context';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { canVibrate, vibrate } from '@/lib/haptics';
-import { speakPro, stopSpeaking, speakLocal } from '@/lib/tts';
+import { speak, stopSpeaking, playAudioUrl } from '@/lib/tts';
 
 export default function SpotPlayerUI({ spot }: { spot: Spot }) {
-  const { userProfile, loading } = useAuth();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
 
-  const role = userProfile?.role || 'free';
-  const canUseProFeatures = role === 'pro' || role === 'admin';
   const hasAudio = !!spot.audioUrl || !!spot.description;
 
-  // Cleanup audio and vibration on unmount
+  const handlePlaybackEnd = () => {
+    setIsPlaying(false);
+    if (canVibrate()) {
+        vibrate(0);
+    }
+  };
+
+  // Cleanup audio and vibration on unmount or spot change
   useEffect(() => {
     return () => {
       stopSpeaking();
@@ -27,25 +30,21 @@ export default function SpotPlayerUI({ spot }: { spot: Spot }) {
         vibrate(0);
       }
     };
-  }, []);
+  }, [spot.id]);
   
   const handleTogglePlay = () => {
     if (isPlaying) {
       stopSpeaking();
       if (canVibrate()) {
-          vibrate(0); // Stop any ongoing vibration
+          vibrate(0);
       }
       setIsPlaying(false);
     } else {
       if (hasAudio) {
-        const textToSpeak = spot.description;
-        if (canUseProFeatures && spot.audioUrl) {
-           speakPro(textToSpeak, spot.audioUrl);
-        } else if (canUseProFeatures) {
-            speakPro(textToSpeak);
-        }
-        else {
-          speakLocal(textToSpeak);
+        if (spot.audioUrl) {
+          playAudioUrl(spot.audioUrl, handlePlaybackEnd);
+        } else {
+          speak(spot.description, handlePlaybackEnd);
         }
       }
       if (spot.effects?.vibrationPattern) {
@@ -65,7 +64,6 @@ export default function SpotPlayerUI({ spot }: { spot: Spot }) {
                 Kembali
             </Link>
             </Button>
-            {/* Can add more header controls here */}
         </div>
 
         {/* Footer Controls */}
@@ -77,12 +75,8 @@ export default function SpotPlayerUI({ spot }: { spot: Spot }) {
                 <Button size="lg" className="rounded-full h-16 w-16 bg-white/30 text-white backdrop-blur-sm hover:bg-white/50" onClick={handleTogglePlay} disabled={!hasAudio}>
                     {isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
                 </Button>
-
-                 {/* Mute button could be added here in the future */}
             </div>
         </div>
     </>
   );
 }
-
-
