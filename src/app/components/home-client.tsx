@@ -25,34 +25,6 @@ import { getKioskSettings } from '@/lib/firestore';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { useRouter } from 'next/navigation';
 
-// Komponen Bat untuk animasi kelelawar
-function Bat({ style }: { style: React.CSSProperties }) {
-  return (
-    <div
-      className="absolute top-0 left-0 text-black will-change-transform"
-      style={{ animation: 'fly linear infinite', ...style }}
-    >
-      <div className="will-change-transform" style={{ animation: 'flap 0.2s ease-in-out infinite alternate' }}>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          className="w-full h-full"
-        >
-          <path d="M2.21,12.52a0.5,0.5,0,0,1-.42-0.81,9.5,9.5,0,0,1,6-4.43c0.16-.05.32,0.06,0.37,0.22s-0.06,0.32-.22,0.37a8.5,8.5,0,0,0-5.35,3.95A0.5,0.5,0,0,1,2.21,12.52Z" />
-          <path d="M21.79,12.52a0.5,0.5,0,0,1-.37-0.68,8.5,8.5,0,0,0-5.35-3.95c-0.16-.05-0.27-0.21-0.22-0.37s0.06-0.32,0.22-0.37a9.5,9.5,0,0,1,6,4.43,0.5,0.5,0,0,1-.28.85Z" />
-          <path d="M12,12.53a4.5,4.5,0,0,1-3-1.25,1,1,0,0,1,1.41-1.42,2.5,2.5,0,0,0,3.18,0,1,1,0,1,1,1.41,1.42A4.49,4.49,0,0,1,12,12.53Z" />
-          <path d="M12,14.5a0.5,0.5,0,0,1-.5-0.5v-2a0.5,0.5,0,0,1,1,0v2A0.5,0.5,0,0,1,12,14.5Z" />
-          <path d="M10.5,12.5a0.5,0.5,0,0,1-.5-0.5v-1a0.5,0.5,0,0,1,1,0v1A0.5,0.5,0,0,1,10.5,12.5Z" />
-          <path d="M13.5,12.5a0.5,0.5,0,0,1-.5-0.5v-1a0.5,0.5,0,0,1,1,0v1A0.5,0.5,0,0,1,13.5,12.5Z" />
-          <path d="M12,2.5a0.5,0.5,0,0,1-.5-0.5v-1a0.5,0.5,0,0,1,1,0v1A0.5,0.5,0,0,1,12,2.5Z" />
-          <path d="M12,22.5a10.47,10.47,0,0,1-7.21-3,0.5,0.5,0,0,1,.71-0.71,9.47,9.47,0,0,0,13,0,0.5,0.5,0,0,1,.71.71A10.47,10.47,0,0,1,12,22.5Z" />
-        </svg>
-      </div>
-    </div>
-  );
-}
-
 const AuthSection = () => {
   const { user, userProfile, loading, signOut } = useAuth();
   const { toast } = useToast();
@@ -127,14 +99,7 @@ const AuthSection = () => {
     );
   }
 
-  return (
-     <Button variant="outline" asChild>
-        <Link href="/login">
-            <LogIn className="mr-2 h-4 w-4" />
-            Masuk
-        </Link>
-     </Button>
-  );
+  return null;
 };
 
 
@@ -165,12 +130,6 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black" />
           
-          {/* Animasi Kelelawar */}
-          <Bat style={{ '--scale': 0.1, '--y-start': '20vh', '--y-end': '50vh', animationDuration: '15s', animationDelay: '0s' } as React.CSSProperties} />
-          <Bat style={{ '--scale': 0.08, '--y-start': '30vh', '--y-end': '60vh', animationDuration: '20s', animationDelay: '3s' } as React.CSSProperties} />
-          <Bat style={{ '--scale': 0.12, '--y-start': '40vh', '--y-end': '55vh', animationDuration: '18s', animationDelay: '5s' } as React.CSSProperties} />
-          <Bat style={{ '--scale': 0.09, '--y-start': '25vh', '--y-end': '45vh', animationDuration: '22s', animationDelay: '8s' } as React.CSSProperties} />
-
         </div>
 
         <div className="relative z-10 flex h-full flex-col justify-center p-4 md:p-8 w-full">
