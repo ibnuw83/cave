@@ -49,7 +49,7 @@ const AuthSection = () => {
   };
 
 
-  if (loading) {
+  if (loading || !user) {
     return null;
   }
 
@@ -106,11 +106,8 @@ const AuthSection = () => {
     );
   }
 
-  return (
-    <Button onClick={() => router.push('/login')}>
-        Masuk
-    </Button>
-  );
+  // If not loading and not logged in, show nothing.
+  return null;
 };
 
 
