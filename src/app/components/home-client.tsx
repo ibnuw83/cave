@@ -104,6 +104,9 @@ const AuthSection = () => {
 
 
 export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
   const [settings, setSettings] = useState<KioskSettings | null>(null);
 
   const heroImage = placeholderImages.placeholderImages.find(img => img.id === 'spot-jomblang-light')?.imageUrl || '/placeholder.jpg';
@@ -115,6 +118,14 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
     }
     fetchSettings();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen">
@@ -148,7 +159,7 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
                         Penjelajah Gua
                     </h1>
                 </div>
-                 <h2 className="text-4xl md:text-6xl font-bold font-rimba drop-shadow-2xl">Masuki Dunia Bawah Tanah</h2>
+                 <h2 className="text-4xl md:text-6xl font-bold font-headline drop-shadow-2xl">Masuki Dunia Bawah Tanah</h2>
                  <p className="mt-4 max-w-xl text-lg md:text-xl text-white/80">
                     Rasakan pengalaman 4D menjelajahi keindahan gua-gua paling eksotis di Indonesia.
                  </p>
