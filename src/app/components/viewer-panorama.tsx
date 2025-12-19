@@ -29,7 +29,7 @@ export default function PanoramaViewer({
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden">
         <Canvas camera={{ position: [0, 0, 0.1] }}>
-            <Suspense fallback={<Skeleton className="w-full h-full" />}>
+            <Suspense fallback={null}>
                 <Scene imageUrl={imageUrl} />
                 <OrbitControls
                     enableZoom={false}
@@ -42,6 +42,7 @@ export default function PanoramaViewer({
                 <Preload all />
             </Suspense>
         </Canvas>
+        {/* Children (UI elements) are rendered here, outside the Canvas */}
         {children}
     </div>
   );
