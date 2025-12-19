@@ -2,40 +2,13 @@
 'use server';
 /**
  * @fileoverview Converts text to speech using Google's TTS model.
+ * This flow now returns the raw, base64-encoded PCM audio data directly.
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import wav from 'wav';
 
 export async function textToSpeech(text: string): Promise<{ media: string }> {
     return ttsFlow(text);
-}
-
-async function toWav(
-  pcmData: Buffer,
-  channels = 1,
-  rate = 24000,
-  sampleWidth = 2
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const writer = new wav.Writer({
-      channels,
-      sampleRate: rate,
-      bitDepth: sampleWidth * 8,
-    });
-
-    const bufs: any[] = [];
-    writer.on('error', reject);
-    writer.on('data', function (d) {
-      bufs.push(d);
-    });
-    writer.on('end', function () {
-      resolve(Buffer.concat(bufs).toString('base64'));
-    });
-
-    writer.write(pcmData);
-    writer.end();
-  });
 }
 
 const ttsFlow = ai.defineFlow(
@@ -43,7 +16,7 @@ const ttsFlow = ai.defineFlow(
     name: 'ttsFlow',
     inputSchema: z.string(),
     outputSchema: z.object({
-        media: z.string().describe('The base64 encoded WAV audio data URI.'),
+        media: z.string().describe('The base64 encoded raw PCM audio data.'),
     }),
   },
   async (query) => {
@@ -64,15 +37,12 @@ const ttsFlow = ai.defineFlow(
       throw new Error('No media returned from TTS model');
     }
 
-    const audioBuffer = Buffer.from(
-      media.url.substring(media.url.indexOf(',') + 1),
-      'base64'
-    );
-    
-    const wavBase64 = await toWav(audioBuffer);
+    // The media.url from the TTS model is already 'data:audio/pcm;base64,....'
+    // We just need to extract the base64 part.
+    const base64PcmData = media.url.substring(media.url.indexOf(',') + 1);
 
     return {
-      media: 'data:audio/wav;base64,' + wavBase64,
+      media: base64PcmData,
     };
   }
 );
