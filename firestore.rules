@@ -25,21 +25,23 @@ service cloud.firestore {
       allow write: if isAdmin();
 
       /**
-       * @description Controls access to the 'spots' subcollection. All users can read spots, but only admins can modify them.
+       * @description Controls access to the 'spots' subcollection within a cave. All users can read spots.
+       * This rule is primarily for data organization. The main CRUD operations are handled by the global /spots/{spotId} rule.
        */
       match /spots/{spotId} {
         allow get, list: if true;
-        allow create: if isAdmin() && request.resource.data.caveId == caveId;
-        allow update: if isAdmin() && resource != null && request.resource.data.caveId == resource.data.caveId;
-        allow delete: if isAdmin() && resource != null;
+        // Write operations are handled by the global rule below for simplicity
+        allow write: if false; 
       }
     }
     
     /**
-     * @description Allow admins to list all spots for the admin panel.
+     * @description Controls access to the global 'spots' collection.
+     * All users can read spots, but only admins can create, update, or delete them.
      */
     match /spots/{spotId} {
-        allow get, list: if isAdmin();
+        allow get, list: if true;
+        allow write: if isAdmin(); // Allows create, update, delete for admins
     }
 
     /**
