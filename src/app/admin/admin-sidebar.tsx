@@ -8,7 +8,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { Mountain, MapPin, Users, Home, LogOut, ArrowLeft, Settings, User as UserIcon, BookUser } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { getKioskSettings } from '@/lib/firestore';
 import { KioskSettings, UserProfile } from '@/lib/types';
 import Image from 'next/image';
 import { useAuth } from '@/firebase';
@@ -54,7 +53,8 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
   const isSubPage = pathname !== '/admin';
 
   useEffect(() => {
-    getKioskSettings().then(setSettings);
+    // Kiosk settings are not critical, so we don't need to fetch them in a blocking way
+    // getKioskSettings().then(setSettings);
   }, []);
 
   const handleLogout = async () => {
@@ -114,7 +114,7 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
             <SheetTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.photoURL || ''} />
+                        <AvatarImage src={userProfile.photoURL || ''} />
                         <AvatarFallback>{userProfile.displayName?.charAt(0) || 'A'}</AvatarFallback>
                     </Avatar>
                 </Button>
@@ -127,7 +127,7 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
                 <div className="py-4 space-y-2">
                       <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 mb-4">
                         <Avatar className="h-12 w-12">
-                            <AvatarImage src={user.photoURL || ''} />
+                            <AvatarImage src={userProfile.photoURL || ''} />
                             <AvatarFallback>{userProfile.displayName?.charAt(0) || 'A'}</AvatarFallback>
                         </Avatar>
                         <div>
@@ -186,7 +186,7 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
       <div className="hidden md:block mt-auto p-4 border-t">
         <div className="flex items-center gap-3 mb-4">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={user.photoURL || ''} />
+            <AvatarImage src={userProfile.photoURL || ''} />
             <AvatarFallback>{userProfile.displayName?.charAt(0) || 'A'}</AvatarFallback>
           </Avatar>
           <div>

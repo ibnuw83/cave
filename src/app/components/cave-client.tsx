@@ -116,6 +116,8 @@ export default function CaveClient({ cave, spots }: { cave: Cave; spots?: Spot[]
       setIsDownloading(false);
     }
   };
+  
+  const sortedSpots = spots ? [...spots].sort((a, b) => a.order - b.order) : [];
 
   const handleStartMission = () => {
     if (sortedSpots.length > 0) {
@@ -144,7 +146,7 @@ export default function CaveClient({ cave, spots }: { cave: Cave; spots?: Spot[]
 
   const role = userProfile?.role || 'free';
   const isPro = role === 'pro' || role === 'admin';
-  const sortedSpots = spots ? [...spots].sort((a, b) => a.order - b.order) : [];
+  
 
   return (
     <div className="container mx-auto min-h-screen max-w-5xl p-4 md:p-8">

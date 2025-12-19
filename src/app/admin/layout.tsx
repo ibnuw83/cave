@@ -48,7 +48,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   }, [user, userProfile, loading, router, toast, isProfileLoading]);
 
-  if (loading || !userProfile) {
+  if (loading || !userProfile || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="text-center">

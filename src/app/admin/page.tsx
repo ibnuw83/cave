@@ -9,9 +9,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { UserProfile } from '@/lib/types';
-import { doc } from 'firebase/firestore';
+import { useUser } from '@/firebase';
 
 
 interface Stat {
@@ -24,21 +22,14 @@ interface Stat {
 
 export default function AdminDashboard() {
   const { user } = useUser();
-  const firestore = useFirestore();
-
-  const userProfileRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [user, firestore]);
-  
-  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
-
   const [stats, setStats] = useState<Stat[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
-      if (userProfile?.role === 'admin') {
+      // We don't need to check role here anymore because the layout handles it.
+      // If we reach this component, the user is an admin.
+      if (user) {
         try {
           const [caves, spots, users] = await Promise.all([
             getCaves(true),
@@ -57,8 +48,11 @@ export default function AdminDashboard() {
         }
       }
     }
-    fetchData();
-  }, [userProfile]);
+    // Only fetch data when user object is available.
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
 
   return (
     <div className="p-4 md:p-8">
