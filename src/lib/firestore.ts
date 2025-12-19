@@ -49,8 +49,7 @@ export async function getUserProfileClient(uid: string): Promise<UserProfile | n
 
 export function createUserProfile(user: User): Promise<UserProfile> {
   return new Promise((resolve, reject) => {
-    const userProfileData: Omit<UserProfile, 'id'> = {
-      email: user.email,
+    const userProfileData: Omit<UserProfile, 'id' | 'email'> = {
       displayName: user.displayName,
       photoURL: user.photoURL,
       role: 'free',
@@ -58,7 +57,9 @@ export function createUserProfile(user: User): Promise<UserProfile> {
     };
     const userRef = doc(db, 'users', user.uid);
 
-    setDoc(userRef, userProfileData)
+    // Use setDoc with { merge: true } to avoid overwriting existing data
+    // if the profile document somehow already exists.
+    setDoc(userRef, { email: user.email, ...userProfileData }, { merge: true })
       .then(() => {
         const resolvedProfile: UserProfile = {
             id: user.uid,
