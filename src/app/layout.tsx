@@ -6,6 +6,8 @@ import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';
 import { useEffect } from 'react';
 import Footer from '@/app/components/footer';
+import { getKioskSettings } from '@/lib/firestore';
+
 
 export default function RootLayout({
   children,
@@ -16,11 +18,20 @@ export default function RootLayout({
   useEffect(() => {
     // This is a client-side effect to update metadata
     async function setMetadata() {
-        // Since getKioskSettings is client-side, we can call it here.
-        // But for simplicity and to avoid fetching data just for a favicon,
-        // we might rely on a static one or handle it differently.
-        // For now, let's just log a message.
-        console.log("RootLayout mounted, can fetch client-side data here.");
+        try {
+            const settings = await getKioskSettings();
+            if (settings?.logoUrl) {
+                let favicon = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+                if (!favicon) {
+                    favicon = document.createElement('link');
+                    favicon.rel = 'icon';
+                    document.getElementsByTagName('head')[0].appendChild(favicon);
+                }
+                favicon.href = settings.logoUrl;
+            }
+        } catch (error) {
+            console.warn("Could not fetch kiosk settings for favicon:", error);
+        }
     }
     setMetadata();
   }, []);

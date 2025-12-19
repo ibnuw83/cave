@@ -1,30 +1,3 @@
-/**
- * Core Philosophy:
- * This ruleset establishes a security model where content collections ('caves', 'spots') are publicly readable by anyone,
- * including anonymous users, to support a seamless browsing experience. However, all write operations (create, update, delete)
- * on this content are strictly limited to users with an 'admin' role. User-specific data in the 'users' collection is
- * private, following a strict ownership model where only the authenticated user can access and modify their own document.
- * This prevents users from viewing or altering other users' data.
- *
- * Data Structure:
- * The data is organized into several top-level collections:
- * 1. /caves/{caveId}: Contains cave documents. This collection has a subcollection:
- *    - /spots/{spotId}: Contains the individual spots within a cave.
- * 2. /users/{userId}: Contains user profile documents, keyed by their Firebase Auth UID.
- * 3. /kioskSettings/{settingId}: Singleton collection for app-wide settings.
- * 4. /kioskControl/{controlId}: Singleton for real-time kiosk commands.
- * 5. /kioskDevices/{deviceId}: Status heartbeats from active kiosk devices.
- * 6. /kioskEvents: Log of events from kiosks.
- *
- * Key Security Decisions:
- * - Public Content, Restricted Writes: 'caves' and 'spots' are open for reading to facilitate easy data access for the client
- *   application. All modifications are gated behind an administrator role check, ensuring content integrity.
- * - Public Settings Read: 'kioskSettings' is publicly readable so the app can load its configuration on any page. Writes are admin-only.
- * - Strict User Privacy: The /users collection is locked down. Users can only create, read, and update their own document.
- *   Listing users is explicitly forbidden to prevent user data enumeration.
- * - Role Immutability: A critical security measure is in place to prevent users from changing their own 'role' field.
- *   This prevents a user from illegitimately granting themselves 'admin' privileges.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {

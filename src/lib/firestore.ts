@@ -15,11 +15,12 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
-import { initializeFirebase } from '@/firebase';
+import { initializeFirebase } from '@/firebase'; // Menggunakan inisialisasi terpusat
 import type { UserProfile, Cave, Spot, KioskSettings } from './types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
+// HANYA MENGGUNAKAN SATU INSTANCE DB DARI INISIALISASI PUSAT
 const { firestore: db } = initializeFirebase();
 
 // --- User Profile Functions (Client-Side) ---
@@ -46,7 +47,7 @@ export async function getUserProfileClient(uid: string): Promise<UserProfile | n
 
 export function createUserProfile(user: User): Promise<UserProfile> {
   return new Promise((resolve, reject) => {
-    const userProfileData: Omit<UserProfile, 'id'> & {uid?: string} = {
+    const userProfileData: Omit<UserProfile, 'uid'> = {
       email: user.email,
       displayName: user.displayName,
       photoURL: user.photoURL,
@@ -58,7 +59,7 @@ export function createUserProfile(user: User): Promise<UserProfile> {
     setDoc(userRef, userProfileData)
       .then(() => {
         const resolvedProfile: UserProfile = {
-            id: user.uid,
+            uid: user.uid,
             email: user.email,
             displayName: user.displayName,
             photoURL: user.photoURL,
