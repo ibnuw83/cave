@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react';
 import { Spot } from '@/lib/types';
 import LockedScreen from '@/app/components/locked-screen';
 import SpotPlayerUI from '@/app/components/spot-player-ui';
-import PanoramaViewer from '@/app/components/panorama-viewer';
+import Image from 'next/image';
+
 
 async function findSpotOffline(spotId: string): Promise<Spot | null> {
   try {
@@ -57,7 +58,13 @@ export default function SpotPageClient({
 
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden">
-        <PanoramaViewer imageUrl={spot.imageUrl} />
+        <Image
+            src={spot.imageUrl}
+            alt={spot.title}
+            fill
+            className="object-cover"
+            quality={100}
+        />
         <SpotPlayerUI spot={spot} userRole={userRole} />
     </div>
   );
