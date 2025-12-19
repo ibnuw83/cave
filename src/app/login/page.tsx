@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/auth-context';
-import { Loader2, Mountain } from 'lucide-react';
+import { Loader2, Mountain, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
@@ -124,12 +124,20 @@ export default function LoginPage() {
             {loading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="mr-2"/> Google</>}
         </Button>
 
-        <p className="text-center text-sm text-muted-foreground">
-          Belum punya akun?{' '}
-          <Link href="/register" className="font-semibold text-primary hover:underline">
-            Daftar di sini
-          </Link>
-        </p>
+        <div className="space-y-4 text-center text-sm text-muted-foreground">
+             <p>
+                Belum punya akun?{' '}
+                <Link href="/register" className="font-semibold text-primary hover:underline">
+                    Daftar di sini
+                </Link>
+             </p>
+             <p>
+                <Link href="/" className="inline-flex items-center hover:underline">
+                    <ArrowLeft className="mr-1 h-3 w-3" />
+                    Kembali ke Halaman Utama
+                </Link>
+             </p>
+        </div>
       </div>
     </div>
   );
