@@ -161,7 +161,7 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string; child
     if (!program) return;
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
-g    gl.linkProgram(program);
+    gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
       console.error('Gagal menautkan program:', gl.getProgramInfoLog(program));
       return;
