@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,8 +18,6 @@ import {
   GoogleAuthProvider, 
   signInWithEmailAndPassword,
   sendPasswordResetEmail as firebaseSendPasswordResetEmail,
-  createUserWithEmailAndPassword,
-  updateProfile
 } from 'firebase/auth';
 import { useAuth, useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
@@ -68,11 +65,7 @@ export default function LoginPage() {
   const signInWithEmail = async (data: LoginFormValues) => {
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
-      router.push('/');
-       toast({
-        title: "Login Berhasil",
-        description: "Selamat datang kembali!",
-      });
+      // The onAuthStateChanged listener in FirebaseProvider will handle the redirect and profile logic
     } catch (error: any) {
        if (error.code === 'auth/invalid-credential') {
         toast({
@@ -94,11 +87,7 @@ export default function LoginPage() {
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
-      router.push('/');
-      toast({
-        title: "Login Berhasil",
-        description: "Selamat datang kembali!",
-      });
+      // The onAuthStateChanged listener in FirebaseProvider will handle the redirect and profile logic
     } catch (error: any) {
       if (error.code !== 'auth/popup-closed-by-user') {
           toast({
@@ -132,6 +121,8 @@ export default function LoginPage() {
       });
   };
 
+  const isSubmitting = form.formState.isSubmitting;
+
   return (
     <div className="relative min-h-screen bg-background p-4">
         <div className="absolute top-4 left-4">
@@ -152,10 +143,10 @@ export default function LoginPage() {
                     <Mountain className="mx-auto h-12 w-12 text-primary" />
                 )}
                 <h1 className="mt-4 text-3xl font-bold font-headline">Selamat Datang</h1>
-                <p className="mt-2 text-muted-foreground">Masuk atau daftar untuk memulai petualangan.</p>
+                <p className="mt-2 text-muted-foreground">Masuk untuk memulai petualangan.</p>
                 </div>
 
-                <Button variant="outline" className="w-full" onClick={signInWithGoogle} disabled={isUserLoading}>
+                <Button variant="outline" className="w-full" onClick={signInWithGoogle} disabled={isUserLoading || isSubmitting}>
                     {isUserLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="mr-2"/> Lanjutkan dengan Google</>}
                 </Button>
                 
@@ -199,8 +190,8 @@ export default function LoginPage() {
                     <div className="flex items-center justify-end">
                         <Button type="button" variant="link" className="p-0 h-auto text-xs" onClick={handleForgotPassword}>Lupa Password?</Button>
                     </div>
-                    <Button type="submit" className="w-full" disabled={isUserLoading}>
-                    {isUserLoading ? <Loader2 className="animate-spin" /> : 'Masuk atau Daftar'}
+                    <Button type="submit" className="w-full" disabled={isUserLoading || isSubmitting}>
+                    {isSubmitting || isUserLoading ? <Loader2 className="animate-spin" /> : 'Masuk'}
                     </Button>
                 </form>
                 </Form>

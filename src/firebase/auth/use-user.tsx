@@ -1,19 +1,11 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { useAuth } from '..';
 
-export const useUser = (): User | null => {
-    const auth = useAuth();
-    const [user, setUser] = useState<User | null>(auth.currentUser);
+import { useUser as useFirebaseUserHook } from '@/firebase/provider'; // Use the main provider hook
 
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            setUser(user);
-        });
-
-        return () => unsubscribe();
-    }, [auth]);
-
-    return user;
+// This hook is now a simple wrapper around the one from the provider
+// to maintain a consistent API (`useUser`) if needed, but it could be
+// removed in favor of directly using the hook from `provider.tsx`.
+export const useUser = () => {
+    const { user, isUserLoading, userError } = useFirebaseUserHook();
+    return { user, isUserLoading, userError };
 };
