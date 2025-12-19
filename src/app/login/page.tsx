@@ -18,7 +18,9 @@ import {
   signInWithPopup, 
   GoogleAuthProvider, 
   signInWithEmailAndPassword,
-  sendPasswordResetEmail as firebaseSendPasswordResetEmail 
+  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
+  createUserWithEmailAndPassword,
+  updateProfile
 } from 'firebase/auth';
 import { useAuth, useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
@@ -43,10 +45,16 @@ function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
 
 export default function LoginPage() {
   const auth = useAuth();
-  const { isUserLoading } = useUser();
+  const { user, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
   const [settings, setSettings] = useState<KioskSettings | null>(null);
+
+  useEffect(() => {
+    if(!isUserLoading && user) {
+        router.push('/');
+    }
+  }, [user, isUserLoading, router]);
 
   useEffect(() => {
     getKioskSettings().then(setSettings);
@@ -127,7 +135,7 @@ export default function LoginPage() {
             </Button>
         </div>
 
-        <div className="flex h-screen items-center justify-center">
+        <div className="flex min-h-screen items-center justify-center py-12">
             <div className="w-full max-w-md space-y-6">
                 <div className="text-center">
                 {settings?.logoUrl ? (
@@ -135,8 +143,21 @@ export default function LoginPage() {
                 ) : (
                     <Mountain className="mx-auto h-12 w-12 text-primary" />
                 )}
-                <h1 className="mt-4 text-3xl font-bold font-headline">Selamat Datang Kembali</h1>
-                <p className="mt-2 text-muted-foreground">Masuk untuk melanjutkan ke Penjelajah Gua.</p>
+                <h1 className="mt-4 text-3xl font-bold font-headline">Selamat Datang</h1>
+                <p className="mt-2 text-muted-foreground">Masuk atau daftar untuk memulai petualangan.</p>
+                </div>
+
+                <Button variant="outline" className="w-full" onClick={signInWithGoogle} disabled={isUserLoading}>
+                    {isUserLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="mr-2"/> Lanjutkan dengan Google</>}
+                </Button>
+                
+                <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">Atau lanjutkan dengan email</span>
+                </div>
                 </div>
 
                 <Form {...form}>
@@ -171,32 +192,10 @@ export default function LoginPage() {
                         <Button type="button" variant="link" className="p-0 h-auto text-xs" onClick={handleForgotPassword}>Lupa Password?</Button>
                     </div>
                     <Button type="submit" className="w-full" disabled={isUserLoading}>
-                    {isUserLoading ? <Loader2 className="animate-spin" /> : 'Masuk'}
+                    {isUserLoading ? <Loader2 className="animate-spin" /> : 'Masuk atau Daftar'}
                     </Button>
                 </form>
                 </Form>
-                
-                <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">Atau lanjutkan dengan</span>
-                </div>
-                </div>
-
-                <Button variant="outline" className="w-full" onClick={signInWithGoogle} disabled={isUserLoading}>
-                    {isUserLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="mr-2"/> Google</>}
-                </Button>
-
-                <div className="space-y-4 text-center text-sm text-muted-foreground">
-                    <p>
-                        Belum punya akun?{' '}
-                        <Link href="/register" className="font-semibold text-primary hover:underline">
-                            Daftar di sini
-                        </Link>
-                    </p>
-                </div>
             </div>
       </div>
     </div>
