@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Lock, ChevronLeft, Download, WifiOff, Loader2 } from 'lucide-react';
+import { Lock, ChevronLeft, Download, WifiOff, Loader2, Sparkles } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { saveCaveForOffline, isCaveAvailableOffline } from '@/lib/offline';
@@ -117,6 +117,18 @@ export default function CaveClient({ cave, spots }: { cave: Cave; spots?: Spot[]
     }
   };
 
+  const handleStartMission = () => {
+    if (sortedSpots.length > 0) {
+      router.push(`/spot/${sortedSpots[0].id}`);
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Misi Tidak Tersedia',
+        description: 'Tidak ada spot yang ditemukan di gua ini untuk memulai misi.',
+      });
+    }
+  };
+
   const loading = isUserLoading || isProfileLoading;
 
   if (loading || !user) {
@@ -160,27 +172,36 @@ export default function CaveClient({ cave, spots }: { cave: Cave; spots?: Spot[]
 
       <main>
         <div className="mb-6 flex flex-col md:flex-row justify-between md:items-center gap-4">
-            <h2 className="text-xl font-semibold md:text-2xl">Spot Penjelajahan</h2>
-            {isPro && (
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div>
-                                <Button onClick={handleDownload} disabled={isDownloading || isOffline}>
-                                    {isDownloading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    {isOffline ? 'Tersimpan Offline' : 'Simpan Offline'}
-                                    {!isDownloading && !isOffline && <Download className="ml-2 h-4 w-4" />}
-                                </Button>
-                             </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                           <p>{isOffline ? 'Konten gua ini sudah bisa diakses offline.' : 'Unduh semua spot di gua ini untuk akses offline.'}</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-            )}
+            <div>
+              <h2 className="text-xl font-semibold md:text-2xl">Misi Penjelajahan</h2>
+              <p className="text-muted-foreground text-sm">Temukan artefak tersembunyi di dalam gua ini.</p>
+            </div>
+            <div className='flex items-center gap-2 flex-wrap'>
+                <Button onClick={handleStartMission} size="lg">
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Mulai Misi
+                </Button>
+                {isPro && (
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div>
+                                    <Button onClick={handleDownload} disabled={isDownloading || isOffline} variant="outline">
+                                        {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : isOffline ? <WifiOff className="mr-2 h-4 w-4"/> : <Download className="mr-2 h-4 w-4" />}
+                                        {isOffline ? 'Tersimpan' : 'Simpan Offline'}
+                                    </Button>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{isOffline ? 'Konten gua ini sudah bisa diakses offline.' : 'Unduh semua spot di gua ini untuk akses offline.'}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                )}
+            </div>
         </div>
 
+        <h3 className="text-lg font-semibold md:text-xl mb-4 mt-8">Daftar Spot</h3>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {sortedSpots.map((spot) => (
             <SpotCard key={spot.id} spot={spot} isLocked={spot.isPro && role === 'free'} isOffline={isOffline} />

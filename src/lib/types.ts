@@ -1,4 +1,3 @@
-
 import type { Timestamp } from 'firebase/firestore';
 
 export interface UserProfile {
@@ -32,6 +31,23 @@ export interface Spot {
   };
 }
 
+export interface Artifact {
+  id: string;
+  caveId: string;
+  spotId: string; // The spot where this artifact is hidden
+  name: string;
+  description: string;
+  imageUrl: string;
+}
+
+export interface UserArtifact {
+  id: string; // artifactId
+  userId: string;
+  caveId: string;
+  foundAt: Timestamp;
+}
+
+
 export interface OfflineCaveData {
     cave: Cave;
     spots: Spot[];
@@ -64,5 +80,3 @@ export interface KioskSettings {
   heroTitle?: string;
   heroSubtitle?: string;
 }
-
-    

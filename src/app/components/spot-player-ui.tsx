@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -6,7 +5,7 @@ import { Spot } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Play, Pause, Loader2, Maximize, Minimize } from 'lucide-react';
+import { ChevronLeft, Play, Pause, Loader2, Maximize, Minimize, ScanSearch } from 'lucide-react';
 import { canVibrate, vibrate } from '@/lib/haptics';
 import {
   Carousel,
@@ -17,6 +16,7 @@ import {
 } from "@/components/ui/carousel";
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 
 function SpotNavigation({ currentSpotId, allSpots, isUIVisible }: { currentSpotId: string, allSpots: Spot[], isUIVisible: boolean }) {
@@ -72,12 +72,14 @@ function SpotNavigation({ currentSpotId, allSpots, isUIVisible }: { currentSpotI
 export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot, userRole: 'free' | 'pro' | 'admin', allSpots: Spot[] }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [isUIVisible, setIsUIVisible] = useState(true);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const uiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
+  const { toast } = useToast();
 
   const isProUser = userRole === 'pro' || userRole === 'admin';
 
@@ -221,12 +223,25 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
 
       } catch (error) {
         console.error("Failed to play AI narration:", error);
-        alert("Gagal memuat narasi AI. Silakan coba lagi.");
+        toast({variant: 'destructive', title: 'Gagal Memuat Narasi', description: 'Gagal memuat narasi AI. Silakan coba lagi.'});
         setIsPlaying(false);
       } finally {
         setIsLoading(false);
       }
     }
+  };
+  
+  const handleScanArea = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsScanning(true);
+    toast({
+        title: 'Memindai Area...',
+        description: 'Fitur AI untuk memindai artefak sedang dikembangkan.',
+    });
+    // Placeholder for future AI logic
+    setTimeout(() => {
+        setIsScanning(false);
+    }, 2000);
   };
 
   const handleToggleDescription = (e: React.MouseEvent) => {
@@ -261,11 +276,16 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
         >
             <div className="flex items-end justify-between gap-4">
                 <div className="flex items-start gap-4">
-                    {isProUser && (
-                        <Button size="icon" className="rounded-full h-16 w-16 bg-white/30 text-white backdrop-blur-sm hover:bg-white/50 flex-shrink-0" onClick={handleTogglePlay} disabled={isLoading}>
-                            {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
+                    <div className="flex flex-col gap-2">
+                        {isProUser && (
+                            <Button size="icon" className="rounded-full h-16 w-16 bg-white/30 text-white backdrop-blur-sm hover:bg-white/50 flex-shrink-0" onClick={handleTogglePlay} disabled={isLoading || isScanning}>
+                                {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
+                            </Button>
+                        )}
+                        <Button size="icon" className="rounded-full h-16 w-16 bg-primary/80 text-primary-foreground backdrop-blur-sm hover:bg-primary flex-shrink-0" onClick={handleScanArea} disabled={isScanning || isLoading}>
+                            {isScanning ? <Loader2 className="h-8 w-8 animate-spin" /> : <ScanSearch className="h-8 w-8" />}
                         </Button>
-                    )}
+                    </div>
                     <div>
                         <h1 className="text-3xl font-bold font-headline mb-1">{spot.title}</h1>
                          <p className={cn("text-base text-white/80 max-w-prose", !isDescriptionExpanded && "line-clamp-1")}>

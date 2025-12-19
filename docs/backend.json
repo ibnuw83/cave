@@ -121,6 +121,58 @@
         "email",
         "updatedAt"
       ]
+    },
+    "Artifact": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Artifact",
+      "type": "object",
+      "description": "Represents a discoverable artifact within a cave.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "caveId": {
+          "type": "string",
+          "description": "The cave where this artifact is located."
+        },
+        "spotId": {
+          "type": "string",
+          "description": "The specific spot where this artifact is hidden."
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "imageUrl": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "caveId", "spotId", "name", "description", "imageUrl"]
+    },
+    "UserArtifact": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserArtifact",
+      "type": "object",
+      "description": "Links a user to an artifact they have found.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Same as the artifactId."
+        },
+        "userId": {
+          "type": "string"
+        },
+        "caveId": {
+          "type": "string"
+        },
+        "foundAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "userId", "caveId", "foundAt"]
     }
   },
   "auth": {
@@ -182,8 +234,24 @@
             }
           ]
         }
+      },
+      {
+        "path": "/artifacts/{artifactId}",
+        "definition": {
+          "entityName": "Artifact",
+          "schema": { "$ref": "#/backend/entities/Artifact" },
+          "description": "Master list of all discoverable artifacts. Publicly readable."
+        }
+      },
+      {
+        "path": "/users/{userId}/artifacts/{artifactId}",
+        "definition": {
+          "entityName": "UserArtifact",
+          "schema": { "$ref": "#/backend/entities/UserArtifact" },
+          "description": "Stores artifacts found by a specific user. Only the user can write to their own subcollection."
+        }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support the \"Cave Explorer 4D\" application, focusing on mobile-first experience, 4D digital immersion (audio, haptics, visuals), and FREE/PRO access control. The structure prioritizes authorization independence using denormalization and structural segregation.  It avoids `get()` calls in security rules to enable atomic operations. All read operations are public, so rules act only as validators, and never as filters (QAPs).  The structure supports the core app features including listing caves and spots, immersive spot experiences, haptic feedback, Google Authentication, access control based on user roles, and personalized ambience.\n\n*   **Authorization Independence:**  Access to PRO spots is controlled by the user's role stored in `/users/{uid}`. Since all reads are public, the main enforcement is UI-based, hiding PRO spots from FREE users. Security rules mainly validate writes and prevent unauthorized role changes.  While spots have a `isPro` property, this is informational for the UI and does not directly control security rules, as all spots are readable regardless of the user's role.\n*   **Structural Segregation:**  The `caves` and `spots` collections are separated to maintain a homogenous security posture. All documents in each collection share the same read permissions (public).\n*   **Access Modeling:**\n    *   User data (`/users/{uid}`) is path-based, ensuring only the authenticated user can read/write their own document.\n*   **QAPs:** The data structure enables secure `list` operations by having public read access to `caves` and `spots`. Security rules only validate the data, and does not filter the data being read."
+    "reasoning": "The Firestore data structure is designed to support the \"Cave Explorer 4D\" application, focusing on mobile-first experience, 4D digital immersion (audio, haptics, visuals), and FREE/PRO access control. The structure prioritizes authorization independence using denormalization and structural segregation. It avoids `get()` calls in security rules to enable atomic operations. All read operations are public, so rules act only as validators, and never as filters (QAPs). The structure supports the core app features including listing caves and spots, immersive spot experiences, haptic feedback, Google Authentication, access control based on user roles, and personalized ambience. The addition of Artifacts and UserArtifacts collections supports the new gamification feature, allowing users to collect items and view them in their profile."
   }
 }

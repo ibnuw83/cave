@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -8,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { Mountain, LogOut, User, Trash2, ArrowRight, Loader2 } from 'lucide-react';
+import { Mountain, LogOut, User, Trash2, ArrowRight, Loader2, BookUser } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -107,6 +106,12 @@ const AuthSection = () => {
             </Badge>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+           <DropdownMenuItem asChild>
+              <Link href="/profile">
+                <BookUser className="mr-2 h-4 w-4" />
+                <span>Buku Catatan</span>
+              </Link>
+            </DropdownMenuItem>
            {userProfile.role === 'admin' && (
              <>
                 <DropdownMenuItem asChild>
@@ -115,18 +120,18 @@ const AuthSection = () => {
                     <span>Admin Panel</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
              </>
            )}
             {userProfile.role !== 'free' && (
              <>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleClearCache}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   <span>Hapus Cache Offline</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
              </>
            )}
+          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />
             <span>Logout</span>
@@ -202,7 +207,7 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
                     {settings?.heroSubtitle || 'Rasakan pengalaman 4D menjelajahi keindahan gua-gua paling eksotis di Indonesia.'}
                  </p>
                  <Button size="lg" className="mt-8 animate-glow text-lg" asChild>
-                    <Link href="/login">
+                    <Link href="#cave-list">
                         Mulai Menjelajah
                         <ArrowRight className="ml-2 h-5 w-5" />
                     </Link>
