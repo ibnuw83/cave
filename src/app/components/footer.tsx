@@ -14,18 +14,18 @@ export default function Footer() {
           </p>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" asChild>
-              <Link href="#" aria-label="Twitter">
-                <Twitter className="h-5 w-5" />
+              <Link href="#" aria-label="Twitter" className="text-muted-foreground transition-colors hover:text-sky-500">
+                <Twitter className="h-6 w-6" />
               </Link>
             </Button>
             <Button variant="ghost" size="icon" asChild>
-              <Link href="#" aria-label="Instagram">
-                <Instagram className="h-5 w-5" />
+              <Link href="#" aria-label="Instagram" className="text-muted-foreground transition-colors hover:text-pink-500">
+                <Instagram className="h-6 w-6" />
               </Link>
             </Button>
             <Button variant="ghost" size="icon" asChild>
-              <Link href="#" aria-label="Facebook">
-                <Facebook className="h-5 w-5" />
+              <Link href="#" aria-label="Facebook" className="text-muted-foreground transition-colors hover:text-blue-600">
+                <Facebook className="h-6 w-6" />
               </Link>
             </Button>
           </div>
