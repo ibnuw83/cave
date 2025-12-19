@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Suspense, ReactNode, useRef, useState } from 'react';
@@ -135,7 +134,7 @@ export default function PanoramaViewer({
             dampingFactor={0.07}
 
             minPolarAngle={isFull360 ? 0.01 : Math.PI / 4}
-            maxPolarAngle={isFull360 ? Math.PI - 0.01 : Math.PI - 0.01}
+            maxPolarAngle={isFull360 ? Math.PI - 0.01 : Math.PI - Math.PI / 4}
 
             onStart={() => {
               setIsInteracting(true);

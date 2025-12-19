@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -95,6 +94,7 @@ export default function SpotPageClient({
     return <LockedScreen spot={spot} />;
   }
   
+  // Directly use PanoramaViewer for panorama type to pass hotspots
   if (spot.viewType === 'panorama') {
     return (
         <PanoramaViewer
