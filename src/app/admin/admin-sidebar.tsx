@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { Mountain, MapPin, Users, Home, LogOut, ArrowLeft, Settings, User as UserIcon } from 'lucide-react';
+import { Mountain, MapPin, Users, Home, LogOut, ArrowLeft, Settings, User as UserIcon, BookUser } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getKioskSettings } from '@/lib/firestore';
 import { KioskSettings, UserProfile } from '@/lib/types';
@@ -148,6 +148,12 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
                                 Manajemen Pengguna
                             </Link>
                         </Button>
+                        <Button variant="ghost" className="w-full justify-start" asChild>
+                            <Link href="/profile" onClick={() => setProfileSheetOpen(false)}>
+                                <BookUser className="mr-2 h-4 w-4" />
+                                Buku Catatan
+                            </Link>
+                        </Button>
                     </div>
 
                       <Button
@@ -188,7 +194,14 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
             <p className="text-xs text-muted-foreground">{userProfile.email}</p>
           </div>
         </div>
-
+        
+        <Button variant="ghost" className="w-full justify-start" asChild>
+          <Link href="/profile">
+            <BookUser className="mr-2 h-4 w-4" />
+            Buku Catatan
+          </Link>
+        </Button>
+        
         <Button variant="ghost" className="w-full justify-start" asChild>
           <Link href="/">
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -208,3 +221,5 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
     </aside>
   );
 }
+
+    
