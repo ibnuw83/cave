@@ -87,18 +87,18 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
       </div>
 
        {/* Mobile Header with Back Button */}
-      <div className="fixed top-0 left-0 right-0 z-40 flex h-14 items-center justify-between border-b bg-card p-4 md:hidden">
+      <div className="fixed top-0 left-0 right-0 z-40 flex h-14 items-center justify-between border-b bg-card px-4 md:hidden">
         {isSubPage ? (
           <Button
             variant="ghost"
             size="icon"
-            className="absolute left-4"
+            className="shrink-0"
             onClick={() => router.back()}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
         ) : (
-           <div className="flex items-center gap-2">
+           <div className="flex items-center gap-2 shrink-0">
             {settings?.logoUrl ? (
               <Image src={settings.logoUrl} alt="App Logo" width={24} height={24} className="h-6 w-6" />
             ) : (
@@ -106,14 +106,66 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
             )}
           </div>
         )}
-        <h2 className="text-lg font-bold mx-auto">{isSubPage ? pathname.split('/').pop()?.replace('-', ' ')?.replace(/\b\w/g, l => l.toUpperCase()) : 'Dashboard'}</h2>
-        {/* Placeholder for symmetry */}
-        <div className="w-10"></div>
+        <h2 className="text-lg font-bold text-center truncate flex-1 mx-4">
+          {isSubPage ? pathname.split('/').pop()?.replace('-', ' ')?.replace(/\b\w/g, l => l.toUpperCase()) : 'Dashboard'}
+        </h2>
+        
+        <Sheet open={isProfileSheetOpen} onOpenChange={setProfileSheetOpen}>
+            <SheetTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                        <AvatarImage src={user.photoURL || ''} />
+                        <AvatarFallback>{userProfile.displayName?.charAt(0) || 'A'}</AvatarFallback>
+                    </Avatar>
+                </Button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className='rounded-t-lg'>
+                <SheetHeader className='text-left'>
+                    <SheetTitle>Profil & Pengaturan</SheetTitle>
+                    <SheetDescription>Kelola akun, pengaturan, dan sesi Anda dari sini.</SheetDescription>
+                </SheetHeader>
+                <div className="py-4 space-y-2">
+                      <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 mb-4">
+                        <Avatar className="h-12 w-12">
+                            <AvatarImage src={user.photoURL || ''} />
+                            <AvatarFallback>{userProfile.displayName?.charAt(0) || 'A'}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                            <p className="text-md font-medium">{userProfile.displayName}</p>
+                            <p className="text-sm text-muted-foreground">{userProfile.email}</p>
+                        </div>
+                    </div>
+
+                    <Button variant="ghost" className="w-full justify-start" asChild>
+                        <Link href="/admin/kiosk" onClick={() => setProfileSheetOpen(false)}>
+                            <Settings className="mr-2 h-4 w-4" />
+                            Pengaturan Aplikasi
+                        </Link>
+                    </Button>
+
+                    <Button variant="ghost" className="w-full justify-start" asChild>
+                        <Link href="/" onClick={() => setProfileSheetOpen(false)}>
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Kembali ke Situs
+                        </Link>
+                    </Button>
+
+                      <Button
+                        variant="destructive"
+                        className="w-full justify-center mt-4"
+                        onClick={handleLogout}
+                        >
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Logout
+                    </Button>
+                </div>
+            </SheetContent>
+        </Sheet>
       </div>
 
 
       {/* Main Navigation */}
-      <nav className="grid grid-cols-5 gap-1 md:flex md:flex-col md:gap-1 md:p-4">
+      <nav className="grid grid-cols-4 gap-1 md:flex md:flex-col md:gap-1 md:p-4">
         <AdminNavLink href="/admin" icon={<Home />} label="Dashboard" color="text-sky-400" activeColor="text-sky-300" />
         <AdminNavLink href="/admin/caves" icon={<Mountain />} label="Gua" color="text-amber-400" activeColor="text-amber-300" />
         <AdminNavLink href="/admin/spots" icon={<MapPin />} label="Spot" color="text-rose-400" activeColor="text-rose-300" />
@@ -122,59 +174,6 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
         {/* Kiosk/Settings link for desktop */}
         <div className="hidden md:block">
             <AdminNavLink href="/admin/kiosk" icon={<Settings />} label="Pengaturan" color="text-violet-400" activeColor="text-violet-300" />
-        </div>
-        
-        {/* Profile button for mobile */}
-        <div className="md:hidden">
-            <Sheet open={isProfileSheetOpen} onOpenChange={setProfileSheetOpen}>
-                <SheetTrigger asChild>
-                     <button className='flex flex-col items-center justify-center rounded-md p-2 text-xs font-medium transition-colors text-violet-400 hover:bg-muted/50 hover:text-foreground w-full'>
-                         <UserIcon />
-                         <span className="mt-1 md:mt-0">Profil</span>
-                     </button>
-                </SheetTrigger>
-                <SheetContent side="bottom" className='rounded-t-lg'>
-                    <SheetHeader className='text-left'>
-                        <SheetTitle>Profil & Pengaturan</SheetTitle>
-                        <SheetDescription>Kelola akun, pengaturan, dan sesi Anda dari sini.</SheetDescription>
-                    </SheetHeader>
-                    <div className="py-4 space-y-2">
-                         <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 mb-4">
-                            <Avatar className="h-12 w-12">
-                                <AvatarImage src={user.photoURL || ''} />
-                                <AvatarFallback>{userProfile.displayName?.charAt(0) || 'A'}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                                <p className="text-md font-medium">{userProfile.displayName}</p>
-                                <p className="text-sm text-muted-foreground">{userProfile.email}</p>
-                            </div>
-                        </div>
-
-                        <Button variant="ghost" className="w-full justify-start" asChild>
-                            <Link href="/admin/kiosk" onClick={() => setProfileSheetOpen(false)}>
-                                <Settings className="mr-2 h-4 w-4" />
-                                Pengaturan Aplikasi
-                            </Link>
-                        </Button>
-
-                        <Button variant="ghost" className="w-full justify-start" asChild>
-                            <Link href="/" onClick={() => setProfileSheetOpen(false)}>
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Kembali ke Situs
-                            </Link>
-                        </Button>
-
-                         <Button
-                            variant="destructive"
-                            className="w-full justify-center mt-4"
-                            onClick={handleLogout}
-                            >
-                            <LogOut className="mr-2 h-4 w-4" />
-                            Logout
-                        </Button>
-                    </div>
-                </SheetContent>
-            </Sheet>
         </div>
       </nav>
 
