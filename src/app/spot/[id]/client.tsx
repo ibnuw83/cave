@@ -2,14 +2,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { Spot } from '@/lib/types';
 import LockedScreen from '@/app/components/locked-screen';
 import SpotPlayerUI from '@/app/components/spot-player-ui';
-import PanoramaViewer from '@/app/components/panorama-viewer';
-import { detectViewType } from '@/lib/view-type';
-import { Skeleton } from '@/components/ui/skeleton';
-
+import HybridViewer from '@/app/components/hybrid-viewer';
 
 async function findSpotOffline(spotId: string): Promise<Spot | null> {
   try {
@@ -41,28 +37,11 @@ export default function SpotPageClient({
   userRole: 'free' | 'pro' | 'admin';
 }) {
   const [spot, setSpot] = useState<Spot | null>(initialSpot);
-  const [effectiveViewType, setEffectiveViewType] = useState(spot?.viewType || 'auto');
-  const [isDetecting, setIsDetecting] = useState(spot?.viewType === 'auto');
 
   useEffect(() => {
     if (spot) return;
     findSpotOffline(spotId).then(setSpot);
   }, [spot, spotId]);
-
-  useEffect(() => {
-    async function checkViewType() {
-      if (spot && spot.viewType === 'auto') {
-        setIsDetecting(true);
-        const detectedType = await detectViewType(spot.imageUrl);
-        setEffectiveViewType(detectedType);
-        setIsDetecting(false);
-      } else if (spot) {
-        setEffectiveViewType(spot.viewType || 'flat');
-        setIsDetecting(false);
-      }
-    }
-    checkViewType();
-  }, [spot]);
 
   if (!spot) {
     return (
@@ -76,26 +55,12 @@ export default function SpotPageClient({
     return <LockedScreen spot={spot} />;
   }
 
-  if (isDetecting) {
-    return <Skeleton className="h-screen w-screen" />;
-  }
-  
-  const usePanorama = effectiveViewType === 'panorama' || effectiveViewType === 'full360';
-
   return (
-    <div className="relative w-full h-screen bg-black overflow-hidden">
-        {usePanorama ? (
-            <PanoramaViewer imageUrl={spot.imageUrl} />
-        ) : (
-            <Image
-                src={spot.imageUrl}
-                alt={spot.title}
-                fill
-                className="object-cover"
-                quality={100}
-            />
-        )}
+    <HybridViewer
+      imageUrl={spot.imageUrl}
+      forcedType={spot.viewType || 'auto'}
+    >
         <SpotPlayerUI spot={spot} userRole={userRole} />
-    </div>
+    </HybridViewer>
   );
 }
