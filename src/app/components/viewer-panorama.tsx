@@ -28,7 +28,7 @@ export default function PanoramaViewer({
 }) {
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden">
-        <Canvas camera={{ position: [0, 0, 0.1] }}>
+        <Canvas>
             <Suspense fallback={null}>
                 <Scene imageUrl={imageUrl} />
                 <OrbitControls
