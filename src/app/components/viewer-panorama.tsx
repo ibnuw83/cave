@@ -40,12 +40,16 @@ export default function PanoramaViewer({
     const sphere = new THREE.Mesh(geometry, material);
     scene.add(sphere);
 
-    // === MOUSE/TOUCH DRAG CONTROLS ===
+    // === MOUSE/TOUCH/GYRO CONTROLS ===
     let isDown = false;
     let lon = 0;
     let lat = 0;
     let lastX = 0;
     let lastY = 0;
+
+    // The initial device orientation
+    let initialDeviceAlpha: number | null = null;
+    let initialDeviceBeta: number | null = null;
 
     const onMouseDown = (e: MouseEvent) => {
       isDown = true;
@@ -119,10 +123,33 @@ export default function PanoramaViewer({
         }
     };
 
-
     const onTouchEnd = () => {
       isDown = false;
       lastTouchDistance.current = null;
+    };
+
+    // --- GYROSCOPE ---
+    const onDeviceOrientation = (e: DeviceOrientationEvent) => {
+      if (!e.alpha || !e.beta) {
+        return;
+      }
+
+      // `alpha` is the compass direction, which we use for horizontal rotation (lon).
+      // `beta` is the front-to-back tilt, for vertical rotation (lat).
+      
+      // Set the initial orientation on the first event.
+      if (initialDeviceAlpha === null) {
+        initialDeviceAlpha = e.alpha;
+        initialDeviceBeta = e.beta;
+      }
+
+      // Calculate the change from the initial orientation.
+      const deltaAlpha = e.alpha - initialDeviceAlpha;
+      const deltaBeta = e.beta - initialDeviceBeta;
+      
+      lon = deltaAlpha;
+      lat = deltaBeta * 0.5; // Reduce vertical sensitivity
+      lat = Math.max(-85, Math.min(85, lat)); // Clamp latitude
     };
 
 
@@ -134,6 +161,7 @@ export default function PanoramaViewer({
     renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: false });
     renderer.domElement.addEventListener('touchmove', onTouchMove, { passive: false });
     renderer.domElement.addEventListener('touchend', onTouchEnd);
+    window.addEventListener('deviceorientation', onDeviceOrientation);
 
 
     // === RENDER LOOP ===
@@ -175,6 +203,7 @@ export default function PanoramaViewer({
       renderer.domElement.removeEventListener('touchmove', onTouchMove);
       renderer.domElement.removeEventListener('touchend', onTouchEnd);
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('deviceorientation', onDeviceOrientation);
       renderer.dispose();
       if(mountRef.current && renderer.domElement){
           mountRef.current.removeChild(renderer.domElement);
