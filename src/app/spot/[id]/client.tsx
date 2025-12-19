@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Spot } from '@/lib/types';
 import LockedScreen from '@/app/components/locked-screen';
 import SpotPlayerUI from '@/app/components/spot-player-ui';
@@ -44,20 +45,18 @@ export default function SpotPageClient({
   const [spot, setSpot] = useState<Spot | null>(initialSpot);
   const [allSpotsInCave, setAllSpotsInCave] = useState<Spot[]>(initialAllSpots.sort((a, b) => a.order - b.order));
   const [loading, setLoading] = useState(!initialSpot);
+  const [vrMode, setVrMode] = useState(false);
+  const router = useRouter();
+
 
   useEffect(() => {
-    // This effect now only runs if the server failed to provide the initialSpot.
-    // It serves as a client-side fallback.
     if (!initialSpot) {
       setLoading(true);
       const fetchSpotAndSiblings = async () => {
         try {
-          // Fallback to client-side fetch or offline cache
           const onlineSpot = await getSpotClient(spotId);
           if (onlineSpot) {
             setSpot(onlineSpot);
-            // Note: This fallback doesn't fetch siblings to keep it simple.
-            // The main path is server-side fetching.
           } else {
             const { spot: offlineSpot, spots: offlineSiblings } = await findSpotOffline(spotId);
             setSpot(offlineSpot);
@@ -94,15 +93,21 @@ export default function SpotPageClient({
     return <LockedScreen spot={spot} />;
   }
   
-  // Directly use PanoramaViewer for panorama type to pass hotspots
   if (spot.viewType === 'panorama') {
     return (
         <PanoramaViewer
             imageUrl={spot.imageUrl}
             hotspots={spot.hotspots || []}
-            isFull360={true}
+            onNavigate={(navSpotId) => router.push(`/spot/${navSpotId}`)}
+            vrMode={vrMode}
         >
-            <SpotPlayerUI spot={spot} userRole={userRole} allSpots={allSpotsInCave} />
+            <SpotPlayerUI 
+              spot={spot} 
+              userRole={userRole} 
+              allSpots={allSpotsInCave}
+              vrMode={vrMode}
+              onVrModeChange={setVrMode}
+            />
         </PanoramaViewer>
     );
   }

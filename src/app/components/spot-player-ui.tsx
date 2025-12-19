@@ -5,7 +5,7 @@ import { Spot, Artifact } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Play, Pause, Loader2, Maximize, Minimize, ScanSearch, Sparkles, Trophy } from 'lucide-react';
+import { ChevronLeft, Play, Pause, Loader2, Maximize, Minimize, ScanSearch, Sparkles, Trophy, Orbit } from 'lucide-react';
 import { canVibrate, vibrate } from '@/lib/haptics';
 import {
   Carousel,
@@ -19,7 +19,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
 import { findArtifactForSpot, foundArtifact } from '@/lib/firestore';
-import { speak, stopSpeaking } from '@/lib/tts';
+import { stopSpeaking } from '@/lib/tts';
 
 
 function SpotNavigation({ currentSpotId, allSpots, isUIVisible }: { currentSpotId: string, allSpots: Spot[], isUIVisible: boolean }) {
@@ -142,7 +142,7 @@ async function convertPcmToWavUrl(base64PcmData: string): Promise<string> {
 }
 
 
-export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot, userRole: 'free' | 'pro' | 'admin', allSpots: Spot[] }) {
+export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false, onVrModeChange }: { spot: Spot, userRole: 'free' | 'pro' | 'admin', allSpots: Spot[], vrMode?: boolean; onVrModeChange?: (active: boolean) => void }) {
   const { user } = useUser();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -150,7 +150,6 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
   const [isUIVisible, setIsUIVisible] = useState(true);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const uiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
   const { toast } = useToast();
@@ -266,17 +265,15 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
             throw new Error(`AI narration failed (status: ${response.status})`);
         }
         
-        // The API route now sends raw base64 PCM data.
         const base64Pcm = await response.text();
         const audioUrl = await convertPcmToWavUrl(base64Pcm);
-
+        
         const audio = new Audio(audioUrl);
         audio.onended = () => {
-            URL.revokeObjectURL(audioUrl); // Clean up the object URL
+            URL.revokeObjectURL(audioUrl);
             handlePlaybackEnd();
         };
-        
-        // Assign to our global controller so stopSpeaking() can find it
+
         (window as any).currentAudio = audio;
         
         await audio.play();
@@ -294,8 +291,14 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
             title: 'Narasi Fallback', 
             description: 'Menggunakan suara browser karena narasi AI tidak tersedia.'
         });
+        
+        // This is a direct fallback without using the tts.ts module
+        const u = new SpeechSynthesisUtterance(spot.description);
+        u.lang = 'id-ID';
+        u.onend = handlePlaybackEnd;
+        (window as any).currentUtterance = u;
+        window.speechSynthesis.speak(u);
 
-        speak(spot.description, handlePlaybackEnd);
         setIsPlaying(true);
         setIsLoading(false);
     }
@@ -315,7 +318,6 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
         duration: 2000
     });
 
-    // Simulate scanning delay
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     const artifact = await findArtifactForSpot(spot.id);
@@ -402,10 +404,22 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
                         </Button>
                     </div>
                 </div>
-
-                <Button size="icon" variant="ghost" className="rounded-full h-12 w-12 bg-white/20 text-white backdrop-blur-sm hover:bg-white/40 flex-shrink-0" onClick={toggleFullscreen}>
-                  {isFullscreen ? <Minimize className="h-6 w-6" /> : <Maximize className="h-6 w-6" />}
-                </Button>
+                <div className='flex items-center gap-2'>
+                  {onVrModeChange && (
+                    <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="rounded-full h-12 w-12 bg-white/20 text-white backdrop-blur-sm hover:bg-white/40 flex-shrink-0" 
+                        onClick={() => onVrModeChange(!vrMode)}
+                    >
+                        <Orbit className="h-6 w-6" />
+                        <span className="sr-only">{vrMode ? 'Keluar dari Mode VR' : 'Masuk ke Mode VR'}</span>
+                    </Button>
+                  )}
+                  <Button size="icon" variant="ghost" className="rounded-full h-12 w-12 bg-white/20 text-white backdrop-blur-sm hover:bg-white/40 flex-shrink-0" onClick={toggleFullscreen}>
+                    {isFullscreen ? <Minimize className="h-6 w-6" /> : <Maximize className="h-6 w-6" />}
+                  </Button>
+                </div>
             </div>
         </div>
     </>
