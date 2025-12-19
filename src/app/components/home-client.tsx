@@ -113,6 +113,8 @@ const AuthSection = () => {
 
 export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
   const [settings, setSettings] = useState<KioskSettings | null>(null);
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
   const heroImage = placeholderImages.placeholderImages.find(img => img.id === 'spot-jomblang-light')?.imageUrl || '/placeholder.jpg';
 
@@ -124,6 +126,17 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
     fetchSettings();
   }, []);
   
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="text-center">
+          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+          <p className="mt-4 text-lg text-muted-foreground">Memuat sesi pengguna...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -170,7 +183,7 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
         </div>
       </header>
 
-      <main id="cave-list" className="bg-black pt-8 pb-16 md:pt-8 md:pb-16">
+      <main id="cave-list" className="bg-black pb-16">
          <div className="container mx-auto max-w-5xl px-4 md:px-8">
             <h2 className="mb-8 text-center text-3xl font-semibold text-white/90 md:text-4xl">Gua yang Tersedia</h2>
             {initialCaves.length > 0 ? (
