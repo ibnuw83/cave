@@ -25,7 +25,7 @@ function SpotNavigation({ currentSpotId, allSpots, isVisible }: { currentSpotId:
 
     return (
         <div className={cn(
-            "absolute bottom-36 left-1/2 -translate-x-1/2 w-full max-w-sm lg:max-w-md xl:max-w-lg z-20 transition-opacity duration-300",
+            "absolute bottom-36 left-1/2 -translate-x-1/2 w-full max-w-sm lg:max-w-md xl:max-w-lg z-20 transition-opacity duration-300 pointer-events-auto",
             isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
         )}>
             <Carousel opts={{
@@ -180,11 +180,11 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
   };
   
   return (
-    // This wrapper listens for taps to toggle UI visibility
-    <div className="absolute inset-0 z-10" onClick={toggleUIVisibility}>
+    // This wrapper listens for taps to toggle UI visibility, but doesn't block underlying events
+    <div className="absolute inset-0 z-10 pointer-events-none" onClick={toggleUIVisibility}>
         {/* Header */}
         <div className={cn(
-            "absolute top-0 left-0 right-0 p-4 z-20 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent transition-opacity duration-300",
+            "absolute top-0 left-0 right-0 p-4 z-20 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent transition-opacity duration-300 pointer-events-auto",
             isUIVisible ? "opacity-100" : "opacity-0 pointer-events-none"
         )}>
             <Button variant="ghost" className="text-white hover:bg-white/20 hover:text-white" asChild onClick={(e) => e.stopPropagation()}>
@@ -201,7 +201,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
         {/* Footer Controls */}
         <div 
             className={cn(
-                "absolute bottom-0 left-0 right-0 p-6 z-20 text-white bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-300",
+                "absolute bottom-0 left-0 right-0 p-6 z-20 text-white bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-300 pointer-events-auto",
                 isUIVisible ? "opacity-100" : "opacity-0 pointer-events-none"
             )}
             onClick={(e) => e.stopPropagation()} // Prevent taps inside footer from hiding UI
