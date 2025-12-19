@@ -261,3 +261,5 @@
     "reasoning": "The Firestore data structure is designed to support the \"Cave Explorer 4D\" application, focusing on mobile-first experience, 4D digital immersion (audio, haptics, visuals), and FREE/PRO access control. The structure prioritizes authorization independence using denormalization and structural segregation. It avoids `get()` calls in security rules to enable atomic operations. All read operations are public, so rules act only as validators, and never as filters (QAPs). The structure supports the core app features including listing caves and spots, immersive spot experiences, haptic feedback, Google Authentication, access control based on user roles, and personalized ambience. The addition of Artifacts and UserArtifacts collections supports the new gamification feature, allowing users to collect items and view them in their profile."
   }
 }
+
+    

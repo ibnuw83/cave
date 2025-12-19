@@ -19,7 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { getAllArtifacts, updateUserProfile } from '@/lib/firestore';
+import { updateUserProfile } from '@/lib/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -138,7 +138,10 @@ export default function ProfilePage() {
   const router = useRouter();
   const [isEditProfileOpen, setEditProfileOpen] = useState(false);
 
-  const allArtifacts = getAllArtifacts();
+  // Get all artifacts from DB
+  const allArtifactsQuery = useMemoFirebase(() => collection(firestore, 'artifacts'), [firestore]);
+  const { data: allArtifacts, isLoading: isAllArtifactsLoading } = useCollection<Artifact>(allArtifactsQuery);
+
 
   // Get user profile
   const userProfileRef = useMemoFirebase(() => {
@@ -152,7 +155,7 @@ export default function ProfilePage() {
     if (!user) return null;
     return collection(firestore, 'users', user.uid, 'artifacts');
   }, [user, firestore]);
-  const { data: foundArtifacts, isLoading: isArtifactsLoading } = useCollection<UserArtifact>(userArtifactsRef);
+  const { data: foundArtifacts, isLoading: isFoundArtifactsLoading } = useCollection<UserArtifact>(userArtifactsRef);
 
 
   useEffect(() => {
@@ -161,7 +164,7 @@ export default function ProfilePage() {
     }
   }, [user, isUserLoading, router]);
 
-  const loading = isUserLoading || isProfileLoading || isArtifactsLoading;
+  const loading = isUserLoading || isProfileLoading || isFoundArtifactsLoading || isAllArtifactsLoading;
 
   if (loading || !userProfile) {
     return (
@@ -231,7 +234,7 @@ export default function ProfilePage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {isArtifactsLoading ? (
+                    {isAllArtifactsLoading ? (
                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                             {Array.from({ length: 5 }).map((_, i) => (
                                 <Skeleton key={i} className="aspect-square w-full" />
@@ -239,10 +242,10 @@ export default function ProfilePage() {
                          </div>
                     ) : (
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                           {allArtifacts.map((artifact) => (
+                           {(allArtifacts || []).map((artifact) => (
                                <ArtifactCard key={artifact.id} artifact={artifact} isFound={foundArtifactIds.has(artifact.id)} />
                            ))}
-                           {allArtifacts.length === 0 && <p className="col-span-full text-center text-muted-foreground">Belum ada artefak yang bisa ditemukan.</p>}
+                           {(!allArtifacts || allArtifacts.length === 0) && <p className="col-span-full text-center text-muted-foreground">Belum ada artefak yang bisa ditemukan.</p>}
                         </div>
                     )}
                 </CardContent>
@@ -253,3 +256,5 @@ export default function ProfilePage() {
     </>
   );
 }
+
+    

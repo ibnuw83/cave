@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -251,7 +252,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
     // Simulate scanning delay
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    const artifact = findArtifactForSpot(spot.id);
+    const artifact = await findArtifactForSpot(spot.id);
 
     if (artifact) {
         foundArtifact(user.uid, artifact);
@@ -344,3 +345,5 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
     </>
   );
 }
+
+    
