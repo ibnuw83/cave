@@ -1,4 +1,3 @@
-
 'use client';
 
 import { CaveMiniMap } from '@/lib/types';
@@ -6,12 +5,16 @@ import { CaveMiniMap } from '@/lib/types';
 export function MiniMap({
   map,
   activeSpotId,
+  heading = 0, // Arah pandang dalam derajat
   onNavigate,
 }: {
   map: CaveMiniMap;
   activeSpotId: string;
+  heading?: number;
   onNavigate: (spotId: string) => void;
 }) {
+  const activeNode = map.nodes.find(n => n.id === activeSpotId);
+  
   return (
     <div className="absolute top-4 left-4 z-50 bg-black/70 rounded-lg p-3 text-white">
       <svg width="180" height="180" viewBox="0 0 100 100">
@@ -64,6 +67,16 @@ export function MiniMap({
             </g>
           );
         })}
+
+        {/* HEADING INDICATOR */}
+        {activeNode && (
+             <polygon
+                points="0,-6 4,4 -4,4"
+                fill="#00ffff"
+                transform={`translate(${activeNode.x}, ${activeNode.y}) rotate(${heading})`}
+            />
+        )}
+
       </svg>
 
       <div className="text-xs text-center mt-2 opacity-70">

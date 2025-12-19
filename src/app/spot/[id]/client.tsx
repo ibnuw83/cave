@@ -9,8 +9,6 @@ import HybridViewer from '@/app/components/hybrid-viewer';
 import { getSpotClient } from '@/lib/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import PanoramaViewer from '@/components/viewer-panorama';
-import { MiniMap } from '@/app/components/mini-map';
-import { petrukMiniMap } from '@/lib/maps/petruk';
 
 async function findSpotOffline(spotId: string): Promise<{ spot: Spot | null, spots: Spot[] }> {
   try {
@@ -97,20 +95,16 @@ export default function SpotPageClient({
   if (spot.isPro && userRole === 'free') {
     return <LockedScreen spot={spot} />;
   }
-  
-  // A simple check to see if we should show the Petruk map.
-  // In a real app, this logic would be more sophisticated, maybe based on `spot.caveId`.
-  const showMiniMap = spot.caveId === 'Goa Petruk';
 
   if (spot.viewType === 'panorama') {
     return (
         <PanoramaViewer
             imageUrl={spot.imageUrl}
             hotspots={spot.hotspots || []}
+            spotId={spot.id}
             onNavigate={goToSpot}
             vrMode={vrMode}
         >
-            {showMiniMap && <MiniMap map={petrukMiniMap} activeSpotId={spot.id} onNavigate={goToSpot} />}
             <SpotPlayerUI 
               spot={spot} 
               userRole={userRole} 
@@ -128,9 +122,6 @@ export default function SpotPageClient({
       imageUrl={spot.imageUrl}
       forcedType={spot.viewType !== 'auto' ? spot.viewType : undefined}
     >
-        {showMiniMap && spot.viewType === 'panorama' && (
-             <MiniMap map={petrukMiniMap} activeSpotId={spot.id} onNavigate={goToSpot} />
-        )}
         <SpotPlayerUI spot={spot} userRole={userRole} allSpots={allSpotsInCave} />
     </HybridViewer>
   );
