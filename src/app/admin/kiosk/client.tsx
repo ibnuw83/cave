@@ -660,7 +660,7 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
                 ))}
                 {playlistForm.formState.errors.playlist?.root && <FormMessage>{playlistForm.formState.errors.playlist.root.message}</FormMessage>}
                 {Array.isArray(playlistForm.formState.errors.playlist) && playlistForm.formState.errors.playlist.map((error, index) => (
-                    error && <FormMessage key={index}>Baris {index + 1}: {error.spotId?.message || error.duration?.message}</FormMessage>
+                    error && <FormMessage key={index}>Baris {index + 1}: {error.spotId?.message || error.duration?.message}</FormMessage></FormMessage>
                 ))}
                 </div>
 
@@ -686,4 +686,5 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
   );
 }
 
+    
     
