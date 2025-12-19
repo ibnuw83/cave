@@ -88,7 +88,7 @@ const AuthSection = () => {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-10 w-10 rounded-full">
             <Avatar className="h-10 w-10">
-              <AvatarImage src={user.photoURL || ''} alt={userProfile.displayName || 'User'} />
+              <AvatarImage src={userProfile.photoURL || ''} alt={userProfile.displayName || 'User'} />
               <AvatarFallback>{userProfile.displayName?.charAt(0) || 'U'}</AvatarFallback>
             </Avatar>
           </Button>
