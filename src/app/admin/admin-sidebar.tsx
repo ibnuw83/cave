@@ -26,7 +26,7 @@ import {
 
 function AdminNavLink({ href, icon, label, color, activeColor }: { href: string; icon: React.ReactNode; label: string; color: string; activeColor: string; }) {
   const pathname = usePathname();
-  const isActive = pathname === href;
+  const isActive = pathname.startsWith(href) && (href !== '/admin' || pathname === '/admin');
   
   return (
     <Link 
@@ -121,8 +121,8 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
             </SheetTrigger>
             <SheetContent side="bottom" className='rounded-t-lg'>
                 <SheetHeader className='text-left'>
-                    <SheetTitle>Profil & Pengaturan</SheetTitle>
-                    <SheetDescription>Kelola akun, pengaturan, dan sesi Anda dari sini.</SheetDescription>
+                    <SheetTitle>Profil & Sesi</SheetTitle>
+                    <SheetDescription>Kelola akun dan sesi Anda dari sini.</SheetDescription>
                 </SheetHeader>
                 <div className="py-4 space-y-2">
                       <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 mb-4">
@@ -135,13 +135,6 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
                             <p className="text-sm text-muted-foreground">{userProfile.email}</p>
                         </div>
                     </div>
-
-                    <Button variant="ghost" className="w-full justify-start" asChild>
-                        <Link href="/admin/kiosk" onClick={() => setProfileSheetOpen(false)}>
-                            <Settings className="mr-2 h-4 w-4" />
-                            Pengaturan Aplikasi
-                        </Link>
-                    </Button>
 
                     <Button variant="ghost" className="w-full justify-start" asChild>
                         <Link href="/" onClick={() => setProfileSheetOpen(false)}>
@@ -165,16 +158,12 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
 
 
       {/* Main Navigation */}
-      <nav className="grid grid-cols-4 gap-1 md:flex md:flex-col md:gap-1 md:p-4">
+      <nav className="grid grid-cols-5 gap-1 md:flex md:flex-col md:gap-1 md:p-4">
         <AdminNavLink href="/admin" icon={<Home />} label="Dashboard" color="text-sky-400" activeColor="text-sky-300" />
         <AdminNavLink href="/admin/caves" icon={<Mountain />} label="Gua" color="text-amber-400" activeColor="text-amber-300" />
         <AdminNavLink href="/admin/spots" icon={<MapPin />} label="Spot" color="text-rose-400" activeColor="text-rose-300" />
         <AdminNavLink href="/admin/users" icon={<Users />} label="Pengguna" color="text-emerald-400" activeColor="text-emerald-300" />
-        
-        {/* Kiosk/Settings link for desktop */}
-        <div className="hidden md:block">
-            <AdminNavLink href="/admin/kiosk" icon={<Settings />} label="Pengaturan" color="text-violet-400" activeColor="text-violet-300" />
-        </div>
+        <AdminNavLink href="/admin/kiosk" icon={<Settings />} label="Pengaturan" color="text-violet-400" activeColor="text-violet-300" />
       </nav>
 
       {/* Desktop User Profile Section */}
