@@ -4,7 +4,7 @@ import { Suspense, useRef } from 'react';
 import { Canvas, useLoader } from '@react-three/fiber';
 import { OrbitControls, Preload, Sphere } from '@react-three/drei';
 import * as THREE from 'three';
-import { Skeleton } from '../ui/skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function Scene({ imageUrl }: { imageUrl: string }) {
   const texture = useLoader(THREE.TextureLoader, imageUrl);
