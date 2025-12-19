@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { Mountain, LogOut, User, Trash2, ArrowDown, Loader2 } from 'lucide-react';
+import { Mountain, LogOut, User, Trash2, ArrowRight, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -174,9 +174,9 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
                     Rasakan pengalaman 4D menjelajahi keindahan gua-gua paling eksotis di Indonesia.
                  </p>
                  <Button size="lg" className="mt-8" asChild>
-                    <Link href="#cave-list">
+                    <Link href="/login">
                         Mulai Menjelajah
-                        <ArrowDown className="ml-2 h-5 w-5" />
+                        <ArrowRight className="ml-2 h-5 w-5" />
                     </Link>
                  </Button>
             </div>
