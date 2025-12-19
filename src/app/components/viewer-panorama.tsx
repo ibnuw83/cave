@@ -32,7 +32,7 @@ export default function PanoramaViewer({
             <Suspense fallback={null}>
                 <Scene imageUrl={imageUrl} />
                 <OrbitControls
-                    enableZoom={false}
+                    enableZoom={true}
                     enablePan={false}
                     rotateSpeed={-0.4}
                     autoRotate={false}
