@@ -74,11 +74,19 @@ export default function LoginPage() {
         description: "Selamat datang kembali!",
       });
     } catch (error: any) {
-       toast({
-        title: "Login Gagal",
-        description: "Email atau password salah.",
-        variant: "destructive",
-      });
+       if (error.code === 'auth/invalid-credential') {
+        toast({
+            title: "Login Gagal",
+            description: "Email atau password salah.",
+            variant: "destructive",
+          });
+       } else {
+           toast({
+            title: "Login Gagal",
+            description: "Terjadi kesalahan. Silakan coba lagi.",
+            variant: "destructive",
+          });
+       }
     }
   };
 

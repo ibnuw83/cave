@@ -13,7 +13,7 @@ import {
   sendPasswordResetEmail as firebaseSendPasswordResetEmail,
   updateProfile
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { useAuth as useFirebaseAuthHook, useUser as useFirebaseUserHook, initializeFirebase } from '@/firebase'; // Renamed to avoid conflicts
 import { UserProfile, RegisterData } from '@/lib/types';
 import { getUserProfileClient, createUserProfile } from '@/lib/firestore';
 import { useToast } from "@/hooks/use-toast";
@@ -33,63 +33,58 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const { user: firebaseUser, isUserLoading: firebaseUserLoading } = useFirebaseUserHook();
+  const auth = useFirebaseAuthHook(); // The hook to get the auth instance
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const router = useRouter();
 
-  const processAuth = useCallback(async (user: User) => {
-    setUser(user);
-    try {
+  const handleAuthChange = useCallback(async (user: User | null) => {
+    if (user) {
+      // User is signed in, fetch or create their profile
+      try {
         let profile = await getUserProfileClient(user.uid);
         if (!profile) {
-            console.log('Creating new user profile for:', user.uid);
-            // createUserProfile is now non-blocking for UI, but we still need to
-            // get the result for the initial session.
-            profile = await createUserProfile(user);
+          console.log('Creating new user profile for:', user.uid);
+          profile = await createUserProfile(user);
         }
         setUserProfile(profile);
-        return profile;
-    } catch (error: any) {
-        // The error is already handled by the emitter in getUserProfile/createUserProfile
-        // Just sign out if profile fails to load/create
+      } catch (error: any) {
         toast({
           variant: 'destructive',
           title: 'Gagal Memuat Profil',
-          description: 'Ada masalah saat memuat atau membuat profil pengguna Anda. Silakan coba lagi.'
+          description: 'Ada masalah saat memuat atau membuat profil pengguna Anda.'
         });
         await firebaseSignOut(auth);
-        setUser(null);
-        setUserProfile(null);
-        return null;
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setLoading(true);
-      if (user) {
-        // Only re-process if the user is different from the one in state
-        if (!userProfile || user.uid !== userProfile.uid) {
-           await processAuth(user);
-        }
-      } else {
-        setUser(null);
         setUserProfile(null);
       }
-      setLoading(false);
-    });
+    } else {
+      // User is signed out
+      setUserProfile(null);
+    }
+    setLoading(false);
+  }, [auth, toast]);
 
-    return () => unsubscribe();
-  }, [processAuth, userProfile]);
+
+  useEffect(() => {
+    // This effect combines the initial user loading state from the core firebase hook
+    // with the profile loading state.
+    if (firebaseUserLoading) {
+      setLoading(true);
+    } else {
+       // If firebase user state has resolved, trigger our handler.
+       handleAuthChange(firebaseUser);
+    }
+  }, [firebaseUser, firebaseUserLoading, handleAuthChange]);
+
 
   const signInWithGoogle = async () => {
     setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      const result = await signInWithPopup(auth, provider);
-      await processAuth(result.user);
+      // The onAuthStateChanged listener will handle the result
+      await signInWithPopup(auth, provider);
       router.push('/');
       toast({
         title: "Login Berhasil",
@@ -97,7 +92,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     } catch (error: any) {
       console.error("Error signing in with Google: ", error);
-      // Handle specific error codes if needed, e.g., 'auth/popup-closed-by-user'
       if (error.code !== 'auth/popup-closed-by-user') {
           toast({
             title: "Login Gagal",
@@ -105,8 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             variant: "destructive",
           });
       }
-    } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
   
@@ -137,13 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       await updateProfile(userCredential.user, { displayName: data.name });
       
-      // reload user to get displayName, onAuthStateChanged will then pick it up
-      await userCredential.user.reload();
-      const updatedUser = auth.currentUser;
-
-      if(updatedUser){
-        await processAuth(updatedUser);
-      }
+      // The onAuthStateChanged listener will pick up the new user and handle profile creation
       
       router.push('/');
        toast({
@@ -160,8 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 variant: "destructive",
             });
         }
-    } finally {
-        // Let onAuthStateChanged handle the final loading state
+        setLoading(false);
     }
   }
   
@@ -203,7 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading, signInWithGoogle, signInWithEmail, registerWithEmail, sendPasswordResetEmail, signOut }}>
+    <AuthContext.Provider value={{ user: firebaseUser, userProfile, loading, signInWithGoogle, signInWithEmail, registerWithEmail, sendPasswordResetEmail, signOut }}>
       {children}
     </AuthContext.Provider>
   );
