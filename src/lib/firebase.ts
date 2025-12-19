@@ -1,8 +1,8 @@
 
 import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
-import { getStorage, connectStorageEmulator } from 'firebase/storage';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 /* ==========================
    FIREBASE CONFIG
@@ -28,27 +28,5 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-
-/* ==========================
-   EMULATOR (OPTIONAL)
-========================== */
-// Gunakan variabel NEXT_PUBLIC_USE_EMULATOR di file .env.local Anda
-if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_USE_EMULATOR === 'true') {
-  console.log("Connecting to Firebase Emulators...");
-  try {
-      // Cek jika sudah terhubung untuk menghindari error Hot-Reload
-      if (!(auth as any)._emulator) {
-          connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
-      }
-      if (!(db as any)._settings.host || (db as any)._settings.host === 'firestore.googleapis.com') {
-          connectFirestoreEmulator(db, 'localhost', 8080);
-      }
-      if (!(storage as any)._emulator) {
-          connectStorageEmulator(storage, 'localhost', 9199);
-      }
-  } catch (e) {
-      console.error("Error connecting to emulators. Is it running?", e);
-  }
-}
 
 export default app;
