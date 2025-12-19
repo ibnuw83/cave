@@ -120,7 +120,7 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
   
   return (
     <div className="min-h-screen">
-      <header className="relative flex h-[60vh] md:h-[80vh] w-full flex-col items-center justify-center text-center text-white">
+      <header className="relative flex h-[70vh] w-full flex-col items-center justify-center text-center text-white">
         <div className="absolute inset-0 z-0">
           <Image
             src={heroImage}
@@ -133,7 +133,7 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black" />
         </div>
 
-        <div className="relative z-10 flex h-full flex-col justify-between p-4 md:p-8 w-full">
+        <div className="relative z-10 flex h-full flex-col justify-center p-4 md:p-8 w-full">
            <div className="absolute top-4 right-4">
                 <AuthSection />
             </div>
@@ -160,7 +160,6 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
                     </Link>
                  </Button>
             </div>
-             <div></div>
         </div>
       </header>
 
