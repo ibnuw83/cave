@@ -52,11 +52,9 @@ service cloud.firestore {
 
     /* ========= SPOTS ========= */
     match /spots/{spotId} {
-        // Hanya pengguna yang login yang bisa membaca spot individu
-        allow read: if isSignedIn();
-        // Admin bisa membaca seluruh daftar spot
-        allow list: if isAdmin();
-        // Admin bisa membuat, mengubah, dan menghapus spot
+        // Izinkan siapa saja membaca daftar spot atau spot individu
+        allow read, list: if true;
+        // Hanya Admin yang bisa membuat, mengubah, dan menghapus spot
         allow create, update, delete: if isAdmin();
     }
 
