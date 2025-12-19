@@ -1,11 +1,23 @@
 
+'use client';
+
 import { getCaves } from "@/lib/firestore";
 import KioskClient from "./client";
+import { Cave } from "@/lib/types";
+import { useEffect, useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export default async function KioskSettingsPage() {
-  // Fetch only the caves data server-side.
-  // Kiosk settings and spots will now be fetched client-side in real-time.
-  const caves = await getCaves(true);
+export default function KioskSettingsPage() {
+  const [caves, setCaves] = useState<Cave[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getCaves(true).then(c => {
+      setCaves(c);
+      setLoading(false);
+    });
+  }, []);
+
 
   return (
     <div className="p-4 md:p-8">
@@ -14,9 +26,16 @@ export default async function KioskSettingsPage() {
         <p className="text-muted-foreground">Kelola pengaturan umum dan mode kios.</p>
       </header>
       <div className="space-y-8">
-        <KioskClient 
-          initialCaves={caves}
-        />
+        {loading ? (
+           <div className="space-y-8">
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-96 w-full" />
+          </div>
+        ) : (
+          <KioskClient 
+            initialCaves={caves}
+          />
+        )}
       </div>
     </div>
   );
