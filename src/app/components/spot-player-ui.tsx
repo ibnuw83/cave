@@ -16,6 +16,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 
 function SpotNavigation({ currentSpotId, allSpots, isVisible }: { currentSpotId: string, allSpots: Spot[], isVisible: boolean }) {
@@ -28,7 +29,7 @@ function SpotNavigation({ currentSpotId, allSpots, isVisible }: { currentSpotId:
     return (
         <div className={cn(
             "absolute bottom-36 left-1/2 -translate-x-1/2 w-full max-w-sm lg:max-w-md xl:max-w-lg z-20 transition-opacity duration-300",
-            isVisible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+            isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
         )}>
             <Carousel opts={{
                 align: "start",
@@ -71,6 +72,22 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
   const [isUIVisible, setIsUIVisible] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const uiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const router = useRouter();
+
+  // Handle Escape key to go back
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        router.push(`/cave/${spot.caveId}`);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [router, spot.caveId]);
+
 
   // Auto-hide UI after a few seconds
   const resetUiTimeout = useCallback(() => {
@@ -189,7 +206,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
         <div className={cn(
             "absolute top-0 left-0 right-0 p-4 z-20 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent transition-opacity duration-300"
         )}>
-            <Button variant="ghost" className="text-white hover:bg-white/20 hover:text-white pointer-events-auto" asChild onClick={(e) => e.stopPropagation()}>
+            <Button variant="ghost" className="text-white hover:bg-white/20 hover:text-white pointer-events-auto" asChild>
                 <Link href={`/cave/${spot.caveId}`}>
                     <ChevronLeft className="mr-2 h-5 w-5" />
                     Kembali
@@ -203,8 +220,8 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
         {/* Footer Controls */}
         <div 
             className={cn(
-                "absolute bottom-0 left-0 right-0 p-6 z-20 text-white bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-300 pointer-events-auto",
-                isUIVisible ? "opacity-100" : "opacity-0"
+                "absolute bottom-0 left-0 right-0 p-6 z-20 text-white bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-300",
+                isUIVisible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
             )}
             onClick={(e) => e.stopPropagation()} // Prevent taps inside footer from hiding UI
         >
