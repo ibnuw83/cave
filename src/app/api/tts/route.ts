@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_CLOUD_TTS_KEY;
+  const apiKey = process.env.GOOGLE_CLOUD_TTS_KEY;
 
   if (!apiKey) {
     return NextResponse.json(
