@@ -2,108 +2,7 @@
 
 import { ReactNode, useRef, useEffect } from 'react';
 
-// Matriks dan utilitas vektor untuk WebGL
-const mat4 = {
-  perspective: function (out: number[], fovy: number, aspect: number, near: number, far: number) {
-    const f = 1.0 / Math.tan(fovy / 2);
-    out[0] = f / aspect;
-    out[1] = 0;
-    out[2] = 0;
-    out[3] = 0;
-    out[4] = 0;
-    out[5] = f;
-    out[6] = 0;
-    out[7] = 0;
-    out[8] = 0;
-    out[9] = 0;
-    out[11] = -1;
-    out[12] = 0;
-    out[13] = 0;
-    out[15] = 0;
-    if (far != null && far !== Infinity) {
-      const nf = 1 / (near - far);
-      out[10] = (far + near) * nf;
-      out[14] = 2 * far * near * nf;
-    } else {
-      out[10] = -1;
-      out[14] = -2 * near;
-    }
-    return out;
-  },
-  create: function () {
-    let out = new Float32Array(16);
-    out[0] = 1;
-    out[5] = 1;
-    out[10] = 1;
-    out[15] = 1;
-    return out;
-  },
-    rotateX: function (out: number[], a: number[], rad: number) {
-    let s = Math.sin(rad);
-    let c = Math.cos(rad);
-    let a10 = a[4];
-    let a11 = a[5];
-    let a12 = a[6];
-    let a13 = a[7];
-    let a20 = a[8];
-    let a21 = a[9];
-    let a22 = a[10];
-    let a23 = a[11];
-
-    if (a !== out) {
-      out[0] = a[0];
-      out[1] = a[1];
-      out[2] = a[2];
-      out[3] = a[3];
-      out[12] = a[12];
-      out[13] = a[13];
-      out[14] = a[14];
-      out[15] = a[15];
-    }
-    out[4] = a10 * c + a20 * s;
-    out[5] = a11 * c + a21 * s;
-    out[6] = a12 * c + a22 * s;
-    out[7] = a13 * c + a23 * s;
-    out[8] = a20 * c - a10 * s;
-    out[9] = a21 * c - a11 * s;
-    out[10] = a22 * c - a12 * s;
-    out[11] = a23 * c - a13 * s;
-    return out;
-  },
-    rotateY: function (out: number[], a: number[], rad: number) {
-    let s = Math.sin(rad);
-    let c = Math.cos(rad);
-    let a00 = a[0];
-    let a01 = a[1];
-    let a02 = a[2];
-    let a03 = a[3];
-    let a20 = a[8];
-    let a21 = a[9];
-    let a22 = a[10];
-    let a23 = a[11];
-    if (a !== out) {
-      out[4] = a[4];
-      out[5] = a[5];
-      out[6] = a[6];
-      out[7] = a[7];
-      out[12] = a[12];
-      out[13] = a[13];
-      out[14] = a[14];
-      out[15] = a[15];
-    }
-    out[0] = a00 * c - a20 * s;
-    out[1] = a01 * c - a21 * s;
-    out[2] = a02 * c - a22 * s;
-    out[3] = a03 * c - a23 * s;
-    out[8] = a00 * s + a20 * c;
-    out[9] = a01 * s + a21 * c;
-    out[10] = a02 * s + a22 * c;
-    out[11] = a03 * s + a23 * c;
-    return out;
-  },
-};
-
-export function PanoramaViewer({ imageUrl, children }: { imageUrl: string; children: ReactNode }) {
+export function PanoramaViewer({ imageUrl, children }: { imageUrl: string, children: ReactNode }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -117,26 +16,25 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string; child
     }
 
     const vertexShaderSource = `
-      attribute vec3 a_position;
-      uniform mat4 u_projection;
-      uniform mat4 u_view;
-      varying vec3 v_texcoord;
+      attribute vec4 a_position;
+      uniform mat4 u_matrix;
+      varying vec2 v_texcoord;
+
       void main() {
-        gl_Position = u_projection * u_view * vec4(a_position, 1.0);
-        v_texcoord = a_position;
+        gl_Position = u_matrix * a_position;
+        v_texcoord = a_position.xy * 0.5 + 0.5;
+        // Invert Y for texture mapping
+        v_texcoord.y = 1.0 - v_texcoord.y;
       }
     `;
 
     const fragmentShaderSource = `
       precision mediump float;
+      varying vec2 v_texcoord;
       uniform sampler2D u_texture;
-      varying vec3 v_texcoord;
+
       void main() {
-        vec3 normal = normalize(v_texcoord);
-        float phi = atan(normal.z, normal.x);
-        float theta = asin(normal.y);
-        vec2 uv = vec2(phi / (2.0 * 3.1415926535) + 0.5, theta / 3.1415926535 + 0.5);
-        gl_FragColor = texture2D(u_texture, uv);
+        gl_FragColor = texture2D(u_texture, v_texcoord);
       }
     `;
 
@@ -145,83 +43,95 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string; child
       if (!shader) return null;
       gl.shaderSource(shader, source);
       gl.compileShader(shader);
-      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        console.error('Gagal mengompilasi shader:', gl.getShaderInfoLog(shader));
-        gl.deleteShader(shader);
-        return null;
-      }
-      return shader;
+      const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+      if (success) return shader;
+
+      console.error(gl.getShaderInfoLog(shader));
+      gl.deleteShader(shader);
+      return null;
+    }
+
+    function createProgram(gl: WebGLRenderingContext, vertexShader: WebGLShader, fragmentShader: WebGLShader) {
+      const program = gl.createProgram();
+      if (!program) return null;
+      gl.attachShader(program, vertexShader);
+      gl.attachShader(program, fragmentShader);
+      gl.linkProgram(program);
+      const success = gl.getProgramParameter(program, gl.LINK_STATUS);
+      if (success) return program;
+
+      console.error(gl.getProgramInfoLog(program));
+      gl.deleteProgram(program);
+      return null;
     }
 
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
     const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+
     if (!vertexShader || !fragmentShader) return;
-
-    const program = gl.createProgram();
+    const program = createProgram(gl, vertexShader, fragmentShader);
     if (!program) return;
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      console.error('Gagal menautkan program:', gl.getProgramInfoLog(program));
-      return;
-    }
-    gl.useProgram(program);
 
-    const positionLocation = gl.getAttribLocation(program, 'a_position');
-    const projectionLocation = gl.getUniformLocation(program, 'u_projection');
-    const viewLocation = gl.getUniformLocation(program, 'u_view');
-    const textureLocation = gl.getUniformLocation(program, 'u_texture');
+    const positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+    const matrixLocation = gl.getUniformLocation(program, "u_matrix");
+    const textureLocation = gl.getUniformLocation(program, "u_texture");
 
-    // Buat bola (sphere)
+    const positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+    // Create a sphere
+    const sphereRadius = 1;
     const latitudeBands = 30;
     const longitudeBands = 30;
-    const radius = 2;
     const vertexPositionData: number[] = [];
-    const indexData: number[] = [];
+    const textureCoordData: number[] = [];
     for (let latNumber = 0; latNumber <= latitudeBands; latNumber++) {
-      const theta = (latNumber * Math.PI) / latitudeBands;
+      const theta = latNumber * Math.PI / latitudeBands;
       const sinTheta = Math.sin(theta);
       const cosTheta = Math.cos(theta);
       for (let longNumber = 0; longNumber <= longitudeBands; longNumber++) {
-        const phi = (longNumber * 2 * Math.PI) / longitudeBands;
+        const phi = longNumber * 2 * Math.PI / longitudeBands;
         const sinPhi = Math.sin(phi);
         const cosPhi = Math.cos(phi);
         const x = cosPhi * sinTheta;
         const y = cosTheta;
         const z = sinPhi * sinTheta;
-        vertexPositionData.push(radius * x, radius * y, radius * z);
+        const u = 1 - (longNumber / longitudeBands);
+        const v = 1 - (latNumber / latitudeBands);
+        textureCoordData.push(u, v);
+        vertexPositionData.push(sphereRadius * x, sphereRadius * y, sphereRadius * z);
       }
     }
+
+    const indexData: number[] = [];
     for (let latNumber = 0; latNumber < latitudeBands; latNumber++) {
       for (let longNumber = 0; longNumber < longitudeBands; longNumber++) {
-        const first = latNumber * (longitudeBands + 1) + longNumber;
+        const first = (latNumber * (longitudeBands + 1)) + longNumber;
         const second = first + longitudeBands + 1;
-        indexData.push(first, second, first + 1, second, second + 1, first + 1);
+        indexData.push(first, second, first + 1);
+        indexData.push(second, second + 1, first + 1);
       }
     }
 
-    const positionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexPositionData), gl.STATIC_DRAW);
-
+    
     const indexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indexData), gl.STATIC_DRAW);
 
-    // Muat tekstur
+
+    // Load texture
     const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
+
     const image = new Image();
-    image.crossOrigin = 'anonymous'; // Penting untuk WebGL
+    image.crossOrigin = "anonymous";
     image.src = imageUrl;
     image.onload = () => {
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
       gl.generateMipmap(gl.TEXTURE_2D);
-      gl.bindTexture(gl.TEXTURE_2D, null);
-      render();
     };
 
     let rotationY = 0;
@@ -230,94 +140,174 @@ export function PanoramaViewer({ imageUrl, children }: { imageUrl: string; child
     let lastMouseX = 0;
     let lastMouseY = 0;
 
-    const onMouseDown = (e: MouseEvent | TouchEvent) => {
+    canvas.onmousedown = (e) => {
       isDragging = true;
-      lastMouseX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-      lastMouseY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
     };
-    const onMouseUp = () => isDragging = false;
-    const onMouseMove = (e: MouseEvent | TouchEvent) => {
+    canvas.onmouseup = () => isDragging = false;
+    canvas.onmouseleave = () => isDragging = false;
+    canvas.onmousemove = (e) => {
       if (!isDragging) return;
-      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-      const deltaX = clientX - lastMouseX;
-      const deltaY = clientY - lastMouseY;
-      rotationY += deltaX * 0.01;
-      rotationX += deltaY * 0.01;
-      rotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotationX)); // Batasi rotasi vertikal
-      lastMouseX = clientX;
-      lastMouseY = clientY;
+      const dx = e.clientX - lastMouseX;
+      const dy = e.clientY - lastMouseY;
+      rotationY -= dx * 0.01;
+      rotationX -= dy * 0.01;
+      rotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotationX)); // Clamp vertical rotation
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
     };
 
-    canvas.addEventListener('mousedown', onMouseDown);
-    canvas.addEventListener('mouseup', onMouseUp);
-    canvas.addEventListener('mouseleave', onMouseUp);
-    canvas.addEventListener('mousemove', onMouseMove);
-    canvas.addEventListener('touchstart', onMouseDown);
-    canvas.addEventListener('touchend', onMouseUp);
-    canvas.addEventListener('touchmove', onMouseMove);
-
-    function render() {
-      if (!gl || gl.isContextLost()) return;
-      
-      canvas.width = canvas.clientWidth;
-      canvas.height = canvas.clientHeight;
-      gl.viewport(0, 0, canvas.width, canvas.height);
-
-      gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    function drawScene() {
+      if (!gl || !program) return;
+      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       gl.enable(gl.DEPTH_TEST);
-
-      const projectionMatrix = mat4.create();
-      mat4.perspective(projectionMatrix, (45 * Math.PI) / 180, canvas.width / canvas.height, 0.1, 100.0);
-
-      const viewMatrix = mat4.create();
-      mat4.rotateX(viewMatrix, viewMatrix, rotationX);
-      mat4.rotateY(viewMatrix, viewMatrix, rotationY);
-      
       gl.useProgram(program);
-
+      gl.enableVertexAttribArray(positionAttributeLocation);
       gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-      gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 0, 0);
-      gl.enableVertexAttribArray(positionLocation);
+      gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, false, 0, 0);
 
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, texture);
+      const fieldOfView = 75 * Math.PI / 180;
+      const aspect = (gl.canvas as HTMLCanvasElement).clientWidth / (gl.canvas as HTMLCanvasElement).clientHeight;
+      const projectionMatrix = createPerspective(fieldOfView, aspect, 0.1, 100);
+      
+      let viewMatrix = createIdentity();
+      viewMatrix = rotateX(viewMatrix, rotationX);
+      viewMatrix = rotateY(viewMatrix, rotationY);
+      
+      // We are inside the sphere, so invert the view matrix
+      viewMatrix = inverse(viewMatrix);
+
+      const matrix = multiply(projectionMatrix, viewMatrix);
+
+      gl.uniformMatrix4fv(matrixLocation, false, matrix);
       gl.uniform1i(textureLocation, 0);
-
-      gl.uniformMatrix4fv(projectionLocation, false, projectionMatrix);
-      gl.uniformMatrix4fv(viewLocation, false, viewMatrix);
-
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
       gl.drawElements(gl.TRIANGLES, indexData.length, gl.UNSIGNED_SHORT, 0);
-      
-      requestAnimationFrame(render);
+      requestAnimationFrame(drawScene);
     }
     
-    let frameId = requestAnimationFrame(render);
-
+    requestAnimationFrame(drawScene);
+    
     return () => {
-      cancelAnimationFrame(frameId);
-      gl.deleteProgram(program);
-      gl.deleteShader(vertexShader);
-      gl.deleteShader(fragmentShader);
-      gl.deleteBuffer(positionBuffer);
-      gl.deleteBuffer(indexBuffer);
-      gl.deleteTexture(texture);
-      canvas.removeEventListener('mousedown', onMouseDown);
-      canvas.removeEventListener('mouseup', onMouseUp);
-      canvas.removeEventListener('mouseleave', onMouseUp);
-      canvas.removeEventListener('mousemove', onMouseMove);
-      canvas.removeEventListener('touchstart', onMouseDown);
-      canvas.removeEventListener('touchend', onMouseUp);
-      canvas.removeEventListener('touchmove', onMouseMove);
-    };
+      // Cleanup
+    }
+
   }, [imageUrl]);
 
   return (
     <div className="relative w-full h-screen bg-black">
-      <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
+      <canvas ref={canvasRef} className="w-full h-full" width="1920" height="1080"/>
       {children}
     </div>
   );
+}
+
+// WebGL Math Helpers
+function createPerspective(fov: number, aspect: number, near: number, far: number) {
+  const f = 1.0 / Math.tan(fov / 2);
+  const rangeInv = 1 / (near - far);
+  return [
+    f / aspect, 0, 0, 0,
+    0, f, 0, 0,
+    0, 0, (near + far) * rangeInv, -1,
+    0, 0, near * far * rangeInv * 2, 0
+  ];
+}
+
+function createIdentity() {
+    return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+}
+
+function multiply(a: number[], b: number[]) {
+    let a00 = a[0*4+0], a01 = a[0*4+1], a02 = a[0*4+2], a03 = a[0*4+3];
+    let a10 = a[1*4+0], a11 = a[1*4+1], a12 = a[1*4+2], a13 = a[1*4+3];
+    let a20 = a[2*4+0], a21 = a[2*4+1], a22 = a[2*4+2], a23 = a[2*4+3];
+    let a30 = a[3*4+0], a31 = a[3*4+1], a32 = a[3*4+2], a33 = a[3*4+3];
+    let b00 = b[0*4+0], b01 = b[0*4+1], b02 = b[0*4+2], b03 = b[0*4+3];
+    let b10 = b[1*4+0], b11 = b[1*4+1], b12 = b[1*4+2], b13 = b[1*4+3];
+    let b20 = b[2*4+0], b21 = b[2*4+1], b22 = b[2*4+2], b23 = b[2*4+3];
+    let b30 = b[3*4+0], b31 = b[3*4+1], b32 = b[3*4+2], b33 = b[3*4+3];
+    return [
+      b00*a00+b01*a10+b02*a20+b03*a30, b00*a01+b01*a11+b02*a21+b03*a31, b00*a02+b01*a12+b02*a22+b03*a32, b00*a03+b01*a13+b02*a23+b03*a33,
+      b10*a00+b11*a10+b12*a20+b13*a30, b10*a01+b11*a11+b12*a21+b13*a31, b10*a02+b11*a12+b12*a22+b13*a32, b10*a03+b11*a13+b12*a23+b13*a33,
+      b20*a00+b21*a10+b22*a20+b23*a30, b20*a01+b21*a11+b22*a21+b23*a31, b20*a02+b21*a12+b22*a22+b23*a32, b20*a03+b21*a13+b22*a23+b23*a33,
+      b30*a00+b31*a10+b32*a20+b33*a30, b30*a01+b31*a11+b32*a21+b33*a31, b30*a02+b31*a12+b32*a22+b33*a32, b30*a03+b31*a13+b32*a23+b33*a33,
+    ];
+}
+
+function rotateX(m: number[], angle: number) {
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
+    const m10 = m[4], m11 = m[5], m12 = m[6], m13 = m[7];
+    const m20 = m[8], m21 = m[9], m22 = m[10], m23 = m[11];
+    m[4] = m10 * c + m20 * s;
+    m[5] = m11 * c + m21 * s;
+    m[6] = m12 * c + m22 * s;
+    m[7] = m13 * c + m23 * s;
+    m[8] = m10 * -s + m20 * c;
+    m[9] = m11 * -s + m21 * c;
+    m[10] = m12 * -s + m22 * c;
+    m[11] = m13 * -s + m23 * c;
+    return m;
+}
+
+function rotateY(m: number[], angle: number) {
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
+    const m00 = m[0], m01 = m[1], m02 = m[2], m03 = m[3];
+    const m20 = m[8], m21 = m[9], m22 = m[10], m23 = m[11];
+    m[0] = m00 * c - m20 * s;
+    m[1] = m01 * c - m21 * s;
+    m[2] = m02 * c - m22 * s;
+    m[3] = m03 * c - m23 * s;
+    m[8] = m00 * s + m20 * c;
+    m[9] = m01 * s + m21 * c;
+    m[10] = m02 * s + m22 * c;
+    m[11] = m03 * s + m23 * c;
+    return m;
+}
+
+function inverse(m: number[]) {
+    let m00 = m[0], m01 = m[1], m02 = m[2], m03 = m[3];
+    let m10 = m[4], m11 = m[5], m12 = m[6], m13 = m[7];
+    let m20 = m[8], m21 = m[9], m22 = m[10], m23 = m[11];
+    let m30 = m[12], m31 = m[13], m32 = m[14], m33 = m[15];
+
+    let b00 = m00 * m11 - m01 * m10;
+    let b01 = m00 * m12 - m02 * m10;
+    let b02 = m00 * m13 - m03 * m10;
+    let b03 = m01 * m12 - m02 * m11;
+    let b04 = m01 * m13 - m03 * m11;
+    let b05 = m02 * m13 - m03 * m12;
+    let b06 = m20 * m31 - m21 * m30;
+    let b07 = m20 * m32 - m22 * m30;
+    let b08 = m20 * m33 - m23 * m30;
+    let b09 = m21 * m32 - m22 * m31;
+    let b10 = m21 * m33 - m23 * m31;
+    let b11 = m22 * m33 - m23 * m32;
+
+    let det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+    if (!det) return m;
+    det = 1.0 / det;
+
+    let r = createIdentity();
+    r[0] = (m11 * b11 - m12 * b10 + m13 * b09) * det;
+    r[1] = (m02 * b10 - m01 * b11 - m03 * b09) * det;
+    r[2] = (m31 * b05 - m32 * b04 + m33 * b03) * det;
+    r[3] = (m22 * b04 - m21 * b05 - m23 * b03) * det;
+    r[4] = (m12 * b08 - m10 * b11 - m13 * b07) * det;
+    r[5] = (m00 * b11 - m02 * b08 + m03 * b07) * det;
+    r[6] = (m32 * b02 - m30 * b05 - m33 * b01) * det;
+    r[7] = (m20 * b05 - m22 * b02 + m23 * b01) * det;
+    r[8] = (m10 * b10 - m11 * b08 + m13 * b06) * det;
+    r[9] = (m01 * b08 - m00 * b10 - m03 * b06) * det;
+    r[10] = (m30 * b04 - m31 * b02 + m33 * b00) * det;
+    r[11] = (m21 * b02 - m20 * b04 - m23 * b00) * det;
+    r[12] = (m11 * b07 - m10 * b09 - m12 * b06) * det;
+    r[13] = (m00 * b09 - m01 * b07 + m02 * b06) * det;
+    r[14] = (m31 * b01 - m30 * b03 - m32 * b00) * det;
+    r[15] = (m20 * b03 - m21 * b01 + m22 * b00) * det;
+    return r;
 }
