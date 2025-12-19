@@ -49,7 +49,7 @@ const AuthSection = () => {
   };
 
 
-  if (loading || !user) {
+  if (loading) {
     return null;
   }
 
@@ -170,7 +170,7 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
         </div>
       </header>
 
-      <main id="cave-list" className="bg-black py-16 md:py-24">
+      <main id="cave-list" className="bg-black py-8 md:py-16">
          <div className="container mx-auto max-w-5xl px-4 md:px-8">
             <h2 className="mb-8 text-center text-3xl font-semibold text-white/90 md:text-4xl">Gua yang Tersedia</h2>
             {initialCaves.length > 0 ? (
