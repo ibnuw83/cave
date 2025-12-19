@@ -46,6 +46,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [settings, setSettings] = useState<KioskSettings | null>(null);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   useEffect(() => {
     if(!isUserLoading && user) {
@@ -84,6 +85,7 @@ export default function LoginPage() {
   };
 
   const signInWithGoogle = async () => {
+    setIsGoogleLoading(true);
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
@@ -96,6 +98,8 @@ export default function LoginPage() {
             variant: "destructive",
           });
       }
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
   
@@ -122,6 +126,7 @@ export default function LoginPage() {
   };
 
   const isSubmitting = form.formState.isSubmitting;
+  const isLoading = isSubmitting || isGoogleLoading || isUserLoading;
 
   return (
     <div className="relative min-h-screen bg-background p-4">
@@ -146,8 +151,8 @@ export default function LoginPage() {
                 <p className="mt-2 text-muted-foreground">Masuk untuk memulai petualangan.</p>
                 </div>
 
-                <Button variant="outline" className="w-full" onClick={signInWithGoogle} disabled={isUserLoading || isSubmitting}>
-                    {isUserLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="mr-2"/> Lanjutkan dengan Google</>}
+                <Button variant="outline" className="w-full" onClick={signInWithGoogle} disabled={isLoading}>
+                    {isGoogleLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="mr-2"/> Lanjutkan dengan Google</>}
                 </Button>
                 
                 <div className="relative">
@@ -168,7 +173,7 @@ export default function LoginPage() {
                         <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                            <Input placeholder="anda@email.com" {...field} />
+                            <Input placeholder="anda@email.com" {...field} disabled={isLoading} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -181,7 +186,7 @@ export default function LoginPage() {
                         <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                            <Input type="password" placeholder="••••••••" {...field} />
+                            <Input type="password" placeholder="••••••••" {...field} disabled={isLoading}/>
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -190,8 +195,8 @@ export default function LoginPage() {
                     <div className="flex items-center justify-end">
                         <Button type="button" variant="link" className="p-0 h-auto text-xs" onClick={handleForgotPassword}>Lupa Password?</Button>
                     </div>
-                    <Button type="submit" className="w-full" disabled={isUserLoading || isSubmitting}>
-                    {isSubmitting || isUserLoading ? <Loader2 className="animate-spin" /> : 'Masuk'}
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isSubmitting ? <Loader2 className="animate-spin" /> : 'Masuk'}
                     </Button>
                 </form>
                 </Form>

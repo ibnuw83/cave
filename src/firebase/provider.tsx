@@ -78,20 +78,30 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       try {
         let profile = await getUserProfileClient(user.uid);
         if (!profile) {
+          toast({ title: "Membuat Profil...", description: "Selamat datang! Kami sedang menyiapkan akun Anda." });
           profile = await createUserProfile(user);
           toast({ title: "Selamat Datang!", description: "Profil baru Anda telah dibuat." });
         }
         setUserAuthState(prev => ({ ...prev, userProfile: profile, isProfileLoading: false }));
       } catch (error: any) {
+        console.error("Critical error handling user profile:", error);
         toast({
           variant: 'destructive',
           title: 'Gagal Memuat Profil',
-          description: 'Ada masalah saat memuat profil Anda. Mencoba keluar...'
+          description: 'Ada masalah saat memuat data akun Anda. Silakan coba login kembali.'
         });
+        // Log out the user to prevent being in a broken state
         await firebaseSignOut(auth);
-        setUserAuthState(prev => ({ ...prev, userProfile: null, isProfileLoading: false, userError: error }));
+        setUserAuthState({
+            user: null,
+            isUserLoading: false,
+            userError: error,
+            userProfile: null,
+            isProfileLoading: false,
+        });
       }
     } else {
+      // User is logged out, clear profile info
       setUserAuthState(prev => ({ ...prev, userProfile: null, isProfileLoading: false }));
     }
   }, [auth, toast]);

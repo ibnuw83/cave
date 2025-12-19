@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -47,32 +46,26 @@ export async function getUserProfileClient(uid: string): Promise<UserProfile | n
   }
 }
 
-export function createUserProfile(user: User): Promise<UserProfile> {
-  return new Promise((resolve, reject) => {
-    const userProfileData: Omit<UserProfile, 'id' | 'email'> = {
+export async function createUserProfile(user: User): Promise<UserProfile> {
+    const userProfileData: Omit<UserProfile, 'id'> = {
       displayName: user.displayName,
+      email: user.email,
       photoURL: user.photoURL,
       role: 'free',
       updatedAt: serverTimestamp(),
     };
     const userRef = doc(db, 'users', user.uid);
 
-    // Use setDoc with { merge: true } to avoid overwriting existing data
-    // if the profile document somehow already exists.
-    setDoc(userRef, { email: user.email, ...userProfileData }, { merge: true })
-      .then(() => {
-        const resolvedProfile: UserProfile = {
+    try {
+        await setDoc(userRef, userProfileData, { merge: true });
+        const createdProfile: UserProfile = {
             id: user.uid,
-            email: user.email,
-            displayName: user.displayName,
-            photoURL: user.photoURL,
-            role: 'free',
-            updatedAt: serverTimestamp(), // This will be a sentinal value
-        };
-        resolve(resolvedProfile);
-      })
-      .catch(error => {
-        if (error.code === 'permission-denied') {
+            ...userProfileData,
+            updatedAt: new Date(), // Use local date for immediate feedback
+        } as UserProfile
+        return createdProfile;
+    } catch (error) {
+         if (error.code === 'permission-denied') {
           const permissionError = new FirestorePermissionError({
             path: `/users/${user.uid}`,
             operation: 'create',
@@ -80,10 +73,11 @@ export function createUserProfile(user: User): Promise<UserProfile> {
           });
           errorEmitter.emit('permission-error', permissionError);
         }
-        reject(error);
-      });
-  });
+        // Re-throw to be caught by the caller
+        throw error;
+    }
 }
+
 
 export async function updateUserProfile(uid: string, data: Partial<Pick<UserProfile, 'displayName' | 'photoURL'>>) {
     const userRef = doc(db, 'users', uid);
