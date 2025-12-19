@@ -6,33 +6,34 @@ import { Spot } from '@/lib/types';
 import LockedScreen from '@/app/components/locked-screen';
 import SpotPlayerUI from '@/app/components/spot-player-ui';
 import HybridViewer from '@/app/components/hybrid-viewer';
-import { getSpotClient, getSpots } from '@/lib/firestore'; // Import the client-side fetcher
+import { getSpotClient, getSpots } from '@/lib/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 
 
-async function findSpotOffline(spotId: string): Promise<Spot | null> {
+async function findSpotOffline(spotId: string): Promise<{ spot: Spot | null, spots: Spot[] }> {
   try {
     const cache = await caches.open('penjelajah-gua-offline-v1');
     const indexRes = await cache.match('offline-index');
-    if (!indexRes) return null;
+    if (!indexRes) return { spot: null, spots: [] };
 
     const index = await indexRes.json();
     const caveId = index[spotId];
-    if (!caveId) return null;
+    if (!caveId) return { spot: null, spots: [] };
 
     const dataRes = await cache.match(`cave-data-${caveId}`);
-    if (!dataRes) return null;
+    if (!dataRes) return { spot: null, spots: [] };
 
     const data = await dataRes.json();
-    return data.spots.find((s: Spot) => s.id === spotId) || null;
+    const currentSpot = data.spots.find((s: Spot) => s.id === spotId) || null;
+    return { spot: currentSpot, spots: data.spots || [] };
   } catch {
-    return null;
+    return { spot: null, spots: [] };
   }
 }
 
 export default function SpotPageClient({
   spotId,
-  initialSpot,
+  initialSpot, // This might be null if server-side fetch failed
   userRole,
 }: {
   spotId: string;
@@ -45,37 +46,34 @@ export default function SpotPageClient({
 
   useEffect(() => {
     async function fetchSpotAndSiblings() {
-      if (loading === false && spot) return;
+      setLoading(true);
+      let currentSpot: Spot | null = null;
+      let siblingSpots: Spot[] = [];
 
-      let currentSpot: Spot | null = spot;
-
-      // 1. Fetch the primary spot if not already available
-      if (!currentSpot) {
-        try {
-          currentSpot = await getSpotClient(spotId);
-        } catch (e) {
-          console.warn("Client-side online fetch failed, trying offline.", e);
-          currentSpot = await findSpotOffline(spotId);
+      try {
+        // First, try to get data using the reliable Firestore call
+        currentSpot = await getSpotClient(spotId);
+        if (currentSpot) {
+          siblingSpots = await getSpots(currentSpot.caveId);
         }
+      } catch (e) {
+        console.warn("Client-side online fetch failed, trying offline.", e);
+        // If online fails, try to get everything from offline cache
+        const offlineData = await findSpotOffline(spotId);
+        currentSpot = offlineData.spot;
+        siblingSpots = offlineData.spots;
       }
-      
+
       setSpot(currentSpot);
-
-      // 2. Fetch all other spots from the same cave for navigation
-      if (currentSpot) {
-        try {
-          const siblingSpots = await getSpots(currentSpot.caveId);
-          setAllSpotsInCave(siblingSpots.sort((a, b) => a.order - b.order));
-        } catch (error) {
-          console.error("Failed to fetch sibling spots:", error);
-        }
-      }
-      
+      setAllSpotsInCave(siblingSpots.sort((a, b) => a.order - b.order));
       setLoading(false);
     }
     
+    // We only need to run this on the initial load or if the spotId changes.
+    // The initialSpot from SSR is just a performance optimization.
     fetchSpotAndSiblings();
-  }, [spotId, spot, loading]);
+
+  }, [spotId]);
 
 
   if (loading) {
