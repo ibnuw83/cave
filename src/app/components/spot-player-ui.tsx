@@ -215,7 +215,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
         await audio.play();
         setIsPlaying(true);
 
-        if (spot.effects?.vibrationPattern) {
+        if (spot.effects?.vibrationPattern && spot.effects.vibrationPattern.length > 0) {
           vibrate(spot.effects.vibrationPattern);
         }
 
