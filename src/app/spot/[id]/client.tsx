@@ -58,7 +58,7 @@ export default function SpotPageClient({
   return (
     <HybridViewer
       imageUrl={spot.imageUrl}
-      forcedType={spot.viewType || 'auto'}
+      forcedType={spot.viewType !== 'auto' ? spot.viewType : undefined}
     >
         <SpotPlayerUI spot={spot} userRole={userRole} />
     </HybridViewer>
