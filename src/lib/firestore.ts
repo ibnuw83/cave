@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -117,11 +118,13 @@ export async function getAllUsersAdmin(): Promise<UserProfile[]> {
   }
 }
 
-export function updateUserRole(uid: string, role: 'free' | 'pro' | 'admin') {
+export async function updateUserRole(uid: string, role: 'free' | 'pro' | 'admin') {
   const userRef = doc(db, 'users', uid);
   const dataToUpdate = { role, updatedAt: serverTimestamp() };
 
-  updateDoc(userRef, dataToUpdate).catch(error => {
+  try {
+    await updateDoc(userRef, dataToUpdate);
+  } catch (error: any) {
     if (error.code === 'permission-denied') {
         const permissionError = new FirestorePermissionError({
             path: `/users/${uid}`,
@@ -130,7 +133,9 @@ export function updateUserRole(uid: string, role: 'free' | 'pro' | 'admin') {
         });
         errorEmitter.emit('permission-error', permissionError);
     }
-  });
+    // Re-throw the error so the calling function knows it failed
+    throw error;
+  }
 }
 
 // --- Cave Functions (Client-Side) ---

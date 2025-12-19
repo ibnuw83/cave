@@ -1,8 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
-import { collection, doc } from 'firebase/firestore';
+import { useState, useMemo, useEffect } from 'react';
 import { UserProfile } from '@/lib/types';
 import { updateUserRole } from '@/lib/firestore';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -10,21 +9,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useCollection, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useUser } from '@/firebase';
 
-export default function UsersClient() {
+export default function UsersClient({ initialUsers }: { initialUsers: UserProfile[] }) {
+  const [users, setUsers] = useState(initialUsers);
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const { user: currentUser } = useUser();
-  const firestore = useFirestore();
 
-  const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
-  const { data: users, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
+  // Effect to update local state if the initialUsers prop changes.
+  useEffect(() => {
+    setUsers(initialUsers);
+  }, [initialUsers]);
 
-  const handleRoleChange = (uid: string, newRole: 'free' | 'pro' | 'admin') => {
-    if (!users) return;
-    const userToChange = users.find(u => u.id === uid); // use `id` from useCollection
+  const handleRoleChange = async (uid: string, newRole: 'free' | 'pro' | 'admin') => {
+    const userToChange = users.find(u => u.id === uid);
     
     if (currentUser?.uid === uid) {
       toast({
@@ -48,32 +47,24 @@ export default function UsersClient() {
 
     setLoadingStates((prev) => ({ ...prev, [uid]: true }));
     
-    updateUserRole(uid, newRole);
-
-    toast({ title: "Memperbarui", description: `Mengubah peran untuk ${userToChange.displayName || userToChange.email}...` });
-    
-    setTimeout(() => {
-      setLoadingStates((prev) => ({ ...prev, [uid]: false }));
-    }, 1500);
+    try {
+        await updateUserRole(uid, newRole);
+        // Optimistically update the UI
+        setUsers(currentUsers => 
+            currentUsers.map(u => u.id === uid ? { ...u, role: newRole } : u)
+        );
+        toast({ title: "Berhasil", description: `Peran untuk ${userToChange.displayName || userToChange.email} telah diubah.` });
+    } catch (error) {
+        // Error will be shown by the global error handler
+    } finally {
+        setLoadingStates((prev) => ({ ...prev, [uid]: false }));
+    }
   };
   
   const sortedUsers = useMemo(() => {
-    if (!users) {
-        return [];
-    }
-    return [...users].sort((a, b) => a.displayName?.localeCompare(b.displayName || '') || 0);
+    return [...users].sort((a, b) => (a.displayName || a.email || '').localeCompare(b.displayName || b.email || ''));
   }, [users]);
 
-
-  if (usersLoading) {
-      return (
-          <div className="space-y-4">
-              <Skeleton className="h-24 w-full" />
-              <Skeleton className="h-24 w-full" />
-              <Skeleton className="h-24 w-full" />
-          </div>
-      )
-  }
 
   return (
     <div className="space-y-4">
@@ -110,6 +101,7 @@ export default function UsersClient() {
           </CardHeader>
         </Card>
       ))}
+       {sortedUsers.length === 0 && <p className="text-center text-muted-foreground">Tidak ada pengguna yang terdaftar.</p>}
     </div>
   );
 }
