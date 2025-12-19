@@ -38,7 +38,7 @@ const staticSpots: Spot[] = [
         description: 'Formasi batuan kapur yang menjulang dari langit-langit gua.',
         imageUrl: placeholderImages.find(p => p.id === 'spot-gong-stalactite')?.imageUrl || '',
         isPro: false,
-        viewType: 'flat',
+        viewType: 'panorama',
     },
     {
         id: 'static-spot-gong-pool',
