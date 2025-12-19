@@ -133,7 +133,11 @@ const AuthSection = () => {
     );
   }
 
-  return null;
+  return (
+      <Button asChild>
+          <Link href="/login">Login</Link>
+      </Button>
+  );
 };
 
 
@@ -141,24 +145,10 @@ export default function HomeClient() {
   const [caves, setCaves] = useState<Cave[]>([]);
   const [settings, setSettings] = useState<KioskSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { user, isUserLoading } = useUser();
-  const router = useRouter();
-
+  
   const heroImage = placeholderImages.placeholderImages.find(img => img.id === 'spot-jomblang-light')?.imageUrl || '/placeholder.jpg';
   
   useEffect(() => {
-    // If auth state is still loading, do nothing.
-    if (isUserLoading) {
-      return;
-    }
-
-    // If auth state is resolved and there's no user, redirect to login.
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-    
-    // If there is a user, proceed to fetch the app data.
     setIsLoading(true);
     Promise.all([
       getCaves(false),
@@ -168,20 +158,18 @@ export default function HomeClient() {
       setSettings(settingsData);
     }).catch(err => {
       console.error("Failed to fetch initial data", err);
-      // Optionally handle data fetching errors, e.g., show a toast
     }).finally(() => {
       setIsLoading(false);
     });
 
-  }, [isUserLoading, user, router]);
+  }, []);
   
-  // Show a global loader while either auth or data is loading.
-  if (isUserLoading || isLoading || !user) {
+  if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="text-center">
           <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-          <p className="mt-4 text-lg text-muted-foreground">Memuat sesi pengguna...</p>
+          <p className="mt-4 text-lg text-muted-foreground">Memuat data...</p>
         </div>
       </div>
     );
