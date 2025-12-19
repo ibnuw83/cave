@@ -4,9 +4,9 @@
 import { useEffect, useState } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { UserProfile, Artifact, UserArtifact } from '@/lib/types';
-import { doc, collection } from 'firebase/firestore';
+import { doc, collection, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { Loader2, User as UserIcon, Gem, Award, ShieldCheck, Mail, ArrowLeft, BookUser } from 'lucide-react';
+import { Loader2, User as UserIcon, Gem, Award, ShieldCheck, Mail, ArrowLeft, BookUser, Edit } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -19,8 +19,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { getAllArtifacts } from '@/lib/firestore';
+import { getAllArtifacts, updateUserProfile } from '@/lib/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 
 
 function ArtifactCard({ artifact, isFound }: { artifact: Artifact; isFound: boolean }) {
@@ -57,10 +64,79 @@ function ArtifactCard({ artifact, isFound }: { artifact: Artifact; isFound: bool
 }
 
 
+const profileSchema = z.object({
+    displayName: z.string().min(1, 'Nama tidak boleh kosong'),
+    photoURL: z.string().url('URL foto tidak valid').or(z.literal('')),
+});
+type ProfileFormValues = z.infer<typeof profileSchema>;
+
+function EditProfileDialog({ userProfile, onOpenChange, open }: { userProfile: UserProfile, onOpenChange: (open: boolean) => void, open: boolean }) {
+    const { toast } = useToast();
+    const { user } = useUser();
+    const form = useForm<ProfileFormValues>({
+        resolver: zodResolver(profileSchema),
+        defaultValues: {
+            displayName: userProfile.displayName || '',
+            photoURL: userProfile.photoURL || '',
+        },
+    });
+
+    const onSubmit = async (data: ProfileFormValues) => {
+        if (!user) return;
+        try {
+            await updateUserProfile(user.uid, {
+                displayName: data.displayName,
+                photoURL: data.photoURL,
+            });
+            toast({ title: 'Berhasil', description: 'Profil Anda telah diperbarui.' });
+            onOpenChange(false);
+        } catch (error) {
+            console.error(error);
+            toast({ variant: 'destructive', title: 'Gagal', description: 'Gagal memperbarui profil.' });
+        }
+    };
+    
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Edit Profil</DialogTitle>
+                    <DialogDescription>
+                        Perbarui informasi profil Anda di sini.
+                    </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="displayName">Nama Tampilan</Label>
+                        <Input id="displayName" {...form.register('displayName')} />
+                        {form.formState.errors.displayName && <p className="text-sm text-destructive">{form.formState.errors.displayName.message}</p>}
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="photoURL">URL Foto Profil</Label>
+                        <Input id="photoURL" {...form.register('photoURL')} />
+                         {form.formState.errors.photoURL && <p className="text-sm text-destructive">{form.formState.errors.photoURL.message}</p>}
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button type="button" variant="secondary">Batal</Button>
+                        </DialogClose>
+                        <Button type="submit" disabled={form.formState.isSubmitting}>
+                            {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Simpan
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+
 export default function ProfilePage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const [isEditProfileOpen, setEditProfileOpen] = useState(false);
 
   const allArtifacts = getAllArtifacts();
 
@@ -106,6 +182,7 @@ export default function ProfilePage() {
   const foundArtifactIds = new Set(foundArtifacts?.map(a => a.id) || []);
 
   return (
+    <>
     <div className="container mx-auto max-w-5xl min-h-screen p-4 md:p-8">
         <header className="mb-8">
             <Button variant="ghost" asChild className="mb-4 -ml-4">
@@ -121,7 +198,12 @@ export default function ProfilePage() {
                         <AvatarFallback className="text-3xl">{userProfile.displayName?.charAt(0) || 'A'}</AvatarFallback>
                     </Avatar>
                     <div>
-                        <h1 className="text-3xl font-bold font-headline">{userProfile.displayName}</h1>
+                        <div className="flex items-center gap-2">
+                           <h1 className="text-3xl font-bold font-headline">{userProfile.displayName}</h1>
+                            <Button variant="ghost" size="icon" onClick={() => setEditProfileOpen(true)}>
+                                <Edit className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                        </div>
                         <div className="flex items-center gap-4 mt-2">
                            <Badge variant={userProfile.role === 'pro' || userProfile.role === 'admin' ? 'default' : 'secondary'} className="gap-2">
                                 {getRoleIcon(userProfile.role)}
@@ -167,5 +249,7 @@ export default function ProfilePage() {
            </Card>
         </main>
     </div>
+    {userProfile && <EditProfileDialog userProfile={userProfile} open={isEditProfileOpen} onOpenChange={setEditProfileOpen} />}
+    </>
   );
 }

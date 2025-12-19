@@ -58,6 +58,7 @@ export interface RegisterData {
   name: string;
   email: string;
   password: any;
+  photoURL?: string;
 }
 
 export interface KioskPlaylistItem {

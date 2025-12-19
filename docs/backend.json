@@ -108,6 +108,11 @@
           "description": "The user's email address.",
           "format": "email"
         },
+        "photoURL": {
+          "type": "string",
+          "description": "The URL of the user's profile photo.",
+          "format": "uri"
+        },
         "updatedAt": {
           "type": "string",
           "description": "The timestamp when the user's information was last updated.",

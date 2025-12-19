@@ -48,7 +48,7 @@ export async function getUserProfileClient(uid: string): Promise<UserProfile | n
 
 export function createUserProfile(user: User): Promise<UserProfile> {
   return new Promise((resolve, reject) => {
-    const userProfileData: Omit<UserProfile, 'uid'> = {
+    const userProfileData: Omit<UserProfile, 'id'> = {
       email: user.email,
       displayName: user.displayName,
       photoURL: user.photoURL,
@@ -81,6 +81,22 @@ export function createUserProfile(user: User): Promise<UserProfile> {
         reject(error);
       });
   });
+}
+
+export async function updateUserProfile(uid: string, data: Partial<Pick<UserProfile, 'displayName' | 'photoURL'>>) {
+    const userRef = doc(db, 'users', uid);
+    const dataToUpdate = { ...data, updatedAt: serverTimestamp() };
+    return updateDoc(userRef, dataToUpdate).catch(error => {
+      if (error.code === 'permission-denied') {
+        const permissionError = new FirestorePermissionError({
+            path: `/users/${uid}`,
+            operation: 'update',
+            requestResourceData: data,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      }
+      throw error;
+    });
 }
 
 

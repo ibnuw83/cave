@@ -17,6 +17,7 @@ const registerSchema = z.object({
   name: z.string().min(1, { message: 'Nama tidak boleh kosong.' }),
   email: z.string().email({ message: 'Email tidak valid.' }),
   password: z.string().min(6, { message: 'Password minimal 6 karakter.' }),
+  photoURL: z.string().url({ message: 'URL foto tidak valid.' }).optional().or(z.literal('')),
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -29,13 +30,16 @@ export default function RegisterPage() {
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: '', email: '', password: '' },
+    defaultValues: { name: '', email: '', password: '', photoURL: '' },
   });
 
   const onSubmit = async (data: RegisterFormValues) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-      await updateProfile(userCredential.user, { displayName: data.name });
+      await updateProfile(userCredential.user, { 
+        displayName: data.name,
+        photoURL: data.photoURL,
+      });
 
       // The onAuthStateChanged listener in the provider will handle profile creation
       // and redirecting the user.
@@ -102,6 +106,19 @@ export default function RegisterPage() {
                   <FormLabel>Password</FormLabel>
                   <FormControl>
                     <Input type="password" placeholder="••••••••" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="photoURL"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>URL Foto Profil (Opsional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="https://..." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
