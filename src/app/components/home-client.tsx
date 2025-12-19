@@ -138,47 +138,45 @@ const AuthSection = () => {
 
 
 export default function HomeClient() {
-  const [initialCaves, setInitialCaves] = useState<Cave[]>([]);
+  const [caves, setCaves] = useState<Cave[]>([]);
   const [settings, setSettings] = useState<KioskSettings | null>(null);
-  const [dataLoading, setDataLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const { user, isUserLoading } = useUser();
   const router = useRouter();
 
   const heroImage = placeholderImages.placeholderImages.find(img => img.id === 'spot-jomblang-light')?.imageUrl || '/placeholder.jpg';
   
   useEffect(() => {
-    // Wait until the auth state is fully determined.
+    // If auth state is still loading, do nothing.
     if (isUserLoading) {
       return;
     }
 
-    // If, after loading, the user is not authenticated, redirect to login.
+    // If auth state is resolved and there's no user, redirect to login.
     if (!user) {
-        router.push('/login');
-        return;
+      router.push('/login');
+      return;
     }
     
-    // If the user is authenticated, proceed to fetch data.
-    setDataLoading(true);
+    // If there is a user, proceed to fetch the app data.
+    setIsLoading(true);
     Promise.all([
       getCaves(false),
       getKioskSettings()
-    ]).then(([caves, settings]) => {
-      setInitialCaves(caves);
-      setSettings(settings);
+    ]).then(([cavesData, settingsData]) => {
+      setCaves(cavesData);
+      setSettings(settingsData);
     }).catch(err => {
       console.error("Failed to fetch initial data", err);
+      // Optionally handle data fetching errors, e.g., show a toast
     }).finally(() => {
-      setDataLoading(false);
+      setIsLoading(false);
     });
 
   }, [isUserLoading, user, router]);
   
-  const isLoading = isUserLoading || dataLoading;
-
-  // Show a loader while waiting for auth state or data.
-  // This prevents rendering the page content before redirection logic can run.
-  if (isLoading || !user) {
+  // Show a global loader while either auth or data is loading.
+  if (isUserLoading || isLoading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="text-center">
@@ -237,7 +235,7 @@ export default function HomeClient() {
       <main id="cave-list" className="bg-black pb-16">
          <div className="container mx-auto max-w-5xl px-4 md:px-8">
             <h2 className="mb-8 text-center text-3xl font-semibold text-white/90 md:text-4xl">Gua yang Tersedia</h2>
-            {initialCaves.length > 0 ? (
+            {caves.length > 0 ? (
             <Carousel
               opts={{
                 align: "start",
@@ -245,7 +243,7 @@ export default function HomeClient() {
               className="w-full"
             >
               <CarouselContent>
-                {initialCaves.map((cave) => (
+                {caves.map((cave) => (
                   <CarouselItem key={cave.id} className="md:basis-1/2 lg:basis-1/3">
                     <div className="p-1">
                       <Link href={`/cave/${cave.id}`} className="group">
