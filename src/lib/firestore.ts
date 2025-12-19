@@ -46,24 +46,23 @@ export async function getUserProfileClient(uid: string): Promise<UserProfile | n
 }
 
 export async function createUserProfile(user: User): Promise<UserProfile> {
-    const userProfileData: Omit<UserProfile, 'id'> = {
-      displayName: user.displayName,
+    const userProfileData: Omit<UserProfile, 'id' | 'updatedAt'> = {
+      displayName: user.displayName || user.email?.split('@')[0] || 'Pengguna Baru',
       email: user.email,
       photoURL: user.photoURL,
       role: 'free',
-      updatedAt: serverTimestamp(),
     };
     const userRef = doc(db, 'users', user.uid);
 
     try {
-        await setDoc(userRef, userProfileData, { merge: true });
+        await setDoc(userRef, { ...userProfileData, updatedAt: serverTimestamp()}, { merge: true });
         const createdProfile: UserProfile = {
             id: user.uid,
             ...userProfileData,
             updatedAt: new Date(), // Use local date for immediate feedback
         } as UserProfile
         return createdProfile;
-    } catch (error) {
+    } catch (error: any) {
          if (error.code === 'permission-denied') {
           const permissionError = new FirestorePermissionError({
             path: `/users/${user.uid}`,
@@ -485,5 +484,3 @@ export function setKioskControl(control: any) {
         }
     });
 }
-
-    

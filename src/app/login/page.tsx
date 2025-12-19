@@ -47,6 +47,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [settings, setSettings] = useState<KioskSettings | null>(null);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isEmailLoading, setIsEmailLoading] = useState(false);
 
   useEffect(() => {
     if(!isUserLoading && user) {
@@ -64,11 +65,12 @@ export default function LoginPage() {
   });
 
   const signInWithEmail = async (data: LoginFormValues) => {
+    setIsEmailLoading(true);
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
       // The onAuthStateChanged listener in FirebaseProvider will handle the redirect and profile logic
     } catch (error: any) {
-       if (error.code === 'auth/invalid-credential') {
+       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
         toast({
             title: "Login Gagal",
             description: "Email atau password salah.",
@@ -81,6 +83,8 @@ export default function LoginPage() {
             variant: "destructive",
           });
        }
+    } finally {
+        setIsEmailLoading(false);
     }
   };
 
@@ -94,9 +98,10 @@ export default function LoginPage() {
       if (error.code !== 'auth/popup-closed-by-user') {
           toast({
             title: "Login Gagal",
-            description: error.message || "Terjadi kesalahan saat mencoba login dengan Google.",
+            description: "Gagal login dengan Google. Pastikan popup tidak diblokir dan coba lagi.",
             variant: "destructive",
           });
+          console.error("Google Sign-In Error:", error);
       }
     } finally {
       setIsGoogleLoading(false);
@@ -125,8 +130,7 @@ export default function LoginPage() {
       });
   };
 
-  const isSubmitting = form.formState.isSubmitting;
-  const isLoading = isSubmitting || isGoogleLoading || isUserLoading;
+  const isLoading = isEmailLoading || isGoogleLoading || isUserLoading;
 
   return (
     <div className="relative min-h-screen bg-background p-4">
@@ -196,7 +200,7 @@ export default function LoginPage() {
                         <Button type="button" variant="link" className="p-0 h-auto text-xs" onClick={handleForgotPassword}>Lupa Password?</Button>
                     </div>
                     <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isSubmitting ? <Loader2 className="animate-spin" /> : 'Masuk'}
+                    {isEmailLoading ? <Loader2 className="animate-spin" /> : 'Masuk'}
                     </Button>
                 </form>
                 </Form>
