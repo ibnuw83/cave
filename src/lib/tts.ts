@@ -1,13 +1,22 @@
-// This file is no longer used for primary TTS but kept as a potential fallback.
+
 'use client';
+
+// This file is now used for both browser TTS and for controlling AI-generated audio
+// to provide a single, unified interface for speech control.
 
 let currentAudio: HTMLAudioElement | null = null;
 let currentUtterance: SpeechSynthesisUtterance | null = null;
 
+// A hack to allow the SpotPlayerUI to assign the dynamically created audio element
+// so that it can be stopped by this module.
+if (typeof window !== 'undefined') {
+    (window as any).currentAudio = null;
+}
+
 function stopSpeechSynthesis() {
   if (typeof window !== 'undefined' && window.speechSynthesis) {
     if (currentUtterance) {
-      currentUtterance.onend = null;
+      currentUtterance.onend = null; // Prevent onEnd from firing after manual stop
       currentUtterance = null;
     }
     window.speechSynthesis.cancel();
@@ -15,26 +24,35 @@ function stopSpeechSynthesis() {
 }
 
 function stopAudioElement() {
-  if (currentAudio) {
-    currentAudio.pause();
-    currentAudio.currentTime = 0;
-    if (currentAudio.src.startsWith('blob:')) {
-      URL.revokeObjectURL(currentAudio.src);
+  // Use the globally assigned audio element if it exists
+  const audioToStop = currentAudio || (typeof window !== 'undefined' ? (window as any).currentAudio : null);
+  if (audioToStop) {
+    audioToStop.pause();
+    audioToStop.currentTime = 0;
+    if (audioToStop.src && audioToStop.src.startsWith('blob:')) {
+      URL.revokeObjectURL(audioToStop.src);
     }
     currentAudio = null;
+    if (typeof window !== 'undefined') {
+      (window as any).currentAudio = null;
+    }
   }
 }
 
+/**
+ * Stops any currently playing audio, whether it's from the Web Speech API
+ * or an <audio> element from the AI narration.
+ */
 export function stopSpeaking() {
   stopAudioElement();
   stopSpeechSynthesis();
 }
 
 /**
- * Menggunakan Web Speech API bawaan browser untuk text-to-speech.
- * Ini gratis dan tidak memerlukan API key.
- * @param text Teks yang akan diucapkan.
- * @param onEnd Callback yang akan dijalankan ketika ucapan selesai.
+ * Uses the browser's built-in Web Speech API for text-to-speech.
+ * This is used as a fallback if the AI narration fails.
+ * @param text The text to be spoken.
+ * @param onEnd Callback to be executed when speech is finished.
  */
 export function speak(text: string, onEnd?: () => void) {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
@@ -43,7 +61,7 @@ export function speak(text: string, onEnd?: () => void) {
     return;
   }
 
-  stopSpeaking();
+  stopSpeaking(); // Ensure nothing else is playing
 
   const u = new SpeechSynthesisUtterance(text);
   u.lang = 'id-ID';
@@ -58,25 +76,4 @@ export function speak(text: string, onEnd?: () => void) {
   window.speechSynthesis.speak(u);
 }
 
-
-/**
- * Memainkan file audio dari URL.
- * @param audioUrl URL dari file audio.
- * @param onEnd Callback yang akan dijalankan ketika audio selesai.
- */
-export async function playAudioUrl(audioUrl: string, onEnd?: () => void) {
-  stopSpeaking();
-  
-  currentAudio = new Audio(audioUrl);
-  currentAudio.onended = () => {
-    currentAudio = null;
-    onEnd?.();
-  };
-  
-  try {
-    await currentAudio.play();
-  } catch (error) {
-    console.error("Gagal memainkan audio:", error);
-    onEnd?.();
-  }
-}
+    

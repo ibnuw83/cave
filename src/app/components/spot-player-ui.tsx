@@ -20,6 +20,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
 import { findArtifactForSpot, foundArtifact } from '@/lib/firestore';
+import { speak, stopSpeaking } from '@/lib/tts';
 
 
 function SpotNavigation({ currentSpotId, allSpots, isUIVisible }: { currentSpotId: string, allSpots: Spot[], isUIVisible: boolean }) {
@@ -157,14 +158,9 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
 
   
   useEffect(() => {
+    // Cleanup function when the spot ID changes
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        if (audioRef.current.src.startsWith('blob:')) {
-          URL.revokeObjectURL(audioRef.current.src);
-        }
-        audioRef.current = null;
-      }
+      stopSpeaking(); // This now handles both audio element and speech synthesis
       if (canVibrate()) {
         vibrate(0);
       }
@@ -182,15 +178,15 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
     e.stopPropagation(); 
     if (!isProUser) return;
 
-    if (isPlaying && audioRef.current) {
-      audioRef.current.pause();
-      if (canVibrate()) {
-        vibrate(0);
-      }
-      setIsPlaying(false);
-    } else {
-      setIsLoading(true);
-      try {
+    // If something is playing, stop it.
+    if (isPlaying) {
+      stopSpeaking();
+      handlePlaybackEnd();
+      return;
+    }
+
+    setIsLoading(true);
+    try {
         const response = await fetch('/api/narrate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -198,14 +194,8 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
         });
 
         if (!response.ok) {
-            throw new Error(`Narration API failed with status: ${response.status}`);
-        }
-
-        if (audioRef.current) {
-          audioRef.current.pause();
-          if (audioRef.current.src.startsWith('blob:')) {
-            URL.revokeObjectURL(audioRef.current.src);
-          }
+            // Throw an error to be caught by the catch block for fallback
+            throw new Error(`Narasi AI gagal dimuat (status: ${response.status})`);
         }
         
         const audioBlob = await response.blob();
@@ -217,21 +207,29 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
             handlePlaybackEnd();
         };
         
-        audioRef.current = audio;
+        // This is a bit of a hack to make the new audio element available to stopSpeaking
+        (window as any).currentAudio = audio;
+        
         await audio.play();
         setIsPlaying(true);
+        setIsLoading(false);
 
         if (spot.effects?.vibrationPattern && spot.effects.vibrationPattern.length > 0) {
           vibrate(spot.effects.vibrationPattern);
         }
 
-      } catch (error) {
-        console.error("Failed to play AI narration:", error);
-        toast({variant: 'destructive', title: 'Gagal Memuat Narasi', description: 'Gagal memuat narasi AI. Silakan coba lagi.'});
-        setIsPlaying(false);
-      } finally {
+    } catch (error) {
+        console.warn("Gagal memutar narasi AI, beralih ke TTS browser:", error);
+        toast({
+            variant: 'default', 
+            title: 'Narasi Fallback', 
+            description: 'Menggunakan suara browser karena narasi AI tidak tersedia.'
+        });
+
+        // Fallback to browser's TTS
+        speak(spot.description, handlePlaybackEnd);
+        setIsPlaying(true); // Assume it starts playing
         setIsLoading(false);
-      }
     }
   };
   
