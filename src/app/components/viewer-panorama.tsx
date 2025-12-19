@@ -11,6 +11,7 @@ export default function PanoramaViewer({
   children?: ReactNode;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const lastTouchDistance = useRef<number | null>(null);
 
   useEffect(() => {
     if (!mountRef.current) return;
