@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 
 
-function SpotNavigation({ currentSpotId, allSpots, isVisible }: { currentSpotId: string, allSpots: Spot[], isVisible: boolean }) {
+function SpotNavigation({ currentSpotId, allSpots, isUIVisible }: { currentSpotId: string, allSpots: Spot[], isUIVisible: boolean }) {
     if (allSpots.length <= 1) {
         return null;
     }
@@ -29,10 +29,10 @@ function SpotNavigation({ currentSpotId, allSpots, isVisible }: { currentSpotId:
     return (
         <div 
             className={cn(
-                "absolute top-16 left-1/2 -translate-x-1/2 w-full max-w-xs md:max-w-sm lg:max-w-lg xl:max-w-2xl z-30 transition-opacity duration-300",
-                isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
+                "absolute top-16 left-1/2 -translate-x-1/2 w-full max-w-xs md:max-w-sm lg:max-w-md xl:max-w-lg z-30 transition-opacity duration-300",
+                isUIVisible ? "opacity-100" : "opacity-0 pointer-events-none"
             )}
-            onClick={(e) => e.stopPropagation()} // Prevent carousel clicks from hiding UI
+            onClick={(e) => e.stopPropagation()}
         >
             <Carousel opts={{
                 align: "start",
@@ -40,10 +40,10 @@ function SpotNavigation({ currentSpotId, allSpots, isVisible }: { currentSpotId:
             }}>
                 <CarouselContent className="-ml-1">
                     {allSpots.map((spot) => (
-                        <CarouselItem key={spot.id} className="basis-1/5 md:basis-1/6 pl-1 group">
+                        <CarouselItem key={spot.id} className="basis-1/5 pl-1 group">
                              <Link href={`/spot/${spot.id}`} scroll={false} className="pointer-events-auto">
                                 <div className={cn(
-                                    "relative aspect-[4/3] w-full overflow-hidden rounded-md transition-all",
+                                    "relative aspect-square w-full overflow-hidden rounded-md transition-all",
                                     spot.id === currentSpotId ? 'ring-2 ring-accent ring-offset-2 ring-offset-black/50' : 'opacity-60 hover:opacity-100 hover:scale-105'
                                 )}>
                                     <Image
@@ -100,14 +100,19 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
     }, 5000); // 5 seconds of inactivity
   }, []);
 
-  const showUI = useCallback(() => {
+  const showUI = useCallback((e: Event) => {
+    // If the click is on a carousel control, don't hide the UI
+    if (e.target instanceof Element && e.target.closest('[class*="carousel"]')) {
+       resetUiTimeout();
+       return;
+    }
     setIsUIVisible(true);
     resetUiTimeout();
   }, [resetUiTimeout]);
 
   // Handle various events to show UI
   useEffect(() => {
-    const handleActivity = () => showUI();
+    const handleActivity = (e: Event) => showUI(e);
     const handleFullscreenChange = () => {
         setIsFullscreen(!!document.fullscreenElement);
     };
@@ -119,18 +124,15 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        // If in fullscreen, default behavior is to exit, which is fine.
-        // If not in fullscreen, navigate back.
         if (!document.fullscreenElement) {
             router.push(`/cave/${spot.caveId}`);
         }
       } else {
-        handleActivity(); // Show UI on any other key press
+        handleActivity(event); 
       }
     };
     window.addEventListener('keydown', handleKeyDown);
 
-    // Initial setup
     resetUiTimeout();
 
     return () => {
@@ -146,7 +148,6 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
   }, [router, spot.caveId, showUI, resetUiTimeout]);
 
   
-  // Cleanup audio and vibration on unmount or spot change
   useEffect(() => {
     return () => {
       if (audioRef.current) {
@@ -234,11 +235,12 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
   
   return (
     <>
-        {/* Header - Back button */}
-        <div className={cn(
-            "absolute top-0 left-0 right-0 p-4 z-30 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent transition-opacity duration-300",
-            isUIVisible ? "opacity-100" : "opacity-0 pointer-events-none"
-        )}>
+        <div 
+            className={cn(
+                "absolute top-0 left-0 right-0 p-4 z-30 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent transition-opacity duration-300",
+                isUIVisible ? "opacity-100" : "opacity-0 pointer-events-none"
+            )}
+        >
              <Button variant="ghost" className="text-white hover:bg-white/20 hover:text-white pointer-events-auto" asChild>
                 <Link href={`/cave/${spot.caveId}`}>
                     <ChevronLeft className="mr-2 h-5 w-5" />
@@ -247,10 +249,8 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
             </Button>
         </div>
 
-        {/* Spot Navigation */}
-        <SpotNavigation currentSpotId={spot.id} allSpots={allSpots} isVisible={isUIVisible} />
+        <SpotNavigation currentSpotId={spot.id} allSpots={allSpots} isUIVisible={isUIVisible} />
 
-        {/* Footer Controls */}
         <div 
             className={cn(
                 "absolute bottom-0 left-0 right-0 p-6 z-20 text-white bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-300",
@@ -260,7 +260,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
         >
             <div className="flex items-end justify-between gap-4">
                 <div className="flex items-start gap-4">
-                    <Button size="lg" className="rounded-full h-16 w-16 bg-white/30 text-white backdrop-blur-sm hover:bg-white/50 flex-shrink-0" onClick={handleTogglePlay} disabled={isLoading}>
+                    <Button size="icon" className="rounded-full h-16 w-16 bg-white/30 text-white backdrop-blur-sm hover:bg-white/50 flex-shrink-0" onClick={handleTogglePlay} disabled={isLoading}>
                         {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
                     </Button>
                     <div>
