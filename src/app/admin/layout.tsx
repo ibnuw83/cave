@@ -64,7 +64,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <div className="md:grid md:grid-cols-[250px_1fr]">
       <AdminSidebar user={user} userProfile={userProfile} />
-      <main className="pb-24 md:pb-0">{children}</main>
+      <main className="pb-24 pt-14 md:pt-0 md:pb-0">{children}</main>
     </div>
   );
 }

@@ -37,7 +37,10 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
   const [settings, setSettings] = useState<KioskSettings | null>(null);
   const auth = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const { toast } = useToast();
+
+  const isSubPage = pathname !== '/admin';
 
   useEffect(() => {
     getKioskSettings().then(setSettings);
@@ -70,6 +73,31 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
           )}
         <h2 className="text-xl font-bold">Admin Panel</h2>
       </div>
+
+       {/* Mobile Header with Back Button */}
+      <div className="fixed top-0 left-0 right-0 z-40 flex h-14 items-center justify-center border-b bg-card p-4 md:hidden">
+        {isSubPage ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute left-4"
+            onClick={() => router.back()}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+        ) : (
+           <div className="flex items-center gap-2">
+            {settings?.logoUrl ? (
+              <Image src={settings.logoUrl} alt="App Logo" width={24} height={24} className="h-6 w-6" />
+            ) : (
+              <Mountain className="h-6 w-6 text-primary" />
+            )}
+            <h2 className="text-lg font-bold">Admin</h2>
+          </div>
+        )}
+        {!isSubPage && <h2 className="text-lg font-bold">Dashboard</h2>}
+      </div>
+
 
       <nav className="grid grid-cols-5 gap-1 md:flex md:flex-col md:gap-1 md:p-4">
         <AdminNavLink href="/admin" icon={<Home />} label="Dashboard" color="text-sky-400" activeColor="text-sky-300" />
