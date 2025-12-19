@@ -135,11 +135,11 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
                 </SheetTrigger>
                 <SheetContent side="bottom" className='rounded-t-lg'>
                     <SheetHeader className='text-left'>
-                        <SheetTitle>Profil Anda</SheetTitle>
-                        <SheetDescription>Kelola akun dan sesi Anda dari sini.</SheetDescription>
+                        <SheetTitle>Profil & Pengaturan</SheetTitle>
+                        <SheetDescription>Kelola akun, pengaturan, dan sesi Anda dari sini.</SheetDescription>
                     </SheetHeader>
-                    <div className="py-4 space-y-4">
-                         <div className="flex items-center gap-3">
+                    <div className="py-4 space-y-2">
+                         <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 mb-4">
                             <Avatar className="h-12 w-12">
                                 <AvatarImage src={user.photoURL || ''} />
                                 <AvatarFallback>{userProfile.displayName?.charAt(0) || 'A'}</AvatarFallback>
@@ -150,8 +150,15 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
                             </div>
                         </div>
 
-                        <Button variant="outline" className="w-full justify-center" asChild>
-                            <Link href="/">
+                        <Button variant="ghost" className="w-full justify-start" asChild>
+                            <Link href="/admin/kiosk" onClick={() => setProfileSheetOpen(false)}>
+                                <Settings className="mr-2 h-4 w-4" />
+                                Pengaturan Aplikasi
+                            </Link>
+                        </Button>
+
+                        <Button variant="ghost" className="w-full justify-start" asChild>
+                            <Link href="/" onClick={() => setProfileSheetOpen(false)}>
                                 <ArrowLeft className="mr-2 h-4 w-4" />
                                 Kembali ke Situs
                             </Link>
@@ -159,7 +166,7 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
 
                          <Button
                             variant="destructive"
-                            className="w-full justify-center"
+                            className="w-full justify-center mt-4"
                             onClick={handleLogout}
                             >
                             <LogOut className="mr-2 h-4 w-4" />
