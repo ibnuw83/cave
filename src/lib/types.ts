@@ -91,3 +91,20 @@ export interface KioskSettings {
   heroTitle?: string;
   heroSubtitle?: string;
 }
+
+export type CaveMapNode = {
+  id: string;          // spotId
+  label: string;
+  x: number;           // posisi relatif (0–100)
+  y: number;
+};
+
+export type CaveMapEdge = {
+  from: string;
+  to: string;
+};
+
+export type CaveMiniMap = {
+  nodes: CaveMapNode[];
+  edges: CaveMapEdge[];
+};
