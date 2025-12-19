@@ -133,11 +133,7 @@ const AuthSection = () => {
     );
   }
 
-  return (
-      <Button asChild>
-          <Link href="#cave-list">Mulai Menjelajah</Link>
-      </Button>
-  );
+  return null;
 };
 
 
