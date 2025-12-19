@@ -1,8 +1,8 @@
 
 'use client';
 
-import { Suspense, useRef, useEffect, ReactNode } from 'react';
-import { Canvas, useLoader } from '@react-three/fiber';
+import { Suspense, useRef, ReactNode } from 'react';
+import { Canvas, useLoader, useFrame } from '@react-three/fiber';
 import { OrbitControls, Sphere, Preload } from '@react-three/drei';
 import * as THREE from 'three';
 import { useIdleAutoRotate } from '@/hooks/useIdleAutoRotate';
@@ -29,17 +29,21 @@ export default function PanoramaViewer({
 }) {
   const controlsRef = useRef<any>(null);
   const { isIdle, markActive } = useIdleAutoRotate({ idleMs: 5000 });
-  
-  useEffect(() => {
-    const controls = controlsRef.current;
-    if (controls) {
-      controls.autoRotate = isIdle;
+
+  useFrame(() => {
+    if (controlsRef.current) {
+      controlsRef.current.autoRotate = isIdle;
+      // You must call update() when damping is enabled
+      controlsRef.current.update();
     }
-  }, [isIdle]);
+  });
 
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden">
-      <Canvas>
+      <Canvas
+        onPointerDown={markActive}
+        onWheel={markActive}
+      >
         <Suspense fallback={null}>
           <Scene imageUrl={imageUrl} />
           <OrbitControls
@@ -47,12 +51,12 @@ export default function PanoramaViewer({
             enableZoom
             enablePan={false}
             rotateSpeed={-0.35}
-            autoRotate={false} // Dikelola oleh state
+            autoRotate={false} // Dikelola oleh useFrame
             autoRotateSpeed={0.25}
-            minPolarAngle={isFull360 ? 0 : Math.PI / 4}
-            maxPolarAngle={isFull360 ? Math.PI : Math.PI - Math.PI / 4}
-            onStart={markActive} // Tandai aktif saat interaksi dimulai
-            onEnd={markActive} // Tandai aktif saat interaksi berakhir
+            enableDamping
+            dampingFactor={0.06}
+            minPolarAngle={isFull360 ? 0.01 : Math.PI / 4}
+            maxPolarAngle={isFull360 ? Math.PI - 0.01 : Math.PI - Math.PI / 4}
           />
           <Preload all />
         </Suspense>
