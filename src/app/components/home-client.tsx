@@ -135,7 +135,7 @@ const AuthSection = () => {
 
   return (
       <Button asChild>
-          <Link href="/login">Login</Link>
+          <Link href="#cave-list">Mulai Menjelajah</Link>
       </Button>
   );
 };
