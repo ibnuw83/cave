@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Trash2, Plus, GripVertical, Loader2, Download, WifiOff, ArrowRight, Monitor, MessageSquare, Power, PowerOff, Send, Radio } from 'lucide-react';
+import { Trash2, Plus, GripVertical, Loader2, Download, WifiOff, ArrowRight, Monitor, MessageSquare, Power, PowerOff, Send, Radio, Facebook, Instagram, Twitter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { saveKioskSettings, setKioskControl } from '@/lib/firestore';
 import Link from 'next/link';
@@ -30,6 +30,10 @@ const globalSettingsSchema = z.object({
   logoUrl: z.string().url({ message: "URL tidak valid." }).optional().or(z.literal('')),
   mode: z.enum(['loop', 'shuffle']),
   exitPin: z.string().length(4, 'PIN harus terdiri dari 4 digit.').regex(/^\d{4}$/, 'PIN harus berupa 4 angka.'),
+  footerText: z.string().optional(),
+  facebookUrl: z.string().url({ message: "URL tidak valid." }).optional().or(z.literal('')),
+  instagramUrl: z.string().url({ message: "URL tidak valid." }).optional().or(z.literal('')),
+  twitterUrl: z.string().url({ message: "URL tidak valid." }).optional().or(z.literal('')),
 });
 
 const playlistSettingsSchema = z.object({
@@ -181,7 +185,7 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
   
   const globalForm = useForm<GlobalSettingsFormValues>({
     resolver: zodResolver(globalSettingsSchema),
-    defaultValues: { logoUrl: '', mode: 'loop', exitPin: '1234' },
+    defaultValues: { logoUrl: '', mode: 'loop', exitPin: '1234', footerText: '', facebookUrl: '', instagramUrl: '', twitterUrl: '' },
   });
 
   const playlistForm = useForm<PlaylistSettingsFormValues>({
@@ -195,6 +199,10 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
             logoUrl: kioskSettings.logoUrl || '',
             mode: kioskSettings.mode || 'loop',
             exitPin: kioskSettings.exitPin || '1234',
+            footerText: kioskSettings.footerText || '',
+            facebookUrl: kioskSettings.facebookUrl || '',
+            instagramUrl: kioskSettings.instagramUrl || '',
+            twitterUrl: kioskSettings.twitterUrl || '',
         });
         playlistForm.reset({
             caveId: kioskSettings.caveId || '',
@@ -353,12 +361,90 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
                   </Button>
               </CardFooter>
           </Card>
+
+           <Card className="mt-8">
+              <CardHeader>
+                  <CardTitle>Footer &amp; Media Sosial</CardTitle>
+                  <CardDescription>Kelola teks di footer dan tautan media sosial.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                 <FormField
+                      control={globalForm.control}
+                      name="footerText"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>Teks Footer</FormLabel>
+                          <FormControl>
+                              <Input placeholder="© {tahun} Nama Aplikasi. Hak cipta dilindungi." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <FormField
+                          control={globalForm.control}
+                          name="twitterUrl"
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>URL Twitter</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                    <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input placeholder="https://twitter.com/..." className="pl-9" {...field} />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                      <FormField
+                          control={globalForm.control}
+                          name="instagramUrl"
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>URL Instagram</FormLabel>
+                              <FormControl>
+                               <div className="relative">
+                                    <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input placeholder="https://instagram.com/..." className="pl-9" {...field} />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                       <FormField
+                          control={globalForm.control}
+                          name="facebookUrl"
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>URL Facebook</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                    <Facebook className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input placeholder="https://facebook.com/..." className="pl-9" {...field} />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                  </div>
+              </CardContent>
+               <CardFooter>
+                  <Button type="submit" disabled={globalForm.formState.isSubmitting} className="ml-auto">
+                      {globalForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                      Simpan Pengaturan Footer
+                  </Button>
+              </CardFooter>
+          </Card>
         </form>
       </Form>
 
       <Form {...playlistForm}>
         <form onSubmit={playlistForm.handleSubmit(onPlaylistSubmit)}>
-          <Card>
+          <Card className="mt-8">
             <CardHeader>
                 <div className='flex justify-between items-start gap-4'>
                     <div>

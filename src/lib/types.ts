@@ -2,7 +2,7 @@
 import type { Timestamp } from 'firebase/firestore';
 
 export interface UserProfile {
-  uid: string;
+  id: string;
   email: string | null;
   displayName: string | null;
   photoURL?: string | null;
@@ -56,6 +56,10 @@ export interface KioskSettings {
   mode: 'loop' | 'shuffle';
   exitPin: string;
   logoUrl?: string;
+  footerText?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+  twitterUrl?: string;
 }
 
     
