@@ -1,17 +1,15 @@
 'use client';
 
-import Image from 'next/image';
 import { ReactNode } from 'react';
 
 export default function FlatViewer({ imageUrl, children }: { imageUrl: string; children?: ReactNode }) {
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden">
-        <Image
+        <img
             src={imageUrl}
             alt="Spot view"
-            fill
-            className="object-cover"
-            quality={100}
+            className="absolute inset-0 w-full h-full object-cover cursor-grab"
+            draggable={false}
         />
         {children}
     </div>
