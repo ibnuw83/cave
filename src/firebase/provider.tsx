@@ -82,7 +82,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           profile = await createUserProfile(user);
           toast({ title: "Selamat Datang!", description: "Profil baru Anda telah dibuat." });
         }
-        setUserAuthState(prev => ({ ...prev, userProfile: profile, isProfileLoading: false }));
+        setUserAuthState(prev => ({ ...prev, userProfile: profile, isProfileLoading: false, userError: null }));
       } catch (error: any) {
         console.error("Critical error handling user profile:", error);
         toast({
@@ -108,7 +108,18 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   useEffect(() => {
     if (!auth) {
-      setUserAuthState({ user: null, isUserLoading: false, userError: new Error("Auth service not provided."), userProfile: null, isProfileLoading: false });
+      toast({
+        variant: 'destructive',
+        title: 'Kesalahan Konfigurasi Firebase',
+        description: 'Layanan autentikasi tidak tersedia.'
+      });
+      setUserAuthState({ 
+          user: null, 
+          isUserLoading: false, 
+          userError: new Error("Auth service not provided."), 
+          userProfile: null, 
+          isProfileLoading: false 
+      });
       return;
     }
 
@@ -126,7 +137,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       }
     );
     return () => unsubscribe();
-  }, [auth, handleProfile]);
+  }, [auth, handleProfile, toast]);
 
   const contextValue = useMemo((): FirebaseContextState => {
     const servicesAvailable = !!(firebaseApp && firestore && auth);
@@ -142,6 +153,14 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       isProfileLoading: userAuthState.isProfileLoading,
     };
   }, [firebaseApp, firestore, auth, userAuthState]);
+
+  if (!auth) {
+    return (
+        <div className="flex h-screen w-full items-center justify-center bg-background">
+            <p className="text-destructive">Firebase Auth not configured.</p>
+        </div>
+    );
+  }
 
   return (
     <FirebaseContext.Provider value={contextValue}>
