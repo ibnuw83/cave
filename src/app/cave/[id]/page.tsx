@@ -43,6 +43,7 @@ const staticSpots: Spot[] = [
         description: 'Sinar matahari yang masuk melalui lubang gua, menciptakan pemandangan magis.',
         imageUrl: placeholderImages.find(p => p.id === 'spot-jomblang-light')?.imageUrl || '',
         isPro: false,
+        viewType: 'panorama',
     },
     {
         id: 'static-spot-jomblang-mud',
@@ -52,6 +53,7 @@ const staticSpots: Spot[] = [
         description: 'Tantangan jalur berlumpur sebelum mencapai dasar gua.',
         imageUrl: placeholderImages.find(p => p.id === 'spot-jomblang-mud')?.imageUrl || '',
         isPro: true,
+        viewType: 'flat',
         effects: { vibrationPattern: [60, 40, 60] }
     },
     {
@@ -62,6 +64,7 @@ const staticSpots: Spot[] = [
         description: 'Formasi batuan kapur yang menjulang dari langit-langit gua.',
         imageUrl: placeholderImages.find(p => p.id === 'spot-gong-stalactite')?.imageUrl || '',
         isPro: false,
+        viewType: 'panorama',
     },
     {
         id: 'static-spot-gong-pool',
@@ -71,6 +74,7 @@ const staticSpots: Spot[] = [
         description: 'Kolam air jernih yang terbentuk secara alami di dalam gua.',
         imageUrl: placeholderImages.find(p => p.id === 'spot-gong-pool')?.imageUrl || '',
         isPro: true,
+        viewType: 'panorama',
     }
 ];
 

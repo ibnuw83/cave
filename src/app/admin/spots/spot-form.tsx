@@ -23,6 +23,7 @@ const spotSchema = z.object({
   imageUrl: z.string().url('URL gambar tidak valid.'),
   audioUrl: z.string().url('URL audio tidak valid.').optional().or(z.literal('')),
   isPro: z.boolean(),
+  viewType: z.enum(['auto', 'flat', 'panorama', 'full360']).optional(),
   vibrationPattern: z.string().optional().refine(
     (val) => {
       if (!val) return true;
@@ -54,6 +55,7 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
       imageUrl: spot?.imageUrl || '',
       audioUrl: spot?.audioUrl || '',
       isPro: spot?.isPro ?? false,
+      viewType: spot?.viewType || 'auto',
       vibrationPattern: spot?.effects?.vibrationPattern?.join(',') || '',
     },
   });
@@ -187,6 +189,30 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
               </FormItem>
             )}
           />
+
+            <FormField
+                control={form.control}
+                name="viewType"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Tipe Tampilan</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value || 'auto'}>
+                    <FormControl>
+                        <SelectTrigger>
+                        <SelectValue placeholder="Pilih tipe tampilan..." />
+                        </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        <SelectItem value="auto">Otomatis</SelectItem>
+                        <SelectItem value="flat">Gambar Datar</SelectItem>
+                        <SelectItem value="panorama">Panorama (Geser)</SelectItem>
+                    </SelectContent>
+                    </Select>
+                    <FormDescription>Pilih bagaimana gambar akan ditampilkan di halaman detail.</FormDescription>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
           
           <FormField
             control={form.control}

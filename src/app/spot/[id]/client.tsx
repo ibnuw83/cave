@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { Spot } from '@/lib/types';
 import LockedScreen from '@/app/components/locked-screen';
 import SpotPlayerUI from '@/app/components/spot-player-ui';
@@ -56,9 +57,21 @@ export default function SpotPageClient({
     return <LockedScreen spot={spot} />;
   }
 
+  const usePanorama = spot.viewType === 'panorama' || spot.viewType === 'full360';
+
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden">
-        <PanoramaViewer imageUrl={spot.imageUrl} />
+        {usePanorama ? (
+            <PanoramaViewer imageUrl={spot.imageUrl} />
+        ) : (
+            <Image
+                src={spot.imageUrl}
+                alt={spot.title}
+                fill
+                className="object-cover"
+                quality={100}
+            />
+        )}
         <SpotPlayerUI spot={spot} userRole={userRole} />
     </div>
   );
