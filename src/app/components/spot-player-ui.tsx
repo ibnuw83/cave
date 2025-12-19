@@ -6,7 +6,7 @@ import { Spot } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Play, Pause, Loader2 } from 'lucide-react';
+import { ChevronLeft, Play, Pause, Loader2, Maximize, Minimize } from 'lucide-react';
 import { canVibrate, vibrate } from '@/lib/haptics';
 import {
   Carousel,
@@ -43,7 +43,7 @@ function SpotNavigation({ currentSpotId, allSpots, isVisible }: { currentSpotId:
                         <CarouselItem key={spot.id} className="basis-1/5 md:basis-1/6 pl-1 group">
                              <Link href={`/spot/${spot.id}`} scroll={false} className="pointer-events-auto">
                                 <div className={cn(
-                                    "relative aspect-video w-full overflow-hidden rounded-md transition-all",
+                                    "relative aspect-square w-full overflow-hidden rounded-md transition-all",
                                     spot.id === currentSpotId ? 'ring-2 ring-accent ring-offset-2 ring-offset-black/50' : 'opacity-60 hover:opacity-100 hover:scale-105'
                                 )}>
                                     <Image
@@ -74,9 +74,22 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
   const [isLoading, setIsLoading] = useState(false);
   const [isUIVisible, setIsUIVisible] = useState(true);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const uiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
+
+   const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    }
+  };
 
   const resetUiTimeout = useCallback(() => {
     if (uiTimeoutRef.current) {
@@ -92,43 +105,46 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
     resetUiTimeout();
   }, [resetUiTimeout]);
 
-  // Handle Escape key to go back
+  // Handle various events to show UI
   useEffect(() => {
+    const handleActivity = () => showUI();
+    const handleFullscreenChange = () => {
+        setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    window.addEventListener('mousemove', handleActivity);
+    window.addEventListener('mousedown', handleActivity);
+    window.addEventListener('touchstart', handleActivity);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        router.push(`/cave/${spot.caveId}`);
+        // If in fullscreen, default behavior is to exit, which is fine.
+        // If not in fullscreen, navigate back.
+        if (!document.fullscreenElement) {
+            router.push(`/cave/${spot.caveId}`);
+        }
       } else {
-        showUI(); // Show UI on any other key press
+        handleActivity(); // Show UI on any other key press
       }
     };
     window.addEventListener('keydown', handleKeyDown);
+
+    // Initial setup
+    resetUiTimeout();
+
     return () => {
+      if (uiTimeoutRef.current) {
+        clearTimeout(uiTimeoutRef.current);
+      }
+      window.removeEventListener('mousemove', handleActivity);
+      window.removeEventListener('mousedown', handleActivity);
+      window.removeEventListener('touchstart', handleActivity);
       window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
-  }, [router, spot.caveId, showUI]);
+  }, [router, spot.caveId, showUI, resetUiTimeout]);
 
-  // Auto-hide UI after a few seconds of inactivity
-  useEffect(() => {
-    if (isUIVisible) {
-      resetUiTimeout();
-    } else if (uiTimeoutRef.current) {
-      clearTimeout(uiTimeoutRef.current);
-    }
-    
-    // Add listeners to show UI on activity
-    window.addEventListener('mousemove', showUI);
-    window.addEventListener('mousedown', showUI);
-    window.addEventListener('touchstart', showUI);
-
-    return () => {
-        if (uiTimeoutRef.current) {
-            clearTimeout(uiTimeoutRef.current);
-        }
-        window.removeEventListener('mousemove', showUI);
-        window.removeEventListener('mousedown', showUI);
-        window.removeEventListener('touchstart', showUI);
-    }
-  }, [isUIVisible, resetUiTimeout, showUI]);
   
   // Cleanup audio and vibration on unmount or spot change
   useEffect(() => {
@@ -155,7 +171,6 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
 
   const handleTogglePlay = async (e: React.MouseEvent) => {
     e.stopPropagation(); 
-    showUI();
 
     if (isPlaying && audioRef.current) {
       audioRef.current.pause();
@@ -214,12 +229,17 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
 
   const handleToggleDescription = (e: React.MouseEvent) => {
       e.stopPropagation();
-      showUI();
       setIsDescriptionExpanded(prev => !prev);
   }
   
   return (
     <>
+        {/* Clickable area to toggle UI */}
+        <div
+            className="absolute inset-0 z-10"
+            onClick={() => setIsUIVisible(true)}
+        />
+
         {/* Header - Back button */}
         <div className={cn(
             "absolute top-0 left-0 right-0 p-4 z-30 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent transition-opacity duration-300",
@@ -242,25 +262,30 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
                 "absolute bottom-0 left-0 right-0 p-6 z-20 text-white bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-300",
                 isUIVisible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
             )}
-            onClick={(e) => { e.stopPropagation(); showUI(); }}
         >
-            <div className="flex items-start gap-4">
-                 <Button size="lg" className="rounded-full h-16 w-16 bg-white/30 text-white backdrop-blur-sm hover:bg-white/50 flex-shrink-0" onClick={handleTogglePlay} disabled={isLoading}>
-                    {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
-                </Button>
-                <div>
-                    <h1 className="text-3xl font-bold font-headline mb-1">{spot.title}</h1>
-                    <p className={cn("text-base text-white/80 max-w-prose", !isDescriptionExpanded && "truncate")}>
-                        {spot.description}
-                    </p>
-                    <Button 
-                        variant="link" 
-                        onClick={handleToggleDescription}
-                        className="text-accent hover:text-accent/80 p-0 h-auto text-sm mt-1"
-                    >
-                        {isDescriptionExpanded ? "Sembunyikan" : "Selanjutnya"}
+            <div className="flex items-end justify-between gap-4">
+                <div className="flex items-start gap-4">
+                    <Button size="lg" className="rounded-full h-16 w-16 bg-white/30 text-white backdrop-blur-sm hover:bg-white/50 flex-shrink-0" onClick={handleTogglePlay} disabled={isLoading}>
+                        {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
                     </Button>
+                    <div>
+                        <h1 className="text-3xl font-bold font-headline mb-1">{spot.title}</h1>
+                         <p className={cn("text-base text-white/80 max-w-prose", !isDescriptionExpanded && "line-clamp-1")}>
+                            {spot.description}
+                        </p>
+                        <Button 
+                            variant="link" 
+                            onClick={handleToggleDescription}
+                            className="text-accent hover:text-accent/80 p-0 h-auto text-sm mt-1"
+                        >
+                            {isDescriptionExpanded ? "Sembunyikan" : "Selanjutnya"}
+                        </Button>
+                    </div>
                 </div>
+
+                <Button size="icon" variant="ghost" className="rounded-full h-12 w-12 bg-white/20 text-white backdrop-blur-sm hover:bg-white/40 flex-shrink-0" onClick={toggleFullscreen}>
+                  {isFullscreen ? <Minimize className="h-6 w-6" /> : <Maximize className="h-6 w-6" />}
+                </Button>
             </div>
         </div>
     </>
