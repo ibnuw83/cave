@@ -5,7 +5,6 @@ import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 import { Providers } from './providers';
 import { getKioskSettings } from '@/lib/firestore';
-import "pannellum/build/pannellum.css";
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getKioskSettings();
