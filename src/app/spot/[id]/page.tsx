@@ -18,21 +18,25 @@ export default function SpotPage() {
 
   const [spot, setSpot] = useState<Spot | null>(null);
   const [allSpots, setAllSpots] = useState<Spot[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isSpotLoading, setIsSpotLoading] = useState(true);
   const [error, setError] = useState(false);
   
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
+
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
 
   useEffect(() => {
-      if (!spotId) return;
+      if (!spotId) {
+        setError(true);
+        return;
+      };
 
       const fetchSpotData = async () => {
           try {
-              setLoading(true);
+              setIsSpotLoading(true);
               const spotData = await getSpotClient(spotId);
               if (spotData) {
                   setSpot(spotData);
@@ -46,7 +50,7 @@ export default function SpotPage() {
               console.error("Failed to fetch spot data", err);
               setError(true);
           } finally {
-              setLoading(false);
+              setIsSpotLoading(false);
           }
       };
 
@@ -54,8 +58,9 @@ export default function SpotPage() {
 
   }, [spotId]);
 
+  const isLoading = isUserLoading || isSpotLoading || isProfileLoading;
 
-  if (isUserLoading || loading || isProfileLoading) {
+  if (isLoading) {
     return <Skeleton className="h-screen w-screen bg-black" />;
   }
   
