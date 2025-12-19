@@ -1,3 +1,4 @@
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   /* config options here */
@@ -42,6 +43,12 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'iili.io',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'static.promediateknologi.id',
         port: '',
         pathname: '/**',
       },
