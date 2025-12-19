@@ -16,7 +16,7 @@ import {
 } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
 import { initializeFirebase } from '@/firebase'; // Menggunakan inisialisasi terpusat
-import type { UserProfile, Cave, Spot, KioskSettings, Artifact, UserArtifact } from './types';
+import type { UserProfile, Cave, Spot, KioskSettings } from './types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -340,97 +340,6 @@ export function deleteSpot(id: string) {
         }
     });
 }
-
-// --- Artifact Functions ---
-export async function getAllArtifacts(): Promise<Artifact[]> {
-    const artifactsRef = collection(db, 'artifacts');
-    try {
-        const querySnapshot = await getDocs(artifactsRef);
-        return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Artifact));
-    } catch (error: any) {
-        if (error.code === 'permission-denied') {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: '/artifacts', operation: 'list' }));
-        }
-        throw error;
-    }
-}
-
-export async function findArtifactForSpot(spotId: string): Promise<Artifact | undefined> {
-    const q = query(collection(db, 'artifacts'), where('spotId', '==', spotId));
-    try {
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-            const doc = querySnapshot.docs[0];
-            return { id: doc.id, ...doc.data() } as Artifact;
-        }
-        return undefined;
-    } catch (error) {
-        console.error("Error finding artifact for spot:", error);
-        return undefined;
-    }
-}
-
-export function foundArtifact(userId: string, artifact: Artifact) {
-  const artifactRef = doc(db, 'users', userId, 'artifacts', artifact.id);
-  const data: Omit<UserArtifact, 'id'> = {
-      userId: userId,
-      caveId: artifact.caveId,
-      foundAt: serverTimestamp(),
-  };
-  setDoc(artifactRef, data).catch((error) => {
-     if (error.code === 'permission-denied') {
-        const permissionError = new FirestorePermissionError({
-            path: `/users/${userId}/artifacts/${artifact.id}`,
-            operation: 'create',
-            requestResourceData: data,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-     }
-  });
-}
-
-export function addArtifact(artifactData: Omit<Artifact, 'id'>): Promise<string> {
-    return addDoc(collection(db, 'artifacts'), artifactData)
-        .then(docRef => docRef.id)
-        .catch(error => {
-            if (error.code === 'permission-denied') {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: '/artifacts',
-                    operation: 'create',
-                    requestResourceData: artifactData
-                }));
-            }
-            throw error;
-        });
-}
-
-export function updateArtifact(id: string, artifactData: Partial<Omit<Artifact, 'id'>>) {
-    const docRef = doc(db, 'artifacts', id);
-    return updateDoc(docRef, artifactData).catch(error => {
-        if (error.code === 'permission-denied') {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: `/artifacts/${id}`,
-                operation: 'update',
-                requestResourceData: artifactData
-            }));
-        }
-        throw error;
-    });
-}
-
-export function deleteArtifact(id: string) {
-    const docRef = doc(db, 'artifacts', id);
-    return deleteDoc(docRef).catch(error => {
-        if (error.code === 'permission-denied') {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: `/artifacts/${id}`,
-                operation: 'delete'
-            }));
-        }
-        throw error;
-    });
-}
-
 
 // --- Kiosk Settings Functions ---
 

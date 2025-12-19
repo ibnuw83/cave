@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { Mountain, LogOut, User, Trash2, ArrowRight, Loader2, BookUser } from 'lucide-react';
+import { Mountain, LogOut, User, Trash2, ArrowRight, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -100,8 +100,8 @@ const AuthSection = () => {
           <DropdownMenuSeparator />
            <DropdownMenuItem asChild>
               <Link href="/profile">
-                <BookUser className="mr-2 h-4 w-4" />
-                <span>Buku Catatan</span>
+                <User className="mr-2 h-4 w-4" />
+                <span>Profil</span>
               </Link>
             </DropdownMenuItem>
            {userProfile.role === 'admin' && (

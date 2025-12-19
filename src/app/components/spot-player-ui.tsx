@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Spot, Artifact } from '@/lib/types';
+import { Spot } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Play, Pause, Loader2, Maximize, Minimize, ScanSearch, Sparkles, Trophy, Orbit, Mic, MicOff } from 'lucide-react';
+import { ChevronLeft, Play, Pause, Loader2, Maximize, Minimize, Orbit, Mic, MicOff } from 'lucide-react';
 import { canVibrate, vibrate } from '@/lib/haptics';
 import {
   Carousel,
@@ -18,7 +18,6 @@ import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
-import { findArtifactForSpot, foundArtifact } from '@/lib/firestore';
 import { stopSpeaking } from '@/lib/tts';
 
 
@@ -193,7 +192,6 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
   const { user } = useUser();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
   const [isUIVisible, setIsUIVisible] = useState(true);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -356,50 +354,6 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
     }
   };
   
-  const handleScanArea = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!user) {
-        toast({ variant: 'destructive', title: 'Harus Login', description: 'Anda harus login untuk mencari artefak.'});
-        return;
-    }
-
-    setIsScanning(true);
-    toast({
-        title: 'Memindai Area...',
-        description: 'Mencari artefak tersembunyi...',
-        duration: 2000
-    });
-
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const artifact = await findArtifactForSpot(spot.id);
-
-    if (artifact) {
-        foundArtifact(user.uid, artifact);
-        vibrate([100, 50, 100, 50, 200]);
-        toast({
-            title: 'Artefak Ditemukan!',
-            description: `Anda menemukan: ${artifact.name}`,
-            action: (
-                <div className='flex items-center gap-2'>
-                    <Trophy className='h-5 w-5 text-yellow-400' />
-                    <Button variant="secondary" size="sm" onClick={() => router.push('/profile')}>
-                        Lihat Koleksi
-                    </Button>
-                </div>
-            )
-        });
-    } else {
-        toast({
-            title: 'Tidak Ada Apapun',
-            description: 'Tidak ada artefak yang ditemukan di area ini.',
-        });
-        vibrate(50);
-    }
-    
-    setIsScanning(false);
-  };
-
   const handleToggleDescription = (e: React.MouseEvent) => {
       e.stopPropagation();
       setIsDescriptionExpanded(prev => !prev);
@@ -469,16 +423,11 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
         >
             <div className="flex items-end justify-between gap-4">
                 <div className="flex items-start gap-4">
-                    <div className="flex flex-col gap-2">
-                        {isProUser && (
-                            <Button size="icon" className="rounded-full h-16 w-16 bg-white/30 text-white backdrop-blur-sm hover:bg-white/50 flex-shrink-0" onClick={handleTogglePlay} disabled={isLoading || isScanning || isListening}>
-                                {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
-                            </Button>
-                        )}
-                        <Button size="icon" className="rounded-full h-16 w-16 bg-primary/80 text-primary-foreground backdrop-blur-sm hover:bg-primary flex-shrink-0" onClick={handleScanArea} disabled={isScanning || isLoading || isListening}>
-                            {isScanning ? <Loader2 className="h-8 w-8 animate-spin" /> : <ScanSearch className="h-8 w-8" />}
+                    {isProUser && (
+                        <Button size="icon" className="rounded-full h-16 w-16 bg-white/30 text-white backdrop-blur-sm hover:bg-white/50 flex-shrink-0" onClick={handleTogglePlay} disabled={isLoading || isListening}>
+                            {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
                         </Button>
-                    </div>
+                    )}
                     <div>
                         <h1 className="text-3xl font-bold font-headline mb-1">{spot.title}</h1>
                          <p className={cn("text-base text-white/80 max-w-prose", !isDescriptionExpanded && "line-clamp-1")}>
@@ -503,7 +452,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
                             isListening && "bg-red-500/50 animate-pulse"
                         )}
                         onClick={handleMicClick}
-                        disabled={isLoading || isScanning}
+                        disabled={isLoading}
                     >
                         {isListening ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
                         <span className="sr-only">Tanya AI</span>

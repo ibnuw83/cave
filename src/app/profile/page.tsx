@@ -1,25 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useUser, useFirestore, useCollection } from '@/firebase';
-import { UserProfile, Artifact, UserArtifact } from '@/lib/types';
-import { collection } from 'firebase/firestore';
+import { useUser } from '@/firebase';
+import { UserProfile } from '@/lib/types';
 import { useRouter } from 'next/navigation';
-import { Loader2, User as UserIcon, Gem, Award, ShieldCheck, Mail, ArrowLeft, BookUser, Edit } from 'lucide-react';
+import { Loader2, User as UserIcon, Gem, ShieldCheck, Mail, ArrowLeft, Edit } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import Image from 'next/image';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { updateUserProfile } from '@/lib/firestore';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,40 +18,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-
-
-function ArtifactCard({ artifact, isFound }: { artifact: Artifact; isFound: boolean }) {
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Card className={`overflow-hidden transition-all duration-300 ${!isFound && 'bg-muted/40'}`}>
-            <CardContent className="p-0">
-              <div className="relative aspect-square">
-                <Image
-                  src={artifact.imageUrl}
-                  alt={artifact.name}
-                  fill
-                  className={`object-cover ${!isFound && 'opacity-30 grayscale'}`}
-                  data-ai-hint="ancient artifact"
-                />
-                 {!isFound && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                        <p className="font-bold text-5xl text-white/50">?</p>
-                    </div>
-                 )}
-              </div>
-            </CardContent>
-          </Card>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">
-            <p className="font-bold text-md">{artifact.name}</p>
-            <p className="text-sm text-muted-foreground">{isFound ? artifact.description : 'Artefak ini belum ditemukan.'}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
 
 
 const profileSchema = z.object({
@@ -134,20 +91,8 @@ function EditProfileDialog({ userProfile, onOpenChange, open }: { userProfile: U
 
 export default function ProfilePage() {
   const { user, userProfile, isUserLoading, isProfileLoading, refreshUserProfile } = useUser();
-  const firestore = useFirestore();
   const router = useRouter();
   const [isEditProfileOpen, setEditProfileOpen] = useState(false);
-
-
-  // Get all artifacts from DB
-  const { data: allArtifacts, isLoading: isAllArtifactsLoading } = useCollection<Artifact>(
-    collection(firestore, 'artifacts')
-  );
-
-  // Get user's found artifacts
-  const { data: foundArtifacts, isLoading: isFoundArtifactsLoading } = useCollection<UserArtifact>(
-    user ? collection(firestore, 'users', user.uid, 'artifacts') : null
-  );
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -162,7 +107,7 @@ export default function ProfilePage() {
     }
   }, [isEditProfileOpen, refreshUserProfile]);
 
-  const loading = isUserLoading || isProfileLoading || isFoundArtifactsLoading || isAllArtifactsLoading;
+  const loading = isUserLoading || isProfileLoading;
 
   if (loading || !userProfile) {
     return (
@@ -179,8 +124,6 @@ export default function ProfilePage() {
         default: return <UserIcon className="h-4 w-4 text-gray-400" />;
     }
   }
-
-  const foundArtifactIds = new Set(foundArtifacts?.map(a => a.id) || []);
 
   return (
     <>
@@ -224,28 +167,17 @@ export default function ProfilePage() {
            <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-3">
-                        <BookUser className="h-6 w-6 text-primary" />
-                        Buku Catatan Penjelajah
+                        <UserIcon className="h-6 w-6 text-primary" />
+                        Detail Akun
                     </CardTitle>
                     <CardDescription>
-                        Daftar artefak yang telah Anda temukan dalam petualangan Anda.
+                        Informasi mengenai akun Anda.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {isAllArtifactsLoading ? (
-                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                                <Skeleton key={i} className="aspect-square w-full" />
-                            ))}
-                         </div>
-                    ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                           {(allArtifacts || []).map((artifact) => (
-                               <ArtifactCard key={artifact.id} artifact={artifact} isFound={foundArtifactIds.has(artifact.id)} />
-                           ))}
-                           {(!allArtifacts || allArtifacts.length === 0) && <p className="col-span-full text-center text-muted-foreground">Belum ada artefak yang bisa ditemukan.</p>}
-                        </div>
-                    )}
+                    <p className="text-muted-foreground">
+                        Di sini Anda dapat melihat ringkasan akun Anda. Untuk saat ini, belum ada detail lebih lanjut.
+                    </p>
                 </CardContent>
            </Card>
         </main>

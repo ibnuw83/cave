@@ -41,23 +41,6 @@ export interface Spot {
   hotspots?: Hotspot[];
 }
 
-export interface Artifact {
-  id: string;
-  caveId: string;
-  spotId: string; // The spot where this artifact is hidden
-  name: string;
-  description: string;
-  imageUrl: string;
-}
-
-export interface UserArtifact {
-  id: string; // artifactId
-  userId: string;
-  caveId: string;
-  foundAt: Timestamp;
-}
-
-
 export interface OfflineCaveData {
     cave: Cave;
     spots: Spot[];
