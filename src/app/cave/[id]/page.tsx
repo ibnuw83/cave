@@ -1,27 +1,70 @@
 
+'use client';
+
+import { useEffect, useState } from 'react';
 import { getCave, getSpots } from '@/lib/firestore';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import CaveClient from '@/app/components/cave-client';
 import { Cave, Spot } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Loader2 } from 'lucide-react';
 
-// This component now ONLY fetches data from Firestore.
-// All complex offline-first logic has been moved to the client if needed,
-// but for initial load, direct fetching is more reliable.
-export default async function CavePage({ params }: { params: { id: string } }) {
-  const caveId = params.id;
+export default function CavePage() {
+  const params = useParams();
+  const caveId = Array.isArray(params.id) ? params.id[0] : params.id;
   
-  // Fetch cave and spots data in parallel for efficiency.
-  const [cave, spots] = await Promise.all([
-    getCave(caveId),
-    getSpots(caveId)
-  ]);
+  const [cave, setCave] = useState<Cave | null>(null);
+  const [spots, setSpots] = useState<Spot[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  // If the main resource (the cave) isn't found, show a 404 page.
-  if (!cave) {
-    notFound();
+  useEffect(() => {
+    if (!caveId) return;
+
+    async function fetchData() {
+      try {
+        setLoading(true);
+        const [caveData, spotsData] = await Promise.all([
+          getCave(caveId),
+          getSpots(caveId)
+        ]);
+
+        if (!caveData) {
+          setError(true);
+          return;
+        }
+
+        setCave(caveData);
+        setSpots(spotsData);
+      } catch (err) {
+        console.error("Failed to fetch cave data:", err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [caveId]);
+
+  if (loading) {
+    return (
+       <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="text-center">
+          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+          <p className="mt-4 text-lg text-muted-foreground">Memuat data gua...</p>
+        </div>
+      </div>
+    );
   }
 
-  // Pass the reliably fetched data to the client component.
-  // The spots array will be empty if getSpots found nothing, which is correct.
+  if (error) {
+    notFound();
+  }
+  
+  if (!cave) {
+    return null; // Should be handled by notFound
+  }
+
   return <CaveClient cave={cave} spots={spots} />;
 }
