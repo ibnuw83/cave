@@ -23,7 +23,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { clearOfflineCache } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
 import { getKioskSettings, getCaves } from '@/lib/firestore';
-import placeholderImagesData from '@/lib/placeholder-images.json';
 
 
 const AuthSection = () => {
@@ -113,7 +112,7 @@ const AuthSection = () => {
 export default function Home() {
   const { loading: authLoading } = useAuth();
   const [settings, setSettings] = useState<KioskSettings | null>(null);
-  const [initialCaves, setInitialCaves] = useState<Cave[]>([]);
+  const [caves, setCaves] = useState<Cave[]>([]);
   const [loadingCaves, setLoadingCaves] = useState(true);
 
   useEffect(() => {
@@ -127,56 +126,17 @@ export default function Home() {
   useEffect(() => {
     async function fetchCaves() {
         setLoadingCaves(true);
-        let firestoreCaves: Cave[] = [];
         try {
             // Fetch active caves from Firestore
-            firestoreCaves = await getCaves(false);
+            const firestoreCaves = await getCaves(false);
+            setCaves(firestoreCaves);
         } catch (error) {
-            console.error("Gagal mengambil data gua dari Firestore, akan menggunakan data contoh:", error);
+            console.error("Gagal mengambil data gua dari Firestore:", error);
+            // In case of error, set caves to an empty array
+            setCaves([]);
+        } finally {
+            setLoadingCaves(false);
         }
-
-        // If Firestore data is available, use it.
-        if (firestoreCaves.length > 0) {
-            setInitialCaves(firestoreCaves);
-        } else {
-            // Otherwise, fall back to static example data.
-            const placeholderImages = placeholderImagesData.placeholderImages;
-            const jomblangCover = placeholderImages.find(p => p.id === 'cave-jomblang-cover')?.imageUrl;
-            const gongCover = placeholderImages.find(p => p.id === 'cave-gong-cover')?.imageUrl;
-            const petrukCover = placeholderImages.find(p => p.id === 'cave-petruk-cover')?.imageUrl;
-
-            const staticCaves: Cave[] = [];
-            if (jomblangCover) {
-                staticCaves.push({
-                id: 'static-jomblang',
-                name: 'Gua Jomblang (Contoh)',
-                description: 'Gua vertikal dengan cahaya surga yang menakjubkan.',
-                coverImage: jomblangCover,
-                isActive: true,
-                });
-            }
-            if (gongCover) {
-                staticCaves.push({
-                id: 'static-gong',
-                name: 'Gua Gong (Contoh)',
-                description: 'Dijuluki sebagai gua terindah di Asia Tenggara.',
-                coverImage: gongCover,
-                isActive: true,
-                });
-            }
-            if (petrukCover) {
-                staticCaves.push({
-                    id: 'static-petruk',
-                    name: 'Gua Petruk (Contoh)',
-                    description: 'Gua Petruk di Kebumen adalah destinasi wisata alam karst yang menawarkan pengalaman caving (susur gua) menantang.',
-                    coverImage: petrukCover,
-                    isActive: true,
-                });
-            }
-            setInitialCaves(staticCaves);
-        }
-        
-        setLoadingCaves(false);
     }
     fetchCaves();
   }, [])
@@ -205,9 +165,9 @@ export default function Home() {
             <Skeleton className="h-64 w-full" />
             <Skeleton className="h-64 w-full" />
           </div>
-        ) : initialCaves.length > 0 ? (
+        ) : caves.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {initialCaves.map((cave) => (
+            {caves.map((cave) => (
               <Link href={`/cave/${cave.id}`} key={cave.id} className="group">
                 <Card className="h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:scale-105">
                   <CardHeader className="p-0">
