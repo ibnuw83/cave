@@ -32,23 +32,21 @@ export const storage = getStorage(app);
    EMULATOR (OPTIONAL)
 ========================== */
 // Gunakan variabel NEXT_PUBLIC_USE_EMULATOR di file .env.local Anda
-if (process.env.NEXT_PUBLIC_USE_EMULATOR === 'true') {
-  if (typeof window !== 'undefined') {
-    console.log("Connecting to Firebase Emulators...");
-    try {
-        // Cek jika sudah terhubung untuk menghindari error Hot-Reload
-        if (!(auth as any)._emulator) {
-            connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
-        }
-        if (!(db as any)._settings.host) {
-            connectFirestoreEmulator(db, 'localhost', 8080);
-        }
-        if (!(storage as any)._emulator) {
-            connectStorageEmulator(storage, 'localhost', 9199);
-        }
-    } catch (e) {
-        console.error("Error connecting to emulators. Is it running?", e);
-    }
+if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_USE_EMULATOR === 'true') {
+  console.log("Connecting to Firebase Emulators...");
+  try {
+      // Cek jika sudah terhubung untuk menghindari error Hot-Reload
+      if (!(auth as any)._emulator) {
+          connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+      }
+      if (!(db as any)._settings.host || (db as any)._settings.host === 'firestore.googleapis.com') {
+          connectFirestoreEmulator(db, 'localhost', 8080);
+      }
+      if (!(storage as any)._emulator) {
+          connectStorageEmulator(storage, 'localhost', 9199);
+      }
+  } catch (e) {
+      console.error("Error connecting to emulators. Is it running?", e);
   }
 }
 
