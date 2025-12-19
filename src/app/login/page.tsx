@@ -46,10 +46,10 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [settings, setSettings] = useState<KioskSettings | null>(null);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [isEmailLoading, setIsEmailLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    // This effect handles redirection after a user logs in.
     if(!isUserLoading && user) {
         router.push('/');
     }
@@ -65,10 +65,10 @@ export default function LoginPage() {
   });
 
   const signInWithEmail = async (data: LoginFormValues) => {
-    setIsEmailLoading(true);
+    setIsSubmitting(true);
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
-      // The onAuthStateChanged listener in FirebaseProvider will handle the redirect and profile logic
+      // The useUser hook will detect the auth change and handle redirection.
     } catch (error: any) {
        if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
         toast({
@@ -84,16 +84,16 @@ export default function LoginPage() {
           });
        }
     } finally {
-        setIsEmailLoading(false);
+        setIsSubmitting(false);
     }
   };
 
   const signInWithGoogle = async () => {
-    setIsGoogleLoading(true);
+    setIsSubmitting(true);
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
-      // The onAuthStateChanged listener in FirebaseProvider will handle the redirect and profile logic
+      // The useUser hook will detect the auth change and handle redirection.
     } catch (error: any) {
       if (error.code !== 'auth/popup-closed-by-user') {
           toast({
@@ -104,7 +104,7 @@ export default function LoginPage() {
           console.error("Google Sign-In Error:", error);
       }
     } finally {
-      setIsGoogleLoading(false);
+      setIsSubmitting(false);
     }
   };
   
@@ -130,7 +130,15 @@ export default function LoginPage() {
       });
   };
 
-  const isLoading = isEmailLoading || isGoogleLoading || isUserLoading;
+  const isLoading = isSubmitting || isUserLoading;
+  
+  if (isUserLoading || user) {
+      return (
+         <div className="flex h-screen w-full items-center justify-center bg-background">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      )
+  }
 
   return (
     <div className="relative min-h-screen bg-background p-4">
@@ -156,7 +164,7 @@ export default function LoginPage() {
                 </div>
 
                 <Button variant="outline" className="w-full" onClick={signInWithGoogle} disabled={isLoading}>
-                    {isGoogleLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="mr-2"/> Lanjutkan dengan Google</>}
+                    {isLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="mr-2"/> Lanjutkan dengan Google</>}
                 </Button>
                 
                 <div className="relative">
@@ -200,7 +208,7 @@ export default function LoginPage() {
                         <Button type="button" variant="link" className="p-0 h-auto text-xs" onClick={handleForgotPassword}>Lupa Password?</Button>
                     </div>
                     <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isEmailLoading ? <Loader2 className="animate-spin" /> : 'Masuk'}
+                    {isLoading ? <Loader2 className="animate-spin" /> : 'Masuk'}
                     </Button>
                 </form>
                 </Form>

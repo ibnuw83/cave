@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useUser, useFirestore, useCollection } from '@/firebase';
 import { UserProfile, Artifact, UserArtifact } from '@/lib/types';
-import { doc, collection, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Loader2, User as UserIcon, Gem, Award, ShieldCheck, Mail, ArrowLeft, BookUser, Edit } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -133,37 +133,11 @@ function EditProfileDialog({ userProfile, onOpenChange, open }: { userProfile: U
 
 
 export default function ProfilePage() {
-  const { user, isUserLoading } = useUser();
+  const { user, userProfile, isUserLoading, isProfileLoading, refreshUserProfile } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const [isEditProfileOpen, setEditProfileOpen] = useState(false);
 
-  // Get user profile
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [isProfileLoading, setIsProfileLoading] = useState(true);
-
-  // Re-fetch profile when edit dialog closes
-  useEffect(() => {
-    if (isEditProfileOpen) return; // Don't refetch while open
-
-    if (!user) {
-      setUserProfile(null);
-      setIsProfileLoading(false);
-      return;
-    }
-
-    setIsProfileLoading(true);
-    const ref = doc(firestore, 'users', user.uid);
-    getDoc(ref)
-      .then(snap => {
-        if (snap.exists()) {
-          setUserProfile({ id: snap.id, ...snap.data() } as UserProfile);
-        } else {
-          setUserProfile(null);
-        }
-      })
-      .finally(() => setIsProfileLoading(false));
-  }, [user, firestore, isEditProfileOpen]);
 
   // Get all artifacts from DB
   const { data: allArtifacts, isLoading: isAllArtifactsLoading } = useCollection<Artifact>(
@@ -175,12 +149,18 @@ export default function ProfilePage() {
     user ? collection(firestore, 'users', user.uid, 'artifacts') : null
   );
 
-
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.replace('/login');
     }
   }, [user, isUserLoading, router]);
+
+  // When edit dialog is closed, refresh the user profile data
+  useEffect(() => {
+    if (!isEditProfileOpen) {
+        refreshUserProfile();
+    }
+  }, [isEditProfileOpen, refreshUserProfile]);
 
   const loading = isUserLoading || isProfileLoading || isFoundArtifactsLoading || isAllArtifactsLoading;
 

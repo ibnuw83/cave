@@ -26,39 +26,18 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { clearOfflineCache } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
-import { getKioskSettings, getCaves, getUserProfileClient } from '@/lib/firestore';
+import { getKioskSettings, getCaves } from '@/lib/firestore';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore, useAuth } from '@/firebase';
+import { useUser, useAuth } from '@/firebase';
 import { signOut as firebaseSignOut } from 'firebase/auth';
 
 
 const AuthSection = () => {
-  const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
+  const { user, userProfile, isUserLoading, isProfileLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [isProfileLoading, setIsProfileLoading] = useState(true);
-
-  useEffect(() => {
-    if (!user) {
-      setUserProfile(null);
-      setIsProfileLoading(false);
-      return;
-    }
-
-    setIsProfileLoading(true);
-    getUserProfileClient(user.uid)
-      .then(profile => {
-        setUserProfile(profile);
-      })
-      .finally(() => {
-        setIsProfileLoading(false);
-      });
-  }, [user]);
 
   const handleClearCache = async () => {
     if (!confirm('Anda yakin ingin menghapus semua konten offline? Ini tidak dapat diurungkan.')) {
@@ -89,9 +68,10 @@ const AuthSection = () => {
     }
   }
 
-
   if (isUserLoading || isProfileLoading) {
-    return null;
+    return (
+      <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
+    );
   }
 
   if (user && userProfile) {
@@ -113,7 +93,7 @@ const AuthSection = () => {
                 {userProfile.email}
               </p>
             </div>
-             <Badge variant={userProfile.role === 'pro' ? 'default' : 'secondary'} className="uppercase mt-2">
+             <Badge variant={userProfile.role === 'pro' || userProfile.role === 'admin' ? 'default' : 'secondary'} className="uppercase mt-2">
                 {userProfile.role}
             </Badge>
           </DropdownMenuLabel>
@@ -160,24 +140,21 @@ const AuthSection = () => {
 export default function HomeClient() {
   const [initialCaves, setInitialCaves] = useState<Cave[]>([]);
   const [settings, setSettings] = useState<KioskSettings | null>(null);
-  const [loading, setLoading] = useState(true);
-  const { isUserLoading, user } = useUser();
+  const [dataLoading, setDataLoading] = useState(true);
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
 
   const heroImage = placeholderImages.placeholderImages.find(img => img.id === 'spot-jomblang-light')?.imageUrl || '/placeholder.jpg';
   
   useEffect(() => {
-    // Wait for user auth state to be resolved
     if (isUserLoading) return;
 
-    // If user is not logged in, redirect
     if (!user) {
-        // Using a router push inside a useEffect is fine for auth redirects
-        const router = (window as any).next.router;
-        if(router) router.push('/login');
+        router.push('/login');
         return;
     }
     
-    setLoading(true);
+    setDataLoading(true);
     Promise.all([
       getCaves(false),
       getKioskSettings()
@@ -187,13 +164,14 @@ export default function HomeClient() {
     }).catch(err => {
       console.error("Failed to fetch initial data", err);
     }).finally(() => {
-      setLoading(false);
+      setDataLoading(false);
     });
 
-  }, [isUserLoading, user]);
+  }, [isUserLoading, user, router]);
   
+  const isLoading = isUserLoading || dataLoading;
 
-  if (isUserLoading || loading) {
+  if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="text-center">

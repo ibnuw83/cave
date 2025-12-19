@@ -2,38 +2,32 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, notFound } from 'next/navigation';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser } from '@/firebase';
 import SpotPageClient from './client';
-import { getSpotClient, getSpots, getUserProfileClient } from '@/lib/firestore';
-import { Spot, UserProfile } from '@/lib/types';
+import { getSpotClient, getSpots } from '@/lib/firestore';
+import { Spot } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SpotPage() {
   const params = useParams();
-  const { user, isUserLoading } = useUser();
+  const { user, userProfile, isUserLoading, isProfileLoading } = useUser();
   
   const spotId = Array.isArray(params.id) ? params.id[0] : params.id;
 
   const [spot, setSpot] = useState<Spot | null>(null);
   const [allSpots, setAllSpots] = useState<Spot[]>([]);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-  const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     if (!spotId) {
       setError(true);
-      setLoading(false);
+      setDataLoading(false);
       return;
     }
     
-    // Wait for user loading to finish
-    if (isUserLoading) {
-      return;
-    }
-
-    setLoading(true);
+    setDataLoading(true);
 
     const fetchData = async () => {
       try {
@@ -43,28 +37,26 @@ export default function SpotPage() {
           return;
         }
         
-        const siblingSpotsPromise = getSpots(spotData.caveId);
-        const userProfilePromise = user ? getUserProfileClient(user.uid) : Promise.resolve(null);
-        
-        const [siblingSpots, profile] = await Promise.all([siblingSpotsPromise, userProfilePromise]);
+        const siblingSpots = await getSpots(spotData.caveId);
 
         setSpot(spotData);
         setAllSpots(siblingSpots);
-        setUserProfile(profile);
 
       } catch (err) {
         console.error("Failed to fetch spot data", err);
         setError(true);
       } finally {
-        setLoading(false);
+        setDataLoading(false);
       }
     };
 
     fetchData();
 
-  }, [spotId, user, isUserLoading]);
+  }, [spotId]);
 
-  if (loading) {
+  const isLoading = isUserLoading || isProfileLoading || dataLoading;
+
+  if (isLoading) {
     return <Skeleton className="h-screen w-screen bg-black" />;
   }
   

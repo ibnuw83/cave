@@ -1,14 +1,11 @@
 'use client';
 
-import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect, useCallback } from 'react';
+import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore, doc } from 'firebase/firestore';
-import { Auth, User, onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
-import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
-import { UserProfile } from '@/lib/types';
-import { getUserProfileClient, createUserProfile } from '@/lib/firestore';
-import { useToast } from '@/hooks/use-toast';
-import { initializeFirebase } from '@/firebase'; // Import initialize function
+import { Firestore } from 'firebase/firestore';
+import { Auth } from 'firebase/auth';
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
+import { initializeFirebase } from '@/firebase';
 
 interface FirebaseServices {
   firebaseApp: FirebaseApp;
@@ -16,109 +13,24 @@ interface FirebaseServices {
   auth: Auth;
 }
 
-interface UserAuthState {
-  user: User | null;
-  isUserLoading: boolean;
-  userError: Error | null;
-  userProfile: UserProfile | null;
-  isProfileLoading: boolean;
-}
-
-export interface FirebaseContextState extends Partial<FirebaseServices>, UserAuthState {
-  areServicesAvailable: boolean;
-}
-
-export interface FirebaseServicesAndUser extends FirebaseServices, UserAuthState {}
-
-export interface UserHookResult { 
-  user: User | null;
-  isUserLoading: boolean;
-  userError: Error | null;
-}
-
-export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
+export const FirebaseContext = createContext<FirebaseServices | undefined>(undefined);
 
 export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [services, setServices] = useState<FirebaseServices | null>(null);
-  const [userAuthState, setUserAuthState] = useState<UserAuthState>({
-    user: null,
-    isUserLoading: true, 
-    userError: null,
-    userProfile: null,
-    isProfileLoading: true,
-  });
-  
-  const { toast } = useToast();
 
-  // Initialize Firebase services on mount
   useEffect(() => {
     try {
       const firebaseServices = initializeFirebase();
       setServices(firebaseServices);
     } catch (e) {
-      console.error("Failed to initialize Firebase:", e);
-      setUserAuthState(prev => ({...prev, isUserLoading: false, isProfileLoading: false, userError: e as Error}));
+      console.error("Failed to initialize Firebase in Provider:", e);
     }
   }, []);
 
-  const handleProfile = useCallback(async (user: User | null, authInstance: Auth) => {
-    if (user) {
-      setUserAuthState(prev => ({ ...prev, isProfileLoading: true }));
-      try {
-        let profile = await getUserProfileClient(user.uid);
-        if (!profile) {
-          toast({ title: "Membuat Profil...", description: "Selamat datang! Kami sedang menyiapkan akun Anda." });
-          profile = await createUserProfile(user);
-          toast({ title: "Selamat Datang!", description: "Profil baru Anda telah dibuat." });
-        }
-        setUserAuthState(prev => ({ ...prev, userProfile: profile, isProfileLoading: false, userError: null }));
-      } catch (error: any) {
-        console.error("Critical error handling user profile:", error);
-        toast({
-          variant: 'destructive',
-          title: 'Gagal Memuat Profil',
-          description: 'Ada masalah saat memuat data akun Anda. Silakan coba login kembali.'
-        });
-        await firebaseSignOut(authInstance);
-        setUserAuthState({
-          user: null, isUserLoading: false, userError: error, userProfile: null, isProfileLoading: false,
-        });
-      }
-    } else {
-      setUserAuthState(prev => ({ ...prev, userProfile: null, isProfileLoading: false }));
-    }
-  }, [toast]);
+  const contextValue = useMemo(() => services, [services]);
 
-  // Set up auth state listener once services are available
-  useEffect(() => {
-    if (!services) return;
-
-    setUserAuthState(prev => ({ ...prev, isUserLoading: true, isProfileLoading: true }));
-    
-    const unsubscribe = onAuthStateChanged(
-      services.auth,
-      (firebaseUser) => {
-        setUserAuthState(prev => ({ ...prev, user: firebaseUser, isUserLoading: false, userError: null }));
-        handleProfile(firebaseUser, services.auth);
-      },
-      (error) => {
-        console.error("FirebaseProvider: onAuthStateChanged error:", error);
-        setUserAuthState({ user: null, isUserLoading: false, userError: error, userProfile: null, isProfileLoading: false });
-      }
-    );
-    
-    return () => unsubscribe();
-  }, [services, handleProfile]);
-
-  const contextValue = useMemo((): FirebaseContextState => ({
-    areServicesAvailable: !!services,
-    ...services,
-    ...userAuthState,
-  }), [services, userAuthState]);
-
-  // Wait until services are initialized before rendering children
-  if (!services) {
-    // You can render a global loader here if you want
+  if (!contextValue) {
+    // Render a global loader or null while Firebase is initializing
     return null; 
   }
 
@@ -130,20 +42,14 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
   );
 };
 
-export const useFirebase = (): FirebaseServicesAndUser => {
+export const useFirebase = (): FirebaseServices => {
   const context = useContext(FirebaseContext);
 
   if (context === undefined) {
     throw new Error('useFirebase must be used within a FirebaseProvider.');
   }
-
-  if (!context.areServicesAvailable || !context.auth || !context.firestore || !context.firebaseApp) {
-    const error = new Error('Firebase core services not available. Check FirebaseProvider setup.');
-    console.error(error.message, { context });
-    throw error;
-  }
   
-  return context as FirebaseServicesAndUser;
+  return context;
 };
 
 export const useAuth = (): Auth => {
@@ -171,12 +77,3 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | 
   
   return memoized;
 }
-
-export const useUserHook = (): UserHookResult => {
-    const context = useContext(FirebaseContext);
-    if (context === undefined) {
-        throw new Error('useUser must be used within a FirebaseProvider.');
-    }
-    const { user, isUserLoading, userError } = context;
-    return { user, isUserLoading, userError };
-};
