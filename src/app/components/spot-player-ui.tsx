@@ -5,7 +5,7 @@ import { Spot, Artifact } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Play, Pause, Loader2, Maximize, Minimize, ScanSearch, Sparkles, Trophy, Orbit } from 'lucide-react';
+import { ChevronLeft, Play, Pause, Loader2, Maximize, Minimize, ScanSearch, Sparkles, Trophy, Orbit, Mic, MicOff } from 'lucide-react';
 import { canVibrate, vibrate } from '@/lib/haptics';
 import {
   Carousel,
@@ -141,6 +141,53 @@ async function convertPcmToWavUrl(base64PcmData: string): Promise<string> {
     return URL.createObjectURL(wavBlob);
 }
 
+// --- Speech Recognition Hook ---
+const useSpeechRecognition = (onResult: (transcript: string) => void) => {
+    const recognitionRef = useRef<any>(null);
+    const [isListening, setIsListening] = useState(false);
+  
+    useEffect(() => {
+      if (typeof window === 'undefined') return;
+      
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        console.warn('Speech Recognition not supported by this browser.');
+        return;
+      }
+  
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.lang = 'id-ID';
+      recognition.interimResults = false;
+  
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        onResult(transcript);
+        setIsListening(false);
+      };
+  
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error', event.error);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      }
+  
+      recognitionRef.current = recognition;
+    }, [onResult]);
+  
+    const startListening = () => {
+      if (recognitionRef.current && !isListening) {
+        recognitionRef.current.start();
+        setIsListening(true);
+      }
+    };
+  
+    return { isListening, startListening };
+};
+
 
 export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false, onVrModeChange }: { spot: Spot, userRole: 'free' | 'pro' | 'admin', allSpots: Spot[], vrMode?: boolean; onVrModeChange?: (active: boolean) => void }) {
   const { user } = useUser();
@@ -242,11 +289,32 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
     }
   };
 
+  const playAudioFromBase64 = async (base64Pcm: string, vibrationPattern?: number[]) => {
+      stopSpeaking(); // Stop any currently playing audio
+      handlePlaybackEnd();
+      
+      const audioUrl = await convertPcmToWavUrl(base64Pcm);
+      const audio = new Audio(audioUrl);
+      
+      audio.onended = () => {
+          URL.revokeObjectURL(audioUrl);
+          handlePlaybackEnd();
+      };
+      
+      (window as any).currentAudio = audio;
+      await audio.play();
+      
+      setIsPlaying(true);
+      if (vibrationPattern && vibrationPattern.length > 0) {
+          vibrate(vibrationPattern);
+      }
+  };
+
+
   const handleTogglePlay = async (e: React.MouseEvent) => {
     e.stopPropagation(); 
     if (!isProUser) return;
 
-    // If something is playing, stop it.
     if (isPlaying) {
       stopSpeaking();
       handlePlaybackEnd();
@@ -266,23 +334,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
         }
         
         const base64Pcm = await response.text();
-        const audioUrl = await convertPcmToWavUrl(base64Pcm);
-        
-        const audio = new Audio(audioUrl);
-        audio.onended = () => {
-            URL.revokeObjectURL(audioUrl);
-            handlePlaybackEnd();
-        };
-
-        (window as any).currentAudio = audio;
-        
-        await audio.play();
-        setIsPlaying(true);
-        setIsLoading(false);
-
-        if (spot.effects?.vibrationPattern && spot.effects.vibrationPattern.length > 0) {
-          vibrate(spot.effects.vibrationPattern);
-        }
+        await playAudioFromBase64(base64Pcm, spot.effects?.vibrationPattern);
 
     } catch (error) {
         console.warn("Failed to play AI narration, falling back to browser TTS:", error);
@@ -292,7 +344,6 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
             description: 'Menggunakan suara browser karena narasi AI tidak tersedia.'
         });
         
-        // This is a direct fallback without using the tts.ts module
         const u = new SpeechSynthesisUtterance(spot.description);
         u.lang = 'id-ID';
         u.onend = handlePlaybackEnd;
@@ -300,6 +351,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
         window.speechSynthesis.speak(u);
 
         setIsPlaying(true);
+    } finally {
         setIsLoading(false);
     }
   };
@@ -351,7 +403,44 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
   const handleToggleDescription = (e: React.MouseEvent) => {
       e.stopPropagation();
       setIsDescriptionExpanded(prev => !prev);
-  }
+  };
+
+  // --- AI Voice Assistant Logic ---
+  const handleAiQuestion = async (question: string) => {
+    if (!question) return;
+
+    stopSpeaking();
+    handlePlaybackEnd();
+    setIsLoading(true);
+
+    try {
+        const response = await fetch('/api/ask', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ spotId: spot.id, question }),
+        });
+
+        if (!response.ok) throw new Error('Failed to get AI answer');
+
+        const base64Pcm = await response.text();
+        await playAudioFromBase64(base64Pcm);
+        
+    } catch (error) {
+        console.error('Error asking AI:', error);
+        toast({ variant: 'destructive', title: 'Gagal', description: 'Asisten AI tidak dapat merespons.' });
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  const { isListening, startListening } = useSpeechRecognition(handleAiQuestion);
+
+  const handleMicClick = () => {
+    stopSpeaking();
+    handlePlaybackEnd();
+    startListening();
+  };
+
   
   return (
     <>
@@ -382,11 +471,11 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
                 <div className="flex items-start gap-4">
                     <div className="flex flex-col gap-2">
                         {isProUser && (
-                            <Button size="icon" className="rounded-full h-16 w-16 bg-white/30 text-white backdrop-blur-sm hover:bg-white/50 flex-shrink-0" onClick={handleTogglePlay} disabled={isLoading || isScanning}>
+                            <Button size="icon" className="rounded-full h-16 w-16 bg-white/30 text-white backdrop-blur-sm hover:bg-white/50 flex-shrink-0" onClick={handleTogglePlay} disabled={isLoading || isScanning || isListening}>
                                 {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
                             </Button>
                         )}
-                        <Button size="icon" className="rounded-full h-16 w-16 bg-primary/80 text-primary-foreground backdrop-blur-sm hover:bg-primary flex-shrink-0" onClick={handleScanArea} disabled={isScanning || isLoading}>
+                        <Button size="icon" className="rounded-full h-16 w-16 bg-primary/80 text-primary-foreground backdrop-blur-sm hover:bg-primary flex-shrink-0" onClick={handleScanArea} disabled={isScanning || isLoading || isListening}>
                             {isScanning ? <Loader2 className="h-8 w-8 animate-spin" /> : <ScanSearch className="h-8 w-8" />}
                         </Button>
                     </div>
@@ -405,6 +494,21 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
                     </div>
                 </div>
                 <div className='flex items-center gap-2'>
+                  {isProUser && (
+                     <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className={cn(
+                            "rounded-full h-12 w-12 bg-white/20 text-white backdrop-blur-sm hover:bg-white/40 flex-shrink-0",
+                            isListening && "bg-red-500/50 animate-pulse"
+                        )}
+                        onClick={handleMicClick}
+                        disabled={isLoading || isScanning}
+                    >
+                        {isListening ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
+                        <span className="sr-only">Tanya AI</span>
+                    </Button>
+                  )}
                   {onVrModeChange && (
                     <Button 
                         size="icon" 
