@@ -17,6 +17,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel"
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { clearOfflineCache } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +34,7 @@ import { useRouter } from 'next/navigation';
 const AuthSection = () => {
   const { user, userProfile, loading, signOut } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleClearCache = async () => {
     if (!confirm('Anda yakin ingin menghapus semua konten offline? Ini tidak dapat diurungkan.')) {
@@ -98,14 +106,15 @@ const AuthSection = () => {
     );
   }
 
-  return null;
+  return (
+    <Button onClick={() => router.push('/login')}>
+        Masuk
+    </Button>
+  );
 };
 
 
 export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
   const [settings, setSettings] = useState<KioskSettings | null>(null);
 
   const heroImage = placeholderImages.placeholderImages.find(img => img.id === 'spot-jomblang-light')?.imageUrl || '/placeholder.jpg';
@@ -118,13 +127,6 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
     fetchSettings();
   }, []);
   
-  if (loading) {
-      return (
-        <div className="flex h-screen w-full items-center justify-center bg-background">
-          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-        </div>
-      );
-  }
 
   return (
     <div className="min-h-screen">
@@ -139,7 +141,6 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
             data-ai-hint="dramatic cave"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black" />
-          
         </div>
 
         <div className="relative z-10 flex h-full flex-col justify-center p-4 md:p-8 w-full">
@@ -176,28 +177,41 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
          <div className="container mx-auto max-w-5xl px-4 md:px-8">
             <h2 className="mb-8 text-center text-3xl font-semibold text-white/90 md:text-4xl">Gua yang Tersedia</h2>
             {initialCaves.length > 0 ? (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <Carousel
+              opts={{
+                align: "start",
+              }}
+              className="w-full"
+            >
+              <CarouselContent>
                 {initialCaves.map((cave) => (
-                <Link href={`/cave/${cave.id}`} key={cave.id} className="group">
-                    <Card className="h-full overflow-hidden transition-all duration-300 hover:shadow-primary/20 hover:shadow-2xl hover:border-primary/50 hover:-translate-y-2 bg-card border-border/50">
-                    <CardHeader className="p-0">
-                        <div className="relative h-56 w-full">
-                        <Image
-                            src={cave.coverImage}
-                            alt={`Gambar ${cave.name}`}
-                            fill
-                            className="object-cover transition-transform duration-300 group-hover:scale-110"
-                            data-ai-hint="cave entrance"
-                        />
-                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-4">
-                           <CardTitle className="text-lg font-bold font-headline text-white transition-transform duration-300 group-hover:translate-y-[-4px]">{cave.name}</CardTitle>
-                         </div>
-                        </div>
-                    </CardHeader>
-                    </Card>
-                </Link>
+                  <CarouselItem key={cave.id} className="md:basis-1/2 lg:basis-1/3">
+                    <div className="p-1">
+                      <Link href={`/cave/${cave.id}`} className="group">
+                        <Card className="h-full overflow-hidden transition-all duration-300 hover:shadow-primary/20 hover:shadow-2xl hover:border-primary/50 hover:-translate-y-2 bg-card border-border/50">
+                          <CardHeader className="p-0">
+                            <div className="relative h-56 w-full">
+                              <Image
+                                src={cave.coverImage}
+                                alt={`Gambar ${cave.name}`}
+                                fill
+                                className="object-cover transition-transform duration-300 group-hover:scale-110"
+                                data-ai-hint="cave entrance"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-4">
+                                <CardTitle className="text-lg font-bold font-headline text-white transition-transform duration-300 group-hover:translate-y-[-4px]">{cave.name}</CardTitle>
+                              </div>
+                            </div>
+                          </CardHeader>
+                        </Card>
+                      </Link>
+                    </div>
+                  </CarouselItem>
                 ))}
-            </div>
+              </CarouselContent>
+              <CarouselPrevious className="hidden sm:flex" />
+              <CarouselNext className="hidden sm:flex" />
+            </Carousel>
             ) : (
             <p className="text-center text-muted-foreground">Tidak ada gua yang tersedia saat ini. Silakan tambahkan melalui Panel Admin.</p>
             )}
