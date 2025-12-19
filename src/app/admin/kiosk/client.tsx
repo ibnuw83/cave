@@ -12,25 +12,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Trash2, Plus, GripVertical, Loader2, Download, WifiOff, ArrowRight } from 'lucide-react';
+import { Trash2, Plus, GripVertical, Loader2, Download, WifiOff, ArrowRight, Monitor, MessageSquare, Power, PowerOff, Send, Radio } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { saveKioskSettings } from '@/lib/firestore';
+import { saveKioskSettings, setKioskControl } from '@/lib/firestore';
 import Link from 'next/link';
 import { isCaveAvailableOffline, saveCaveForOffline } from '@/lib/offline';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCollection, useDoc } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { formatDistanceToNow } from 'date-fns';
+import { id } from 'date-fns/locale';
+import { Label } from '@/components/ui/label';
 
-// Schema untuk pengaturan global
+// --- Form Schemas ---
 const globalSettingsSchema = z.object({
   logoUrl: z.string().url({ message: "URL tidak valid." }).optional().or(z.literal('')),
   mode: z.enum(['loop', 'shuffle']),
   exitPin: z.string().length(4, 'PIN harus terdiri dari 4 digit.').regex(/^\d{4}$/, 'PIN harus berupa 4 angka.'),
 });
 
-// Schema untuk pengaturan playlist
 const playlistSettingsSchema = z.object({
   caveId: z.string().min(1, 'Gua harus dipilih.'),
   playlist: z.array(z.object({
@@ -42,13 +45,133 @@ const playlistSettingsSchema = z.object({
   ),
 });
 
+const remoteControlSchema = z.object({
+  message: z.string().optional(),
+});
+
+// --- Type Definitions ---
 type GlobalSettingsFormValues = z.infer<typeof globalSettingsSchema>;
 type PlaylistSettingsFormValues = z.infer<typeof playlistSettingsSchema>;
+type RemoteControlFormValues = z.infer<typeof remoteControlSchema>;
+type KioskDevice = { id: string, status: string, currentSpotId?: string, updatedAt: Timestamp };
 
 interface KioskClientProps {
   initialCaves: Cave[];
 }
 
+
+// --- Kiosk Remote Control Component ---
+function KioskRemoteControl({ allSpots }: { allSpots: Spot[] }) {
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const devicesQuery = useMemo(() => collection(db, 'kioskDevices'), []);
+  const { data: devices, loading: devicesLoading } = useCollection<KioskDevice>(devicesQuery);
+  const controlRef = useMemo(() => doc(db, 'kioskControl', 'global'), []);
+  const { data: controlState, loading: controlLoading } = useDoc<{enabled: boolean, message?: string, forceReload?: boolean}>(controlRef);
+
+  const controlForm = useForm<RemoteControlFormValues>({
+    resolver: zodResolver(remoteControlSchema),
+    defaultValues: { message: '' },
+  });
+
+  const isKioskEnabled = controlState?.enabled ?? true;
+
+  const handleToggleKiosk = (enabled: boolean) => {
+    setKioskControl({ enabled });
+    toast({ title: enabled ? "Kios Diaktifkan" : "Kios Dinonaktifkan", description: 'Perubahan akan diterapkan dalam beberapa detik.' });
+  };
+  
+  const handleReloadKiosk = () => {
+    if (confirm('Anda yakin ingin memuat ulang semua kios? Ini akan memulai ulang tayangan di semua perangkat.')) {
+      setKioskControl({ forceReload: true, ts: Date.now() });
+      toast({ title: "Memuat Ulang Kios", description: 'Perintah telah dikirim.' });
+    }
+  };
+
+  const onSendMessage = (values: RemoteControlFormValues) => {
+    setKioskControl({ message: values.message, ts: Date.now() });
+    toast({ title: "Pesan Terkirim", description: 'Pesan akan ditampilkan di semua kios.' });
+  };
+  
+  const getSpotTitle = (spotId: string) => allSpots.find(s => s.id === spotId)?.title || 'Unknown Spot';
+
+  return (
+      <Card>
+          <CardHeader>
+              <CardTitle>Kendali Jarak Jauh Kios</CardTitle>
+              <CardDescription>Pantau dan kelola semua perangkat kios yang sedang aktif.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+              <div className="space-y-4">
+                  <h4 className="font-semibold text-sm">Perangkat Aktif</h4>
+                  {devicesLoading ? <Skeleton className="h-16 w-full" /> : (
+                      devices && devices.length > 0 ? (
+                          <div className="border rounded-md divide-y">
+                              {devices.map(device => (
+                                  <div key={device.id} className="p-3 flex justify-between items-center">
+                                      <div className='flex items-center gap-3'>
+                                          <Monitor className="h-5 w-5"/>
+                                          <div>
+                                              <p className="font-semibold">{device.id}</p>
+                                              <p className="text-xs text-muted-foreground">
+                                                  Spot: {device.currentSpotId ? getSpotTitle(device.currentSpotId) : 'N/A'}
+                                              </p>
+                                          </div>
+                                      </div>
+                                      <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                         <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                                         {device.updatedAt ? formatDistanceToNow(device.updatedAt.toDate(), { addSuffix: true, locale: id }) : 'Baru saja'}
+                                      </div>
+                                  </div>
+                              ))}
+                          </div>
+                      ) : <p className="text-xs text-muted-foreground text-center py-4">Tidak ada kios yang aktif saat ini.</p>
+                  )}
+              </div>
+              <div className="space-y-4">
+                  <h4 className="font-semibold text-sm">Perintah Global</h4>
+                  <div className='flex flex-wrap gap-2'>
+                       <Form {...controlForm}>
+                          <form onSubmit={controlForm.handleSubmit(onSendMessage)} className="flex gap-2 flex-grow">
+                             <FormField
+                                control={controlForm.control}
+                                name="message"
+                                render={({ field }) => (
+                                <FormItem className="flex-grow">
+                                    <FormControl>
+                                      <div className="relative">
+                                          <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                          <Input placeholder="Ketik pesan singkat di sini..." className="pl-9" {...field} />
+                                      </div>
+                                    </FormControl>
+                                </FormItem>
+                                )}
+                              />
+                              <Button type="submit" variant="secondary"><Send className="h-4 w-4"/></Button>
+                          </form>
+                      </Form>
+                      <div className="flex items-center space-x-2">
+                          <Switch
+                              id="kiosk-enabled"
+                              checked={isKioskEnabled}
+                              onCheckedChange={handleToggleKiosk}
+                              disabled={controlLoading}
+                          />
+                          <Label htmlFor="kiosk-enabled">{isKioskEnabled ? 'Aktif' : 'Nonaktif'}</Label>
+                      </div>
+                      <Button onClick={handleReloadKiosk} variant="outline" size="icon">
+                        <Radio className="h-4 w-4" />
+                        <span className="sr-only">Muat Ulang Kios</span>
+                      </Button>
+                  </div>
+              </div>
+          </CardContent>
+      </Card>
+  );
+}
+
+
+// --- Main Client Component ---
 export default function KioskClient({ initialCaves }: KioskClientProps) {
   const { toast } = useToast();
   const [isOffline, setIsOffline] = useState(false);
@@ -62,22 +185,14 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
   
   const globalForm = useForm<GlobalSettingsFormValues>({
     resolver: zodResolver(globalSettingsSchema),
-    defaultValues: {
-      logoUrl: '',
-      mode: 'loop',
-      exitPin: '1234',
-    },
+    defaultValues: { logoUrl: '', mode: 'loop', exitPin: '1234' },
   });
 
   const playlistForm = useForm<PlaylistSettingsFormValues>({
     resolver: zodResolver(playlistSettingsSchema),
-    defaultValues: {
-      caveId: '',
-      playlist: [],
-    },
+    defaultValues: { caveId: '', playlist: [] },
   });
   
-  // Effect to sync Firestore data with form state
   useEffect(() => {
     if (kioskSettings) {
         globalForm.reset({
@@ -150,20 +265,20 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
     toast({ title: 'Berhasil', description: 'Pengaturan daftar putar kios telah disimpan.' });
   };
 
-  const isGlobalSubmitting = globalForm.formState.isSubmitting;
-  const isPlaylistSubmitting = playlistForm.formState.isSubmitting;
-  
-  if (settingsLoading) {
+  if (settingsLoading || spotsLoading) {
     return (
       <div className="space-y-8">
         <Skeleton className="h-64 w-full" />
         <Skeleton className="h-96 w-full" />
+        <Skeleton className="h-64 w-full" />
       </div>
     );
   }
 
   return (
     <>
+      <KioskRemoteControl allSpots={spots || []} />
+
       <Form {...globalForm}>
         <form onSubmit={globalForm.handleSubmit(onGlobalSubmit)}>
           <Card>
@@ -236,8 +351,8 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
                   </div>
               </CardContent>
                <CardFooter>
-                  <Button type="submit" disabled={isGlobalSubmitting} className="ml-auto">
-                      {isGlobalSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                  <Button type="submit" disabled={globalForm.formState.isSubmitting} className="ml-auto">
+                      {globalForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                       Simpan Pengaturan Global
                   </Button>
               </CardFooter>
@@ -375,8 +490,8 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
                 </Button>
             </CardContent>
             <CardFooter>
-                <Button type="submit" disabled={isPlaylistSubmitting} className="ml-auto">
-                    {isPlaylistSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                <Button type="submit" disabled={playlistForm.formState.isSubmitting} className="ml-auto">
+                    {playlistForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                     Simpan Daftar Putar
                 </Button>
             </CardFooter>

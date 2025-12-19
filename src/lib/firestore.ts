@@ -1,4 +1,5 @@
 
+
 import {
   doc,
   getDoc,
@@ -355,6 +356,21 @@ export function saveKioskSettings(settings: Partial<KioskSettings>) {
                 path: '/kioskSettings/main',
                 operation: 'update',
                 requestResourceData: settings,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        }
+    });
+}
+
+// --- Kiosk Control Functions (Admin only) ---
+export function setKioskControl(control: any) {
+    const docRef = doc(db, 'kioskControl', 'global');
+    setDoc(docRef, control, { merge: true }).catch((error) => {
+        if (error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: '/kioskControl/global',
+                operation: 'update',
+                requestResourceData: control,
             });
             errorEmitter.emit('permission-error', permissionError);
         }
