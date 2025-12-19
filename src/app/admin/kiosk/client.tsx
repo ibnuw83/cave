@@ -18,16 +18,14 @@ import { saveKioskSettings, setKioskControl } from '@/lib/firestore';
 import Link from 'next/link';
 import { isCaveAvailableOffline, saveCaveForOffline } from '@/lib/offline';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useCollection, useDoc } from '@/firebase';
+import { useCollection, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Label } from '@/components/ui/label';
 
-// --- Form Schemas ---
 const globalSettingsSchema = z.object({
   logoUrl: z.string().url({ message: "URL tidak valid." }).optional().or(z.literal('')),
   mode: z.enum(['loop', 'shuffle']),
@@ -49,7 +47,6 @@ const remoteControlSchema = z.object({
   message: z.string().optional(),
 });
 
-// --- Type Definitions ---
 type GlobalSettingsFormValues = z.infer<typeof globalSettingsSchema>;
 type PlaylistSettingsFormValues = z.infer<typeof playlistSettingsSchema>;
 type RemoteControlFormValues = z.infer<typeof remoteControlSchema>;
@@ -60,14 +57,14 @@ interface KioskClientProps {
 }
 
 
-// --- Kiosk Remote Control Component ---
 function KioskRemoteControl({ allSpots }: { allSpots: Spot[] }) {
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const devicesQuery = useMemo(() => collection(db, 'kioskDevices'), []);
-  const { data: devices, loading: devicesLoading } = useCollection<KioskDevice>(devicesQuery);
-  const controlRef = useMemo(() => doc(db, 'kioskControl', 'global'), []);
-  const { data: controlState, loading: controlLoading } = useDoc<{enabled: boolean, message?: string, forceReload?: boolean}>(controlRef);
+  const firestore = useFirestore();
+
+  const devicesQuery = useMemoFirebase(() => collection(firestore, 'kioskDevices'), [firestore]);
+  const { data: devices, isLoading: devicesLoading } = useCollection<KioskDevice>(devicesQuery);
+  const controlRef = useMemoFirebase(() => doc(firestore, 'kioskControl', 'global'), [firestore]);
+  const { data: controlState, isLoading: controlLoading } = useDoc<{enabled: boolean, message?: string, forceReload?: boolean}>(controlRef);
 
   const controlForm = useForm<RemoteControlFormValues>({
     resolver: zodResolver(remoteControlSchema),
@@ -171,17 +168,16 @@ function KioskRemoteControl({ allSpots }: { allSpots: Spot[] }) {
 }
 
 
-// --- Main Client Component ---
 export default function KioskClient({ initialCaves }: KioskClientProps) {
   const { toast } = useToast();
+  const firestore = useFirestore();
   const [isOffline, setIsOffline] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  // Real-time data fetching
-  const spotsQuery = useMemo(() => collection(db, 'spots'), []);
-  const { data: spots, loading: spotsLoading } = useCollection<Spot>(spotsQuery);
-  const settingsRef = useMemo(() => doc(db, 'kioskSettings', 'main'), []);
-  const { data: kioskSettings, loading: settingsLoading } = useDoc<KioskSettings>(settingsRef);
+  const spotsQuery = useMemoFirebase(() => collection(firestore, 'spots'), [firestore]);
+  const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(spotsQuery);
+  const settingsRef = useMemoFirebase(() => doc(firestore, 'kioskSettings', 'main'), [firestore]);
+  const { data: kioskSettings, isLoading: settingsLoading } = useDoc<KioskSettings>(settingsRef);
   
   const globalForm = useForm<GlobalSettingsFormValues>({
     resolver: zodResolver(globalSettingsSchema),

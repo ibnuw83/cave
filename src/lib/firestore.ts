@@ -1,5 +1,4 @@
 
-
 import {
   doc,
   getDoc,
@@ -15,11 +14,11 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
-import { db } from './firebase';
+import { initializeFirebase } from '@/firebase';
 import type { UserProfile, Cave, Spot, KioskSettings } from './types';
-import { errorEmitter } from './error-emitter';
-import { FirestorePermissionError } from './errors';
-
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { db } from '@/lib/firebase-admin';
 
 // --- User Profile Functions (Client-Side) ---
 
@@ -28,7 +27,7 @@ export async function getUserProfileClient(uid: string): Promise<UserProfile | n
   try {
     const docSnap = await getDoc(userRef);
     if (docSnap.exists()) {
-      return { uid, ...docSnap.data() } as UserProfile;
+      return { id: uid, ...docSnap.data() } as UserProfile;
     }
     return null;
   } catch (error: any) {
@@ -39,14 +38,13 @@ export async function getUserProfileClient(uid: string): Promise<UserProfile | n
         });
         errorEmitter.emit('permission-error', permissionError);
     }
-    // This throw is important to signal failure to the caller (e.g., processAuth)
     throw error;
   }
 }
 
 export function createUserProfile(user: User): Promise<UserProfile> {
   return new Promise((resolve, reject) => {
-    const userProfileData: Omit<UserProfile, 'uid'> = {
+    const userProfileData: Omit<UserProfile, 'id'> & {uid?: string} = {
       email: user.email,
       displayName: user.displayName,
       photoURL: user.photoURL,
@@ -57,7 +55,15 @@ export function createUserProfile(user: User): Promise<UserProfile> {
 
     setDoc(userRef, userProfileData)
       .then(() => {
-        resolve({ uid: user.uid, ...userProfileData } as UserProfile);
+        const resolvedProfile: UserProfile = {
+            id: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+            role: 'free',
+            updatedAt: serverTimestamp(), // This will be a sentinal value
+        };
+        resolve(resolvedProfile);
       })
       .catch(error => {
         if (error.code === 'permission-denied') {
@@ -78,7 +84,7 @@ export async function getAllUsersAdmin(): Promise<UserProfile[]> {
   const usersRef = collection(db, 'users');
   try {
     const querySnapshot = await getDocs(usersRef);
-    return querySnapshot.docs.map((doc) => ({ uid: doc.id, ...doc.data() } as UserProfile));
+    return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as UserProfile));
   } catch (error: any) {
     if (error.code === 'permission-denied') {
         const permissionError = new FirestorePermissionError({
@@ -87,7 +93,7 @@ export async function getAllUsersAdmin(): Promise<UserProfile[]> {
         });
         errorEmitter.emit('permission-error', permissionError);
     }
-     throw error; // Re-throw to be handled by caller
+     throw error;
   }
 }
 
@@ -190,19 +196,13 @@ export async function deleteCave(id: string): Promise<void> {
   const batch = writeBatch(db);
   
   try {
-    // We get the spots first to add their deletion to the batch
     const spotsSnapshot = await getDocs(spotsQuery);
     spotsSnapshot.forEach(spotDoc => {
         batch.delete(spotDoc.ref);
     });
-    // Then add the cave deletion
     batch.delete(caveDocRef);
-
-    // Commit all batched writes
     await batch.commit();
   } catch (error: any) {
-      // Batch writes don't provide granular permission denied errors on specific docs.
-      // So we emit a more general error for the intended operation.
       if (error.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
                 path: `/caves/${id} and associated spots`,
@@ -210,7 +210,6 @@ export async function deleteCave(id: string): Promise<void> {
             });
             errorEmitter.emit('permission-error', permissionError);
       }
-      // Re-throw so the caller knows the operation failed.
       throw error;
   }
 }
@@ -248,7 +247,7 @@ export async function getSpots(caveId: string): Promise<Spot[]> {
   } catch(error: any) {
     if (error.code === 'permission-denied') {
         const permissionError = new FirestorePermissionError({
-            path: `/spots where caveId==${caveId}`, // A bit informal, but shows the query intent
+            path: `/spots where caveId==${caveId}`,
             operation: 'list',
         });
         errorEmitter.emit('permission-error', permissionError);

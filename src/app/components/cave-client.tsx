@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Cave, Spot } from '@/lib/types';
+import { useState, useEffect, useMemo } from 'react';
+import { Cave, Spot, UserProfile } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Lock, ChevronLeft, Download, WifiOff, Loader2 } from 'lucide-react';
@@ -13,6 +12,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { saveCaveForOffline, isCaveAvailableOffline } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 
 function SpotCard({ spot, isLocked, isOffline }: { spot: Spot; isLocked: boolean, isOffline: boolean }) {
@@ -71,17 +72,25 @@ function SpotCard({ spot, isLocked, isOffline }: { spot: Spot; isLocked: boolean
 }
 
 export default function CaveClient({ cave, spots }: { cave: Cave; spots?: Spot[];}) {
-  const { user, userProfile, loading } = useAuth();
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const router = useRouter();
   const [isOffline, setIsOffline] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
 
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+  
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
+
   useEffect(() => {
-    if (!loading && !user) {
+    if (!isUserLoading && !user) {
       router.push('/login');
     }
-  }, [user, loading, router]);
+  }, [user, isUserLoading, router]);
 
 
   useEffect(() => {
@@ -108,6 +117,7 @@ export default function CaveClient({ cave, spots }: { cave: Cave; spots?: Spot[]
     }
   };
 
+  const loading = isUserLoading || isProfileLoading;
 
   if (loading || !user) {
     return (

@@ -1,3 +1,4 @@
+
 import { getCaves } from "@/lib/firestore";
 import SpotsClient from "./client";
 

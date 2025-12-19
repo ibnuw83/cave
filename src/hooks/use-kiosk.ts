@@ -3,7 +3,9 @@
 
 import { useEffect } from 'react';
 import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { initializeFirebase } from '@/firebase';
+
+const { firestore: db } = initializeFirebase();
 
 export function useKioskHeartbeat(kioskId: string, currentSpotId?: string) {
   useEffect(() => {
@@ -11,13 +13,11 @@ export function useKioskHeartbeat(kioskId: string, currentSpotId?: string) {
     const ref = doc(db, 'kioskDevices', kioskId);
 
     const t = setInterval(() => {
-      // Use non-blocking write
       setDoc(ref, {
         status: 'online',
         currentSpotId: currentSpotId || null,
         updatedAt: serverTimestamp(),
       }, { merge: true }).catch((err) => {
-          // Silently fail. Errors will be picked up by global handler if they are permission errors.
           console.warn('Kiosk heartbeat failed:', err.message);
       });
     }, 5000);

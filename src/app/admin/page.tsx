@@ -7,14 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mountain, MapPin, Users, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/context/auth-context';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Cave, Spot, UserProfile } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { errorEmitter } from '@/lib/error-emitter';
-import { FirestorePermissionError } from '@/lib/errors';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { UserProfile } from '@/lib/types';
+import { doc } from 'firebase/firestore';
+
 
 interface Stat {
   title: string;
@@ -25,7 +23,16 @@ interface Stat {
 }
 
 export default function AdminDashboard() {
-  const { userProfile } = useAuth();
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+  
+  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+
   const [stats, setStats] = useState<Stat[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,7 +40,6 @@ export default function AdminDashboard() {
     async function fetchData() {
       if (userProfile?.role === 'admin') {
         try {
-          // Promise.all will now correctly throw if any of the fetches fail
           const [caves, spots, users] = await Promise.all([
             getCaves(true),
             getAllSpotsForAdmin(),
@@ -45,8 +51,6 @@ export default function AdminDashboard() {
             { title: 'Total Pengguna', value: users.length, icon: <Users className="h-6 w-6" />, href: '/admin/users', color: 'bg-yellow-900/50 text-yellow-100' },
           ]);
         } catch (error) {
-          // The errors are now caught here, but the permission error toast is handled globally.
-          // We can just log that fetching failed.
           console.error("Failed to fetch admin dashboard data due to permission errors or other issues.");
         } finally {
           setLoading(false);

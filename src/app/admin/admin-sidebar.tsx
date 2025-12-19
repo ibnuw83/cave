@@ -1,17 +1,18 @@
-
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useAuth } from '@/context/auth-context';
+import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { Mountain, MapPin, Users, Home, LogOut, ArrowLeft, Airplay, Settings, Image as ImageIcon } from 'lucide-react';
+import { Mountain, MapPin, Users, Home, LogOut, ArrowLeft, Settings } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getKioskSettings } from '@/lib/firestore';
-import { KioskSettings } from '@/lib/types';
+import { KioskSettings, UserProfile } from '@/lib/types';
 import Image from 'next/image';
+import { useAuth } from '@/firebase';
+import { User, signOut as firebaseSignOut } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 
 function AdminNavLink({ href, icon, label, color, activeColor }: { href: string; icon: React.ReactNode; label: string; color: string; activeColor: string; }) {
   const pathname = usePathname();
@@ -32,19 +33,31 @@ function AdminNavLink({ href, icon, label, color, activeColor }: { href: string;
 }
 
 
-export default function AdminSidebar() {
-  const { user, userProfile, signOut } = useAuth();
+export default function AdminSidebar({ user, userProfile }: { user: User; userProfile: UserProfile }) {
   const [settings, setSettings] = useState<KioskSettings | null>(null);
+  const auth = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     getKioskSettings().then(setSettings);
   }, []);
 
-  if (!user || !userProfile || userProfile.role !== 'admin') return null;
-
   const handleLogout = async () => {
-    await signOut();
-    window.location.href = '/';
+    try {
+      await firebaseSignOut(auth);
+      router.push('/login');
+      toast({
+        title: "Logout Berhasil",
+        description: "Anda telah keluar dari akun.",
+      });
+    } catch (error) {
+       toast({
+        title: "Logout Gagal",
+        description: "Terjadi kesalahan saat mencoba logout.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

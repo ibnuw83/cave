@@ -7,7 +7,6 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useAuth } from '@/context/auth-context';
 import { Loader2, Mountain, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +14,14 @@ import { useEffect, useState } from 'react';
 import { getKioskSettings } from '@/lib/firestore';
 import { KioskSettings } from '@/lib/types';
 import Image from 'next/image';
+import { 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail as firebaseSendPasswordResetEmail 
+} from 'firebase/auth';
+import { useAuth, useUser } from '@/firebase';
+import { useRouter } from 'next/navigation';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Email tidak valid.' }),
@@ -35,7 +42,9 @@ function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
 }
 
 export default function LoginPage() {
-  const { signInWithEmail, signInWithGoogle, sendPasswordResetEmail, loading } = useAuth();
+  const auth = useAuth();
+  const { isUserLoading } = useUser();
+  const router = useRouter();
   const { toast } = useToast();
   const [settings, setSettings] = useState<KioskSettings | null>(null);
 
@@ -48,8 +57,41 @@ export default function LoginPage() {
     defaultValues: { email: '', password: '' },
   });
 
-  const onSubmit = (data: LoginFormValues) => {
-    signInWithEmail(data.email, data.password);
+  const signInWithEmail = async (data: LoginFormValues) => {
+    try {
+      await signInWithEmailAndPassword(auth, data.email, data.password);
+      router.push('/');
+       toast({
+        title: "Login Berhasil",
+        description: "Selamat datang kembali!",
+      });
+    } catch (error: any) {
+       toast({
+        title: "Login Gagal",
+        description: "Email atau password salah.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      router.push('/');
+      toast({
+        title: "Login Berhasil",
+        description: "Selamat datang kembali!",
+      });
+    } catch (error: any) {
+      if (error.code !== 'auth/popup-closed-by-user') {
+          toast({
+            title: "Login Gagal",
+            description: error.message || "Terjadi kesalahan saat mencoba login dengan Google.",
+            variant: "destructive",
+          });
+      }
+    }
   };
   
   const handleForgotPassword = () => {
@@ -58,7 +100,20 @@ export default function LoginPage() {
       form.setError('email', { type: 'manual', message: 'Masukkan email yang valid untuk reset password.' });
       return;
     }
-    sendPasswordResetEmail(email);
+    firebaseSendPasswordResetEmail(auth, email)
+      .then(() => {
+        toast({
+          title: 'Email Reset Password Terkirim',
+          description: 'Silakan periksa kotak masuk email Anda untuk instruksi lebih lanjut.',
+        });
+      })
+      .catch(() => {
+        toast({
+          variant: 'destructive',
+          title: 'Gagal Mengirim Email',
+          description: 'Gagal mengirim email reset password. Pastikan email yang Anda masukkan benar.',
+        });
+      });
   };
 
   return (
@@ -85,7 +140,7 @@ export default function LoginPage() {
                 </div>
 
                 <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <form onSubmit={form.handleSubmit(signInWithEmail)} className="space-y-4">
                     <FormField
                     control={form.control}
                     name="email"
@@ -115,8 +170,8 @@ export default function LoginPage() {
                     <div className="flex items-center justify-end">
                         <Button type="button" variant="link" className="p-0 h-auto text-xs" onClick={handleForgotPassword}>Lupa Password?</Button>
                     </div>
-                    <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? <Loader2 className="animate-spin" /> : 'Masuk'}
+                    <Button type="submit" className="w-full" disabled={isUserLoading}>
+                    {isUserLoading ? <Loader2 className="animate-spin" /> : 'Masuk'}
                     </Button>
                 </form>
                 </Form>
@@ -130,8 +185,8 @@ export default function LoginPage() {
                 </div>
                 </div>
 
-                <Button variant="outline" className="w-full" onClick={signInWithGoogle} disabled={loading}>
-                    {loading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="mr-2"/> Google</>}
+                <Button variant="outline" className="w-full" onClick={signInWithGoogle} disabled={isUserLoading}>
+                    {isUserLoading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="mr-2"/> Google</>}
                 </Button>
 
                 <div className="space-y-4 text-center text-sm text-muted-foreground">

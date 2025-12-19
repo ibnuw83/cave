@@ -2,25 +2,26 @@
 import * as admin from 'firebase-admin';
 import type { UserProfile, Spot } from './types';
 
-const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
-  ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
-  : null;
-
+// This is a simplified initialization. In a real project, consider how you manage service accounts.
 if (!admin.apps.length) {
-  if (serviceAccount) {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-  } else if (process.env.NODE_ENV === 'development') {
-    // In development without a service account, use application default credentials.
-    // This requires `gcloud auth application-default login` to be run.
-    console.log('Initializing Firebase Admin SDK with Application Default Credentials...');
-    admin.initializeApp();
-  } else {
-    // In production, rely on the environment automatically providing credentials.
-    admin.initializeApp();
-  }
+    try {
+        // First, try to use service account from environment variable
+        if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+            const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount)
+            });
+            console.log('Firebase Admin SDK initialized with service account from environment variable.');
+        } else {
+             // Fallback to Application Default Credentials
+            admin.initializeApp();
+            console.log('Firebase Admin SDK initialized with Application Default Credentials.');
+        }
+    } catch (e: any) {
+        console.error('Failed to initialize Firebase Admin SDK:', e.message);
+    }
 }
+
 
 export const auth = admin.auth();
 export const db = admin.firestore();
@@ -37,8 +38,14 @@ export async function getSpotAdmin(id: string): Promise<Spot | null> {
 }
 
 export async function getUserProfileAdmin(uid: string): Promise<UserProfile | null> {
-  const snap = await db.collection('users').doc(uid).get();
-  if (!snap.exists) return null;
-   const data = snap.data() as any;
-  return { uid: snap.id, ...data };
+  try {
+    const snap = await db.collection('users').doc(uid).get();
+    if (!snap.exists) return null;
+     const data = snap.data() as any;
+     // The UID is the document ID, so it's not in the data payload.
+    return { uid, ...data } as UserProfile;
+  } catch (error) {
+    console.error(`Failed to get user profile for ${uid}:`, error);
+    return null;
+  }
 }

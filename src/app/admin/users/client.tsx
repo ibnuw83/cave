@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { collection } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { UserProfile } from '@/lib/types';
 import { updateUserRole } from '@/lib/firestore';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -10,22 +10,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAuth as useFirebaseAuth } from '@/context/auth-context';
-import { useCollection } from '@/firebase';
-import { db } from '@/lib/firebase';
+import { useCollection, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function UsersClient() {
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
-  const { user: currentUser } = useFirebaseAuth();
+  const { user: currentUser } = useUser();
+  const firestore = useFirestore();
 
-  const usersQuery = useMemo(() => collection(db, 'users'), []);
-  const { data: users, loading: usersLoading } = useCollection<UserProfile>(usersQuery);
+  const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+  const { data: users, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
 
   const handleRoleChange = (uid: string, newRole: 'free' | 'pro' | 'admin') => {
     if (!users) return;
-    const userToChange = users.find(u => u.uid === uid);
+    const userToChange = users.find(u => u.id === uid); // use `id` from useCollection
     
     if (currentUser?.uid === uid) {
       toast({
@@ -43,34 +42,16 @@ export default function UsersClient() {
     if (newRole === 'admin') {
         const ok = confirm('Yakin ingin menjadikan pengguna ini sebagai ADMIN? Tindakan ini memberikan akses penuh ke panel admin.');
         if (!ok) {
-             // To revert the select dropdown visual state if the user cancels
-             const selectTrigger = document.querySelector(`[data-uid="${uid}"]`) as HTMLElement | null;
-             if (selectTrigger) {
-                selectTrigger.click(); // Close the dropdown
-                setTimeout(() => {
-                   const previousRole = userToChange.role;
-                   const roleSelect = document.querySelector(`[data-uid-select="${uid}"]`) as HTMLSelectElement | null;
-                   if(roleSelect) {
-                     // This is tricky as we can't directly set the value of a shadcn select.
-                     // The UI will visually revert on the next re-render from Firestore anyway.
-                   }
-                }, 100);
-             }
              return;
         }
     }
 
     setLoadingStates((prev) => ({ ...prev, [uid]: true }));
     
-    // The updateUserRole function now handles its own error via the emitter.
     updateUserRole(uid, newRole);
 
-    // We can show a success toast optimistically. The UI will update via the listener.
     toast({ title: "Memperbarui", description: `Mengubah peran untuk ${userToChange.displayName || userToChange.email}...` });
     
-    // No try/catch needed here anymore, but we need to reset loading state.
-    // A better approach would be to wait for the Firestore listener to confirm the change.
-    // For now, a simple timeout works for visual feedback.
     setTimeout(() => {
       setLoadingStates((prev) => ({ ...prev, [uid]: false }));
     }, 1500);
@@ -97,7 +78,7 @@ export default function UsersClient() {
   return (
     <div className="space-y-4">
       {sortedUsers.map((user) => (
-        <Card key={user.uid}>
+        <Card key={user.id}>
           <CardHeader className="flex flex-row items-center justify-between space-x-4">
              <div className="flex items-center space-x-4">
                 <Avatar>
@@ -110,16 +91,16 @@ export default function UsersClient() {
                 </div>
             </div>
             <div className="flex items-center gap-2 w-full md:w-auto max-w-[120px]">
-               {loadingStates[user.uid] && <Loader2 className="h-5 w-5 animate-spin" />}
+               {loadingStates[user.id] && <Loader2 className="h-5 w-5 animate-spin" />}
               <Select
                 value={user.role}
-                onValueChange={(value: 'free' | 'pro' | 'admin') => handleRoleChange(user.uid, value)}
-                disabled={loadingStates[user.uid] || currentUser?.uid === user.uid}
+                onValueChange={(value: 'free' | 'pro' | 'admin') => handleRoleChange(user.id, value)}
+                disabled={loadingStates[user.id] || currentUser?.uid === user.id}
               >
-                <SelectTrigger className="w-full" data-uid={user.uid}>
+                <SelectTrigger className="w-full" data-uid={user.id}>
                   <SelectValue placeholder="Pilih peran" />
                 </SelectTrigger>
-                <SelectContent data-uid-select={user.uid}>
+                <SelectContent data-uid-select={user.id}>
                   <SelectItem value="free">Free</SelectItem>
                   <SelectItem value="pro">Pro</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>

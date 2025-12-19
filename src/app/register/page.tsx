@@ -6,9 +6,12 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useAuth } from '@/context/auth-context';
 import { Loader2, Mountain } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth, useUser } from '@/firebase';
+import { useRouter } from 'next/navigation';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 
 const registerSchema = z.object({
   name: z.string().min(1, { message: 'Nama tidak boleh kosong.' }),
@@ -19,14 +22,39 @@ const registerSchema = z.object({
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
-  const { registerWithEmail, loading } = useAuth();
+  const auth = useAuth();
+  const { isUserLoading } = useUser();
+  const router = useRouter();
+  const { toast } = useToast();
+
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: { name: '', email: '', password: '' },
   });
 
-  const onSubmit = (data: RegisterFormValues) => {
-    registerWithEmail(data);
+  const onSubmit = async (data: RegisterFormValues) => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      await updateProfile(userCredential.user, { displayName: data.name });
+
+      // The onAuthStateChanged listener in the provider will handle profile creation
+      // and redirecting the user.
+      
+      router.push('/');
+       toast({
+        title: "Pendaftaran Berhasil",
+        description: "Selamat datang di Penjelajah Gua!",
+      });
+
+    } catch (error: any) {
+      if (error.code !== 'permission-denied') {
+        toast({
+            title: "Pendaftaran Gagal",
+            description: error.code === 'auth/email-already-in-use' ? 'Email ini sudah terdaftar.' : 'Terjadi kesalahan saat pendaftaran.',
+            variant: "destructive",
+        });
+      }
+    }
   };
 
   return (
@@ -79,8 +107,8 @@ export default function RegisterPage() {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? <Loader2 className="animate-spin" /> : 'Daftar'}
+            <Button type="submit" className="w-full" disabled={isUserLoading}>
+              {isUserLoading ? <Loader2 className="animate-spin" /> : 'Daftar'}
             </Button>
           </form>
         </Form>

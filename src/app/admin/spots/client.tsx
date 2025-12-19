@@ -7,14 +7,13 @@ import { Cave, Spot } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Edit, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { deleteSpot } from "@/lib/firestore";
 import { SpotForm } from "./spot-form";
-import { useCollection } from '@/firebase';
-import { db } from '@/lib/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SpotsClient({ caves }: { caves: Cave[] }) {
@@ -22,14 +21,13 @@ export default function SpotsClient({ caves }: { caves: Cave[] }) {
   const [selectedSpot, setSelectedSpot] = useState<Spot | null>(null);
   const [filterCaveId, setFilterCaveId] = useState<string>('all');
   const { toast } = useToast();
+  const firestore = useFirestore();
 
-  const spotsQuery = useMemo(() => collection(db, 'spots'), []);
-  const { data: spots, loading: spotsLoading } = useCollection<Spot>(spotsQuery);
+  const spotsQuery = useMemoFirebase(() => collection(firestore, 'spots'), [firestore]);
+  const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(spotsQuery);
 
 
   const handleFormSuccess = () => {
-    // Real-time listener will update the list automatically.
-    // We just need to close the form.
     if (selectedSpot) {
       toast({ title: "Berhasil", description: "Spot berhasil diperbarui." });
     } else {
@@ -46,7 +44,6 @@ export default function SpotsClient({ caves }: { caves: Cave[] }) {
 
   const handleDelete = (id: string) => {
     deleteSpot(id);
-    // Real-time listener will remove the spot from the UI.
     toast({ title: "Berhasil", description: "Spot berhasil dihapus." });
   };
 

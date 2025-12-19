@@ -4,7 +4,7 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Spot, KioskSettings } from '@/lib/types';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { initializeFirebase } from '@/firebase';
 import { useKioskHeartbeat, useKioskControl } from '@/hooks/use-kiosk';
 import { Progress } from '@/components/ui/progress';
 
@@ -14,7 +14,8 @@ interface Props {
   kioskId: string;
 }
 
-// Logging functions as provided
+const { firestore: db } = initializeFirebase();
+
 async function logSpotView(kioskId: string, caveId: string, spotId: string) {
   try {
     await addDoc(collection(db, 'kioskEvents'), {
@@ -90,7 +91,6 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
     clearTimers();
     if (!kioskEnabled || !playlist || playlist.length === 0 || !current) return;
     
-    // Log the view and edge transition
     if (current.id) {
         logSpotView(kioskId, current.caveId, current.id);
         if (prevSpotIdRef.current) {
@@ -101,10 +101,8 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
 
     const duration = current.duration ? current.duration * 1000 : 30000;
     
-    // Set main timer to change spot
     timerRef.current = window.setTimeout(changeSpot, duration);
     
-    // Set timer for progress bar
     const startTime = Date.now();
     setProgress(100);
     progressTimerRef.current = window.setInterval(() => {

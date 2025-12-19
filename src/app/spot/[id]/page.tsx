@@ -1,10 +1,10 @@
 
 import { cookies } from 'next/headers';
-import { auth } from '@/lib/firebase-admin';
-import { getUserProfileAdmin } from '@/lib/firebase-admin';
+import { auth as adminAuth } from '@/lib/firebase-admin';
+import { getUserProfileAdmin, getSpotAdmin } from '@/lib/firebase-admin';
 import SpotPageClient from './client';
 import { Spot } from '@/lib/types';
-import { getSpotClient, getSpots } from '@/lib/firestore';
+import { getSpots } from '@/lib/firestore';
 
 
 export default async function SpotPage({ params }: { params: { id: string } }) {
@@ -13,14 +13,12 @@ export default async function SpotPage({ params }: { params: { id: string } }) {
   let initialSpot: Spot | null = null;
   let allSpotsInCave: Spot[] = [];
 
-  // 1. Fetch the current spot
   try {
-    initialSpot = await getSpotClient(spotId);
+    initialSpot = await getSpotAdmin(spotId);
   } catch(e) {
     console.error(`Server-side spot fetch for ${spotId} failed, will try on client.`);
   }
 
-  // 2. If spot found, fetch all other spots in the same cave
   if (initialSpot) {
     try {
         allSpotsInCave = await getSpots(initialSpot.caveId);
@@ -34,14 +32,13 @@ export default async function SpotPage({ params }: { params: { id: string } }) {
   try {
     const sessionCookie = cookies().get('__session')?.value;
     if (sessionCookie) {
-      const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
+      const decodedToken = await adminAuth.verifySessionCookie(sessionCookie, true);
       const userProfile = await getUserProfileAdmin(decodedToken.uid);
       if (userProfile) {
         userRole = userProfile.role;
       }
     }
   } catch (error) {
-    // User is not logged in or session has expired, 'userRole' remains 'free'.
     console.log('User not logged in or session expired');
   }
 
@@ -54,5 +51,3 @@ export default async function SpotPage({ params }: { params: { id: string } }) {
     />
   );
 }
-
-

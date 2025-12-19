@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { Cave, KioskSettings } from '@/lib/types';
-import { useAuth } from '@/context/auth-context';
+import { Cave, KioskSettings, UserProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -30,11 +29,23 @@ import { useToast } from '@/hooks/use-toast';
 import { getKioskSettings } from '@/lib/firestore';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { useRouter } from 'next/navigation';
+import { useUser, useFirestore, useDoc, useAuth, useMemoFirebase } from '@/firebase';
+import { doc, signOut as firebaseSignOut } from 'firebase/firestore';
+
 
 const AuthSection = () => {
-  const { user, userProfile, loading, signOut } = useAuth();
-  const { toast } = useToast();
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+  const auth = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
+
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+  
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
 
   const handleClearCache = async () => {
     if (!confirm('Anda yakin ingin menghapus semua konten offline? Ini tidak dapat diurungkan.')) {
@@ -48,8 +59,25 @@ const AuthSection = () => {
     }
   };
 
+  const handleLogout = async () => {
+     try {
+      await firebaseSignOut(auth);
+      router.push('/login');
+      toast({
+        title: "Logout Berhasil",
+        description: "Anda telah keluar dari akun.",
+      });
+    } catch (error) {
+       toast({
+        title: "Logout Gagal",
+        description: "Terjadi kesalahan saat mencoba logout.",
+        variant: "destructive",
+      });
+    }
+  }
 
-  if (loading) {
+
+  if (isUserLoading || isProfileLoading) {
     return null;
   }
 
@@ -97,7 +125,7 @@ const AuthSection = () => {
                 <DropdownMenuSeparator />
              </>
            )}
-          <DropdownMenuItem onClick={signOut}>
+          <DropdownMenuItem onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />
             <span>Logout</span>
           </DropdownMenuItem>
@@ -106,15 +134,13 @@ const AuthSection = () => {
     );
   }
 
-  // If not loading and not logged in, show nothing.
   return null;
 };
 
 
 export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
   const [settings, setSettings] = useState<KioskSettings | null>(null);
-  const { user, loading } = useAuth();
-  const router = useRouter();
+  const { isUserLoading } = useUser();
 
   const heroImage = placeholderImages.placeholderImages.find(img => img.id === 'spot-jomblang-light')?.imageUrl || '/placeholder.jpg';
 
@@ -127,7 +153,7 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
   }, []);
   
 
-  if (loading) {
+  if (isUserLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="text-center">

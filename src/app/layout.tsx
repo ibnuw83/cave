@@ -1,9 +1,8 @@
 
 import type { Metadata, Viewport } from 'next';
-import { AuthProvider } from '@/context/auth-context';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
-import { Providers } from './providers';
+import { FirebaseClientProvider } from '@/firebase';
 import { getKioskSettings } from '@/lib/firestore';
 import Footer from '@/app/components/footer';
 
@@ -46,15 +45,13 @@ export default function RootLayout({
         <meta name="theme-color" content="#2A2B32" />
       </head>
       <body className="font-body antialiased">
-        <Providers>
-          <AuthProvider>
+        <FirebaseClientProvider>
             <div className="flex flex-col min-h-screen">
               <main className="flex-grow">{children}</main>
               <Footer />
             </div>
             <Toaster />
-          </AuthProvider>
-        </Providers>
+        </FirebaseClientProvider>
       </body>
     </html>
   );

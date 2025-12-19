@@ -1,16 +1,29 @@
 'use client';
 
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import AdminSidebar from './admin-sidebar';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { UserProfile } from '@/lib/types';
+import { doc } from 'firebase/firestore';
+
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const { user, userProfile, loading } = useAuth();
+  const { user, isUserLoading } = useUser();
   const { toast } = useToast();
+  const firestore = useFirestore();
+
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+  
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
+
+  const loading = isUserLoading || isProfileLoading;
 
   useEffect(() => {
     if (loading) return;
@@ -19,16 +32,21 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       router.replace('/login');
       return;
     }
-
-    if (!userProfile || userProfile.role !== 'admin') {
+    
+    if (userProfile && userProfile.role !== 'admin') {
       toast({
         variant: 'destructive',
         title: 'Akses Ditolak',
         description: 'Halaman ini khusus untuk admin.',
       });
       router.replace('/');
+    } else if (user && !userProfile && !isProfileLoading) {
+        // This can happen briefly while the profile is being created.
+        // If it persists, it's an issue.
+        console.warn("User is logged in, but profile data is not yet available.");
     }
-  }, [user, userProfile, loading, router, toast]);
+
+  }, [user, userProfile, loading, router, toast, isProfileLoading]);
 
   if (loading || !userProfile) {
     return (
@@ -45,7 +63,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="md:grid md:grid-cols-[250px_1fr]">
-      <AdminSidebar />
+      <AdminSidebar user={user} userProfile={userProfile} />
       <main className="pb-24 md:pb-0">{children}</main>
     </div>
   );

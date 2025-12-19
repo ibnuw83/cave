@@ -21,5 +21,3 @@ export default async function KioskSettingsPage() {
     </div>
   );
 }
-
-    

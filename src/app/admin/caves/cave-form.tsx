@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/firebase';
 
 const caveSchema = z.object({
   name: z.string().min(1, { message: 'Nama gua tidak boleh kosong.' }),
@@ -32,6 +32,7 @@ interface CaveFormProps {
 
 export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
   const { toast } = useToast();
+  const auth = useAuth();
 
   const form = useForm<CaveFormValues>({
     resolver: zodResolver(caveSchema),
@@ -66,8 +67,6 @@ export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
       }
     } catch (error) {
         // Error is now handled by the permission-error emitter in firestore.ts
-        // The toast will be shown by the global listener.
-        // We catch here to prevent unhandled promise rejection, but do nothing.
     }
   };
 
