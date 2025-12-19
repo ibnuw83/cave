@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -63,7 +64,7 @@ export default function SpotPageClient({
             fill 
             className="object-cover"
         />
-        <SpotPlayerUI spot={spot} />
+        <SpotPlayerUI spot={spot} userRole={userRole} />
     </div>
   );
 }

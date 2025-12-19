@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, Play, Pause, Loader2, WandSparkles } from 'lucide-react';
 import { canVibrate, vibrate } from '@/lib/haptics';
 
-export default function SpotPlayerUI({ spot }: { spot: Spot }) {
+export default function SpotPlayerUI({ spot, userRole }: { spot: Spot, userRole: 'free' | 'pro' | 'admin' }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -100,8 +100,10 @@ export default function SpotPlayerUI({ spot }: { spot: Spot }) {
                     {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
                 </Button>
                 <div className="flex flex-col">
-                    <p className="font-bold">Mainkan Narasi AI</p>
-                    <p className="text-sm text-white/70 flex items-center gap-1"><WandSparkles className="h-4 w-4"/>Didukung oleh AI</p>
+                    <p className="font-bold">Mainkan Narasi</p>
+                    {(userRole === 'pro' || userRole === 'admin') && (
+                      <p className="text-sm text-white/70 flex items-center gap-1"><WandSparkles className="h-4 w-4"/>Didukung oleh AI</p>
+                    )}
                 </div>
             </div>
         </div>
