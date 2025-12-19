@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Spot } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -18,13 +18,16 @@ import {
 import { cn } from '@/lib/utils';
 
 
-function SpotNavigation({ currentSpotId, allSpots }: { currentSpotId: string, allSpots: Spot[] }) {
+function SpotNavigation({ currentSpotId, allSpots, isVisible }: { currentSpotId: string, allSpots: Spot[], isVisible: boolean }) {
     if (allSpots.length <= 1) {
         return null;
     }
 
     return (
-        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 w-full max-w-sm lg:max-w-md xl:max-w-lg z-20">
+        <div className={cn(
+            "absolute bottom-36 left-1/2 -translate-x-1/2 w-full max-w-sm lg:max-w-md xl:max-w-lg z-20 transition-opacity duration-300",
+            isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
+        )}>
             <Carousel opts={{
                 align: "start",
                 startIndex: allSpots.findIndex(s => s.id === currentSpotId) || 0,
@@ -63,7 +66,34 @@ function SpotNavigation({ currentSpotId, allSpots }: { currentSpotId: string, al
 export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot, userRole: 'free' | 'pro' | 'admin', allSpots: Spot[] }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUIVisible, setIsUIVisible] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const uiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-hide UI after a few seconds
+  const resetUiTimeout = useCallback(() => {
+    if (uiTimeoutRef.current) {
+        clearTimeout(uiTimeoutRef.current);
+    }
+    uiTimeoutRef.current = setTimeout(() => {
+        setIsUIVisible(false);
+    }, 5000); // 5 seconds
+  }, []);
+
+  useEffect(() => {
+    if (isUIVisible) {
+        resetUiTimeout();
+    }
+    return () => {
+        if (uiTimeoutRef.current) {
+            clearTimeout(uiTimeoutRef.current);
+        }
+    }
+  }, [isUIVisible, resetUiTimeout]);
+  
+  const toggleUIVisibility = () => {
+    setIsUIVisible(prev => !prev);
+  }
 
   // Cleanup audio and vibration on unmount or spot change
   useEffect(() => {
@@ -90,6 +120,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
   };
 
   const handleTogglePlay = async () => {
+    resetUiTimeout(); // Keep UI visible when interacting
     if (isPlaying && audioRef.current) {
       audioRef.current.pause();
       if (canVibrate()) {
@@ -149,22 +180,32 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
   };
   
   return (
-    <>
+    // This wrapper listens for taps to toggle UI visibility
+    <div className="absolute inset-0 z-10" onClick={toggleUIVisibility}>
         {/* Header */}
-        <div className="absolute top-0 left-0 right-0 p-4 z-20 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent">
-            <Button variant="ghost" className="text-white hover:bg-white/20 hover:text-white" asChild>
-            <Link href={`/cave/${spot.caveId}`}>
-                <ChevronLeft className="mr-2 h-5 w-5" />
-                Kembali
-            </Link>
+        <div className={cn(
+            "absolute top-0 left-0 right-0 p-4 z-20 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent transition-opacity duration-300",
+            isUIVisible ? "opacity-100" : "opacity-0 pointer-events-none"
+        )}>
+            <Button variant="ghost" className="text-white hover:bg-white/20 hover:text-white" asChild onClick={(e) => e.stopPropagation()}>
+                <Link href={`/cave/${spot.caveId}`}>
+                    <ChevronLeft className="mr-2 h-5 w-5" />
+                    Kembali
+                </Link>
             </Button>
         </div>
 
         {/* Spot Navigation */}
-        <SpotNavigation currentSpotId={spot.id} allSpots={allSpots} />
+        <SpotNavigation currentSpotId={spot.id} allSpots={allSpots} isVisible={isUIVisible} />
 
         {/* Footer Controls */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 z-20 text-white bg-gradient-to-t from-black/70 to-transparent">
+        <div 
+            className={cn(
+                "absolute bottom-0 left-0 right-0 p-6 z-20 text-white bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-300",
+                isUIVisible ? "opacity-100" : "opacity-0 pointer-events-none"
+            )}
+            onClick={(e) => e.stopPropagation()} // Prevent taps inside footer from hiding UI
+        >
             <h1 className="text-3xl font-bold font-headline mb-1">{spot.title}</h1>
             <p className="text-base text-white/80 max-w-prose">{spot.description}</p>
             
@@ -180,6 +221,6 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
                 </div>
             </div>
         </div>
-    </>
+    </div>
   );
 }
