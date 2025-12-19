@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -126,66 +127,55 @@ export default function Home() {
   useEffect(() => {
     async function fetchCaves() {
         setLoadingCaves(true);
-         // Ambil data dari Firestore
         let firestoreCaves: Cave[] = [];
         try {
+            // Fetch active caves from Firestore
             firestoreCaves = await getCaves(false);
         } catch (error) {
-            console.error("Gagal mengambil data dari Firestore, akan menggunakan data contoh:", error);
+            console.error("Gagal mengambil data gua dari Firestore, akan menggunakan data contoh:", error);
         }
 
-        // Siapkan data contoh statis dari file JSON
-        const placeholderImages = placeholderImagesData.placeholderImages;
-        const jomblangCover = placeholderImages.find(p => p.id === 'cave-jomblang-cover')?.imageUrl;
-        const gongCover = placeholderImages.find(p => p.id === 'cave-gong-cover')?.imageUrl;
-        const petrukCover = placeholderImages.find(p => p.id === 'cave-petruk-cover')?.imageUrl;
+        // If Firestore data is available, use it.
+        if (firestoreCaves.length > 0) {
+            setInitialCaves(firestoreCaves);
+        } else {
+            // Otherwise, fall back to static example data.
+            const placeholderImages = placeholderImagesData.placeholderImages;
+            const jomblangCover = placeholderImages.find(p => p.id === 'cave-jomblang-cover')?.imageUrl;
+            const gongCover = placeholderImages.find(p => p.id === 'cave-gong-cover')?.imageUrl;
+            const petrukCover = placeholderImages.find(p => p.id === 'cave-petruk-cover')?.imageUrl;
 
-        const staticCaves: Cave[] = [];
-
-        if (jomblangCover) {
-            staticCaves.push({
-            id: 'static-jomblang',
-            name: 'Gua Jomblang (Contoh)',
-            description: 'Gua vertikal dengan cahaya surga yang menakjubkan.',
-            coverImage: jomblangCover,
-            isActive: true,
-            });
-        }
-
-        if (gongCover) {
-            staticCaves.push({
-            id: 'static-gong',
-            name: 'Gua Gong (Contoh)',
-            description: 'Dijuluki sebagai gua terindah di Asia Tenggara.',
-            coverImage: gongCover,
-            isActive: true,
-            });
-        }
-        
-        if (petrukCover) {
-            staticCaves.push({
-                id: 'static-petruk',
-                name: 'Gua Petruk (Contoh)',
-                description: 'Gua Petruk di Kebumen adalah destinasi wisata alam karst yang menawarkan pengalaman caving (susur gua) menantang.',
-                coverImage: petrukCover,
+            const staticCaves: Cave[] = [];
+            if (jomblangCover) {
+                staticCaves.push({
+                id: 'static-jomblang',
+                name: 'Gua Jomblang (Contoh)',
+                description: 'Gua vertikal dengan cahaya surga yang menakjubkan.',
+                coverImage: jomblangCover,
                 isActive: true,
-            });
-        }
-
-
-        // Gabungkan data dari Firestore dan data statis
-        // Hapus duplikat berdasarkan nama gua
-        const combinedCaves = [...firestoreCaves];
-        staticCaves.forEach(staticCave => {
-            if (!firestoreCaves.some(fc => fc.name.includes(staticCave.name.replace(' (Contoh)', '')))) {
-            combinedCaves.push(staticCave);
+                });
             }
-        });
+            if (gongCover) {
+                staticCaves.push({
+                id: 'static-gong',
+                name: 'Gua Gong (Contoh)',
+                description: 'Dijuluki sebagai gua terindah di Asia Tenggara.',
+                coverImage: gongCover,
+                isActive: true,
+                });
+            }
+            if (petrukCover) {
+                staticCaves.push({
+                    id: 'static-petruk',
+                    name: 'Gua Petruk (Contoh)',
+                    description: 'Gua Petruk di Kebumen adalah destinasi wisata alam karst yang menawarkan pengalaman caving (susur gua) menantang.',
+                    coverImage: petrukCover,
+                    isActive: true,
+                });
+            }
+            setInitialCaves(staticCaves);
+        }
         
-        // Jika tidak ada data sama sekali, tampilkan data contoh
-        const finalCaves = combinedCaves.length > 0 ? combinedCaves : staticCaves;
-
-        setInitialCaves(finalCaves);
         setLoadingCaves(false);
     }
     fetchCaves();
@@ -239,7 +229,7 @@ export default function Home() {
             ))}
           </div>
         ) : (
-          <p className="text-muted-foreground">Tidak ada gua yang tersedia saat ini.</p>
+          <p className="text-muted-foreground">Tidak ada gua yang tersedia saat ini. Silakan tambahkan melalui Panel Admin.</p>
         )}
       </main>
     </div>

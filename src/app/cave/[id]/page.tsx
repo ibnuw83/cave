@@ -9,7 +9,7 @@ import { getOfflineCaveData } from '@/lib/offline';
 
 const placeholderImages = placeholderImagesData.placeholderImages;
 
-// Define static data here for reliability
+// Define static data here for reliability in case Firestore fails
 const staticCaves: Cave[] = [
     {
         id: 'static-jomblang',
@@ -35,63 +35,20 @@ const staticCaves: Cave[] = [
 ];
 
 
-const staticSpots: Spot[] = [
-    {
-        id: 'static-spot-jomblang-light',
-        caveId: 'static-jomblang',
-        order: 1,
-        title: 'Cahaya dari Surga',
-        description: 'Sinar matahari yang masuk melalui lubang gua, menciptakan pemandangan magis.',
-        imageUrl: placeholderImages.find(p => p.id === 'spot-jomblang-light')?.imageUrl || '',
-        isPro: false,
-        viewType: 'panorama',
-    },
-    {
-        id: 'static-spot-jomblang-mud',
-        caveId: 'static-jomblang',
-        order: 2,
-        title: 'Jalur Berlumpur (PRO)',
-        description: 'Tantangan jalur berlumpur sebelum mencapai dasar gua.',
-        imageUrl: placeholderImages.find(p => p.id === 'spot-jomblang-mud')?.imageUrl || '',
-        isPro: true,
-        viewType: 'flat',
-        effects: { vibrationPattern: [60, 40, 60] }
-    },
-    {
-        id: 'static-spot-gong-stalactite',
-        caveId: 'static-gong',
-        order: 1,
-        title: 'Stalaktit Raksasa',
-        description: 'Formasi batuan kapur yang menjulang dari langit-langit gua.',
-        imageUrl: placeholderImages.find(p => p.id === 'spot-gong-stalactite')?.imageUrl || '',
-        isPro: false,
-        viewType: 'panorama',
-    },
-    {
-        id: 'static-spot-gong-pool',
-        caveId: 'static-gong',
-        order: 2,
-        title: 'Kolam Bawah Tanah (PRO)',
-        description: 'Kolam air jernih yang terbentuk secara alami di dalam gua.',
-        imageUrl: placeholderImages.find(p => p.id === 'spot-gong-pool')?.imageUrl || '',
-        isPro: true,
-        viewType: 'flat',
-    }
-];
-
-
 export default async function CavePage({ params }: { params: { id: string } }) {
   let cave: Cave | null = null;
   let spots: Spot[] = [];
 
-  // If it's a static example, load the data directly
+  // If it's a static example, load the static data
   if (params.id.startsWith('static-')) {
     cave = staticCaves.find(c => c.id === params.id) || null;
-    if (cave) {
-        spots = staticSpots.filter(s => s.caveId === cave!.id);
-    }
-  } else {
-    // --- Original logic for Firestore/Offline data ---
+    // We will now fetch spots dynamically even for static examples, or use a static spot list if that exists.
+    // For simplicity and to match user expectation, we now only fetch from firestore/offline for real IDs.
+    // Static spots will be handled on the spot page.
+  }
+
+  // --- Logic for Firestore/Offline data for REAL IDs ---
+  if (!params.id.startsWith('static-')) {
     // 1. Try to load from offline cache first
     try {
       const offlineData = await getOfflineCaveData(params.id);
@@ -112,7 +69,7 @@ export default async function CavePage({ params }: { params: { id: string } }) {
       }
     }
   
-    // 3. If spots were not in cache, fetch them now
+    // 3. If spots were not in cache, fetch them from Firestore now
     if (spots.length === 0 && cave) {
        try {
         spots = await getSpots(params.id);
@@ -128,5 +85,54 @@ export default async function CavePage({ params }: { params: { id: string } }) {
     notFound();
   }
   
+  // For static caves, we still need to load their spots. Let's do that now.
+  if (params.id.startsWith('static-') && spots.length === 0) {
+      // Re-using the static spots from the spot page for consistency
+      const allStaticSpots = [
+          {
+              id: 'static-spot-jomblang-light',
+              caveId: 'static-jomblang',
+              order: 1,
+              title: 'Cahaya dari Surga',
+              description: 'Sinar matahari yang masuk melalui lubang gua, menciptakan pemandangan magis.',
+              imageUrl: placeholderImages.find(p => p.id === 'spot-jomblang-light')?.imageUrl || '',
+              isPro: false,
+              viewType: 'panorama' as const,
+          },
+          {
+              id: 'static-spot-jomblang-mud',
+              caveId: 'static-jomblang',
+              order: 2,
+              title: 'Jalur Berlumpur (PRO)',
+              description: 'Tantangan jalur berlumpur sebelum mencapai dasar gua.',
+              imageUrl: placeholderImages.find(p => p.id === 'spot-jomblang-mud')?.imageUrl || '',
+              isPro: true,
+              viewType: 'flat' as const,
+              effects: { vibrationPattern: [60, 40, 60] }
+          },
+          {
+              id: 'static-spot-gong-stalactite',
+              caveId: 'static-gong',
+              order: 1,
+              title: 'Stalaktit Raksasa',
+              description: 'Formasi batuan kapur yang menjulang dari langit-langit gua.',
+              imageUrl: placeholderImages.find(p => p.id === 'spot-gong-stalactite')?.imageUrl || '',
+              isPro: false,
+              viewType: 'panorama' as const,
+          },
+          {
+              id: 'static-spot-gong-pool',
+              caveId: 'static-gong',
+              order: 2,
+              title: 'Kolam Bawah Tanah (PRO)',
+              description: 'Kolam air jernih yang terbentuk secara alami di dalam gua.',
+              imageUrl: placeholderImages.find(p => p.id === 'spot-gong-pool')?.imageUrl || '',
+              isPro: true,
+              viewType: 'flat' as const,
+          }
+      ];
+      spots = allStaticSpots.filter(s => s.caveId === params.id);
+  }
+
   return <CaveClient cave={cave} spots={spots} />;
 }
