@@ -147,13 +147,18 @@ export default function HomeClient() {
   const heroImage = placeholderImages.placeholderImages.find(img => img.id === 'spot-jomblang-light')?.imageUrl || '/placeholder.jpg';
   
   useEffect(() => {
-    if (isUserLoading) return;
+    // Wait until the auth state is fully determined.
+    if (isUserLoading) {
+      return;
+    }
 
+    // If, after loading, the user is not authenticated, redirect to login.
     if (!user) {
         router.push('/login');
         return;
     }
     
+    // If the user is authenticated, proceed to fetch data.
     setDataLoading(true);
     Promise.all([
       getCaves(false),
@@ -171,7 +176,9 @@ export default function HomeClient() {
   
   const isLoading = isUserLoading || dataLoading;
 
-  if (isLoading) {
+  // Show a loader while waiting for auth state or data.
+  // This prevents rendering the page content before redirection logic can run.
+  if (isLoading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="text-center">
