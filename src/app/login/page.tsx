@@ -62,82 +62,87 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-6">
-        <div className="text-center">
-          {settings?.logoUrl ? (
-            <Image src={settings.logoUrl} alt="App Logo" width={48} height={48} className="mx-auto h-12 w-12" />
-          ) : (
-            <Mountain className="mx-auto h-12 w-12 text-primary" />
-          )}
-          <h1 className="mt-4 text-3xl font-bold font-headline">Selamat Datang Kembali</h1>
-          <p className="mt-2 text-muted-foreground">Masuk untuk melanjutkan ke Penjelajah Gua.</p>
-        </div>
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="anda@email.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex items-center justify-end">
-                <Button type="button" variant="link" className="p-0 h-auto text-xs" onClick={handleForgotPassword}>Lupa Password?</Button>
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? <Loader2 className="animate-spin" /> : 'Masuk'}
-            </Button>
-          </form>
-        </Form>
-        
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Atau lanjutkan dengan</span>
-          </div>
-        </div>
-
-        <Button variant="outline" className="w-full" onClick={signInWithGoogle} disabled={loading}>
-            {loading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="mr-2"/> Google</>}
-        </Button>
-
-        <div className="space-y-4 text-center text-sm text-muted-foreground">
-             <p>
-                Belum punya akun?{' '}
-                <Link href="/register" className="font-semibold text-primary hover:underline">
-                    Daftar di sini
-                </Link>
-             </p>
-             <p>
-                <Link href="/" className="inline-flex items-center hover:underline">
-                    <ArrowLeft className="mr-1 h-3 w-3" />
+    <div className="relative min-h-screen bg-background p-4">
+        <div className="absolute top-4 left-4">
+            <Button variant="ghost" asChild>
+                <Link href="/">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
                     Kembali ke Halaman Utama
                 </Link>
-             </p>
+            </Button>
         </div>
+
+        <div className="flex h-screen items-center justify-center">
+            <div className="w-full max-w-md space-y-6">
+                <div className="text-center">
+                {settings?.logoUrl ? (
+                    <Image src={settings.logoUrl} alt="App Logo" width={48} height={48} className="mx-auto h-12 w-12" />
+                ) : (
+                    <Mountain className="mx-auto h-12 w-12 text-primary" />
+                )}
+                <h1 className="mt-4 text-3xl font-bold font-headline">Selamat Datang Kembali</h1>
+                <p className="mt-2 text-muted-foreground">Masuk untuk melanjutkan ke Penjelajah Gua.</p>
+                </div>
+
+                <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                            <Input placeholder="anda@email.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                            <Input type="password" placeholder="••••••••" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <div className="flex items-center justify-end">
+                        <Button type="button" variant="link" className="p-0 h-auto text-xs" onClick={handleForgotPassword}>Lupa Password?</Button>
+                    </div>
+                    <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? <Loader2 className="animate-spin" /> : 'Masuk'}
+                    </Button>
+                </form>
+                </Form>
+                
+                <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">Atau lanjutkan dengan</span>
+                </div>
+                </div>
+
+                <Button variant="outline" className="w-full" onClick={signInWithGoogle} disabled={loading}>
+                    {loading ? <Loader2 className="animate-spin" /> : <><GoogleIcon className="mr-2"/> Google</>}
+                </Button>
+
+                <div className="space-y-4 text-center text-sm text-muted-foreground">
+                    <p>
+                        Belum punya akun?{' '}
+                        <Link href="/register" className="font-semibold text-primary hover:underline">
+                            Daftar di sini
+                        </Link>
+                    </p>
+                </div>
+            </div>
       </div>
     </div>
   );
