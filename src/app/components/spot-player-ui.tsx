@@ -29,10 +29,9 @@ function SpotNavigation({ currentSpotId, allSpots, isVisible }: { currentSpotId:
     return (
         <div 
             className={cn(
-                "absolute top-16 left-1/2 -translate-x-1/2 w-full max-w-xs md:max-w-sm lg:max-w-lg xl:max-w-lg z-20 transition-opacity duration-300",
+                "absolute top-16 left-1/2 -translate-x-1/2 w-full max-w-xs md:max-w-sm lg:max-w-lg xl:max-w-2xl z-30 transition-opacity duration-300",
                 isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
             )}
-            // Prevent this div from blocking interactions with the viewer
             onClick={(e) => e.stopPropagation()}
         >
             <Carousel opts={{
@@ -41,7 +40,7 @@ function SpotNavigation({ currentSpotId, allSpots, isVisible }: { currentSpotId:
             }}>
                 <CarouselContent className="-ml-1">
                     {allSpots.map((spot) => (
-                        <CarouselItem key={spot.id} className="basis-1/4 md:basis-1/5 pl-1 group">
+                        <CarouselItem key={spot.id} className="basis-1/5 md:basis-1/6 pl-1 group">
                              <Link href={`/spot/${spot.id}`} scroll={false} className="pointer-events-auto">
                                 <div className={cn(
                                     "relative aspect-video w-full overflow-hidden rounded-md transition-all",
@@ -62,8 +61,8 @@ function SpotNavigation({ currentSpotId, allSpots, isVisible }: { currentSpotId:
                         </CarouselItem>
                     ))}
                 </CarouselContent>
-                <CarouselPrevious className="hidden sm:flex -left-10 bg-white/20 border-white/30 hover:bg-white/40 text-white pointer-events-auto"/>
-                <CarouselNext className="hidden sm:flex -right-10 bg-white/20 border-white/30 hover:bg-white/40 text-white pointer-events-auto"/>
+                <CarouselPrevious className="hidden sm:flex -left-12 bg-white/20 border-white/30 hover:bg-white/40 text-white pointer-events-auto"/>
+                <CarouselNext className="hidden sm:flex -right-12 bg-white/20 border-white/30 hover:bg-white/40 text-white pointer-events-auto"/>
             </Carousel>
         </div>
     );
@@ -74,9 +73,31 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isUIVisible, setIsUIVisible] = useState(true);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const uiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
+
+  const resetUiTimeout = useCallback(() => {
+    if (uiTimeoutRef.current) {
+        clearTimeout(uiTimeoutRef.current);
+    }
+    uiTimeoutRef.current = setTimeout(() => {
+        setIsUIVisible(false);
+    }, 5000); // 5 seconds
+  }, []);
+
+  const toggleUIVisibility = useCallback(() => {
+      setIsUIVisible(prev => {
+          const nextState = !prev;
+          if(nextState) {
+              resetUiTimeout();
+          } else if (uiTimeoutRef.current) {
+              clearTimeout(uiTimeoutRef.current);
+          }
+          return nextState;
+      });
+  }, [resetUiTimeout]);
 
   // Handle Escape key to go back
   useEffect(() => {
@@ -85,48 +106,39 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
         router.push(`/cave/${spot.caveId}`);
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [router, spot.caveId]);
 
-
-  // Auto-hide UI after a few seconds
-  const resetUiTimeout = useCallback(() => {
-    if (uiTimeoutRef.current) {
-        clearTimeout(uiTimeoutRef.current);
-    }
-    // Only set timeout if not currently playing
-    if (!isPlaying) {
-         uiTimeoutRef.current = setTimeout(() => {
-            setIsUIVisible(false);
-        }, 5000); // 5 seconds
-    }
-  }, [isPlaying]);
-
+  // Auto-hide UI after a few seconds of inactivity
   useEffect(() => {
     if (isUIVisible) {
         resetUiTimeout();
     }
+    // Add event listeners to reset timeout on activity
+    window.addEventListener('mousemove', resetUiTimeout);
+    window.addEventListener('mousedown', resetUiTimeout);
+    window.addEventListener('touchstart', resetUiTimeout);
+    window.addEventListener('keydown', resetUiTimeout);
+
     return () => {
         if (uiTimeoutRef.current) {
             clearTimeout(uiTimeoutRef.current);
         }
+        window.removeEventListener('mousemove', resetUiTimeout);
+        window.removeEventListener('mousedown', resetUiTimeout);
+        window.removeEventListener('touchstart', resetUiTimeout);
+        window.removeEventListener('keydown', resetUiTimeout);
     }
   }, [isUIVisible, resetUiTimeout]);
   
-  const toggleUIVisibility = () => {
-    setIsUIVisible(prev => !prev);
-  }
-
   // Cleanup audio and vibration on unmount or spot change
   useEffect(() => {
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
-        // If the src is an object URL, revoke it
         if (audioRef.current.src.startsWith('blob:')) {
           URL.revokeObjectURL(audioRef.current.src);
         }
@@ -146,13 +158,10 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
   };
 
   const handleTogglePlay = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent this click from toggling the UI visibility
+    e.stopPropagation(); 
     
-    // Keep UI visible while interacting
     setIsUIVisible(true);
-    if (uiTimeoutRef.current) {
-        clearTimeout(uiTimeoutRef.current);
-    }
+    resetUiTimeout();
 
     if (isPlaying && audioRef.current) {
       audioRef.current.pause();
@@ -163,7 +172,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
     } else {
       setIsLoading(true);
       try {
-        const narrationText = spot.description; // Always use the spot's description
+        const narrationText = spot.description;
 
         const response = await fetch('/api/tts', {
             method: 'POST',
@@ -175,7 +184,6 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
             throw new Error(`Narration API failed with status: ${response.status}`);
         }
 
-        // Stop any currently playing audio
         if (audioRef.current) {
           audioRef.current.pause();
           if (audioRef.current.src.startsWith('blob:')) {
@@ -183,19 +191,17 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
           }
         }
         
-        // Handle audio blob response
         const audioBlob = await response.blob();
         const audioUrl = URL.createObjectURL(audioBlob);
 
         const audio = new Audio(audioUrl);
         audio.onended = () => {
-            URL.revokeObjectURL(audioUrl); // Clean up the object URL
+            URL.revokeObjectURL(audioUrl);
             handlePlaybackEnd();
         };
         
         audioRef.current = audio;
         await audio.play();
-
         setIsPlaying(true);
 
         if (spot.effects?.vibrationPattern) {
@@ -205,12 +211,18 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
       } catch (error) {
         console.error("Failed to play AI narration:", error);
         alert("Gagal memuat narasi AI. Silakan coba lagi.");
-        setIsPlaying(false); // Ensure playing state is reset on error
+        setIsPlaying(false);
       } finally {
         setIsLoading(false);
       }
     }
   };
+
+  const handleToggleDescription = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      resetUiTimeout();
+      setIsDescriptionExpanded(prev => !prev);
+  }
   
   return (
     <>
@@ -242,7 +254,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
                 "absolute bottom-0 left-0 right-0 p-6 z-20 text-white bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-300",
                 isUIVisible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
             )}
-            onClick={(e) => e.stopPropagation()} // Prevent taps inside footer from hiding UI
+            onClick={(e) => e.stopPropagation()}
         >
             <div className="flex items-start gap-4">
                  <Button size="lg" className="rounded-full h-16 w-16 bg-white/30 text-white backdrop-blur-sm hover:bg-white/50 flex-shrink-0" onClick={handleTogglePlay} disabled={isLoading}>
@@ -250,7 +262,16 @@ export default function SpotPlayerUI({ spot, userRole, allSpots }: { spot: Spot,
                 </Button>
                 <div>
                     <h1 className="text-3xl font-bold font-headline mb-1">{spot.title}</h1>
-                    <p className="text-base text-white/80 max-w-prose">{spot.description}</p>
+                    <p className={cn("text-base text-white/80 max-w-prose", !isDescriptionExpanded && "truncate")}>
+                        {spot.description}
+                    </p>
+                    <Button 
+                        variant="link" 
+                        onClick={handleToggleDescription}
+                        className="text-accent hover:text-accent/80 p-0 h-auto text-sm mt-1"
+                    >
+                        {isDescriptionExpanded ? "Sembunyikan" : "Selanjutnya"}
+                    </Button>
                 </div>
             </div>
         </div>
