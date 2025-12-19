@@ -169,7 +169,7 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
             ))}
           </div>
         ) : (
-          <p className="text-muted-foreground">Tidak ada gua yang tersedia saat ini.</p>
+          <p className="text-muted-foreground">Tidak ada gua yang tersedia saat ini. Silakan tambahkan melalui Panel Admin.</p>
         )}
       </main>
     </div>
