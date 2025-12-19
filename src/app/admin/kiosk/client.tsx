@@ -188,7 +188,7 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const [isOffline, setIsOffline] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(isDownloading(false));
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const spotsQuery = useMemoFirebase(() => collection(firestore, 'spots'), [firestore]);
   const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(spotsQuery);
