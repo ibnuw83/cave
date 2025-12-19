@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -13,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { saveCaveForOffline, isCaveAvailableOffline } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 
 function SpotCard({ spot, isLocked, isOffline }: { spot: Spot; isLocked: boolean, isOffline: boolean }) {
@@ -71,10 +71,18 @@ function SpotCard({ spot, isLocked, isOffline }: { spot: Spot; isLocked: boolean
 }
 
 export default function CaveClient({ cave, spots }: { cave: Cave; spots?: Spot[];}) {
-  const { userProfile, loading } = useAuth();
+  const { user, userProfile, loading } = useAuth();
+  const router = useRouter();
   const [isOffline, setIsOffline] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
 
   useEffect(() => {
     async function checkOfflineStatus() {
@@ -101,15 +109,12 @@ export default function CaveClient({ cave, spots }: { cave: Cave; spots?: Spot[]
   };
 
 
-  if (loading) {
+  if (loading || !user) {
     return (
-      <div className="container mx-auto max-w-5xl p-4 md:p-8">
-        <Skeleton className="h-8 w-32 mb-8" />
-        <Skeleton className="h-48 w-full mb-6" />
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <Skeleton className="h-64 w-full" />
-          <Skeleton className="h-64 w-full" />
-          <Skeleton className="h-64 w-full" />
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="text-center">
+          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+          <p className="mt-4 text-lg text-muted-foreground">Memuat sesi pengguna...</p>
         </div>
       </div>
     );

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -9,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { Mountain, LogIn, LogOut, User, Trash2, ArrowDown } from 'lucide-react';
+import { Mountain, LogIn, LogOut, User, Trash2, ArrowDown, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +23,7 @@ import { clearOfflineCache } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
 import { getKioskSettings } from '@/lib/firestore';
 import placeholderImages from '@/lib/placeholder-images.json';
+import { useRouter } from 'next/navigation';
 
 // Komponen Bat untuk animasi kelelawar
 function Bat({ style }: { style: React.CSSProperties }) {
@@ -71,7 +71,7 @@ const AuthSection = () => {
 
 
   if (loading) {
-    return <Skeleton className="h-10 w-10 rounded-full" />;
+    return null;
   }
 
   if (user && userProfile) {
@@ -132,7 +132,8 @@ const AuthSection = () => {
 
 
 export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
-  const { loading: authLoading } = useAuth();
+  const { user, loading } = useAuth();
+  const router = useRouter();
   const [settings, setSettings] = useState<KioskSettings | null>(null);
 
   const heroImage = placeholderImages.placeholderImages.find(img => img.id === 'spot-jomblang-light')?.imageUrl || '/placeholder.jpg';
@@ -144,6 +145,23 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
     }
     fetchSettings();
   }, []);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+  
+  if (loading || !user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="text-center">
+          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+          <p className="mt-4 text-lg text-muted-foreground">Memuat sesi pengguna...</p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen">
@@ -200,13 +218,7 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
       <main id="cave-list" className="bg-black py-16 md:py-24">
          <div className="container mx-auto max-w-5xl px-4 md:px-8">
             <h2 className="mb-8 text-center text-3xl font-semibold text-white/90 md:text-4xl">Gua yang Tersedia</h2>
-            {authLoading ? (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                <Skeleton className="h-80 w-full" />
-                <Skeleton className="h-80 w-full" />
-                <Skeleton className="h-80 w-full" />
-            </div>
-            ) : initialCaves.length > 0 ? (
+            {initialCaves.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {initialCaves.map((cave) => (
                 <Link href={`/cave/${cave.id}`} key={cave.id} className="group">
@@ -220,12 +232,11 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
                             className="object-cover transition-transform duration-300 group-hover:scale-110"
                             data-ai-hint="cave entrance"
                         />
-                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-4">
+                           <CardTitle className="text-lg font-bold font-headline text-white transition-transform duration-300 group-hover:translate-y-[-4px]">{cave.name}</CardTitle>
+                         </div>
                         </div>
                     </CardHeader>
-                    <CardContent className="p-4">
-                        <CardTitle className="text-lg font-bold font-headline text-foreground">{cave.name}</CardTitle>
-                    </CardContent>
                     </Card>
                 </Link>
                 ))}
