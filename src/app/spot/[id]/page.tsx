@@ -4,13 +4,21 @@ import { auth } from '@/lib/firebase-admin';
 import { getSpotAdmin, getUserProfileAdmin } from '@/lib/firebase-admin';
 import SpotPageClient from './client';
 import { Spot } from '@/lib/types';
+import { getSpotClient } from '@/lib/firestore';
+
 
 export default async function SpotPage({ params }: { params: { id: string } }) {
   const spotId = params.id;
   
-  // LOGIKA DIPERBAIKI: Selalu ambil data spot dari database.
-  // Semua data statis dan logika 'if' yang membingungkan dihapus.
-  const spot: Spot | null = await getSpotAdmin(spotId);
+  let initialSpot: Spot | null = null;
+  // Attempt to fetch the spot on the server using the client SDK logic
+  // This is more reliable as it doesn't depend on admin credentials for public data
+  try {
+    initialSpot = await getSpotClient(spotId);
+  } catch(e) {
+    console.log(`Server-side spot fetch for ${spotId} failed, will try on client.`);
+  }
+
 
   let userRole: 'free' | 'pro' | 'admin' = 'free';
   try {
@@ -23,16 +31,17 @@ export default async function SpotPage({ params }: { params: { id: string } }) {
       }
     }
   } catch (error) {
-    // Pengguna tidak login atau sesi telah berakhir, 'userRole' tetap 'free'.
+    // User is not logged in or session has expired, 'userRole' remains 'free'.
     console.log('User not logged in or session expired');
   }
 
-  // Jika spot tidak ditemukan sama sekali baik di database, client akan menanganinya.
+  // If spot is not found on server, client will try to fetch it or load from cache.
   return (
     <SpotPageClient
       spotId={spotId}
-      initialSpot={spot}
+      initialSpot={initialSpot}
       userRole={userRole}
     />
   );
 }
+

@@ -6,6 +6,7 @@ import { Spot } from '@/lib/types';
 import LockedScreen from '@/app/components/locked-screen';
 import SpotPlayerUI from '@/app/components/spot-player-ui';
 import HybridViewer from '@/app/components/hybrid-viewer';
+import { getSpotClient } from '@/lib/firestore'; // Import the client-side fetcher
 
 async function findSpotOffline(spotId: string): Promise<Spot | null> {
   try {
@@ -37,11 +38,43 @@ export default function SpotPageClient({
   userRole: 'free' | 'pro' | 'admin';
 }) {
   const [spot, setSpot] = useState<Spot | null>(initialSpot);
+  const [loading, setLoading] = useState(!initialSpot);
 
   useEffect(() => {
-    if (spot) return;
-    findSpotOffline(spotId).then(setSpot);
+    async function fetchSpot() {
+      if (spot) return; // Already have the spot
+
+      // 1. Try fetching with the client SDK
+      try {
+        const onlineSpot = await getSpotClient(spotId);
+        if (onlineSpot) {
+          setSpot(onlineSpot);
+          setLoading(false);
+          return;
+        }
+      } catch (e) {
+         console.warn("Client-side online fetch failed, trying offline.", e);
+      }
+
+      // 2. Fallback to offline cache
+      const offlineSpot = await findSpotOffline(spotId);
+      if (offlineSpot) {
+        setSpot(offlineSpot);
+      }
+      
+      setLoading(false);
+    }
+    
+    fetchSpot();
   }, [spot, spotId]);
+
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-black text-white">
+        <p>Memuat spot...</p>
+      </div>
+    );
+  }
 
   if (!spot) {
     return (
