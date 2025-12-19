@@ -1,4 +1,3 @@
-
 'use client';
 
 import { ReactNode, useRef, useEffect } from 'react';
@@ -124,7 +123,7 @@ export function PanoramaViewer({
 
     // ===== CAMERA =====
     let yaw = 0;
-    let pitch = 0;
+    let pitch = -0.3; // Start looking slightly down
     let dragging = false;
     let lastX = 0;
     let lastY = 0;
@@ -135,24 +134,45 @@ export function PanoramaViewer({
       lastY = e.clientY;
     };
     canvas.onmouseup = () => (dragging = false);
+    canvas.onmouseout = () => (dragging = false); // Stop dragging if mouse leaves canvas
     canvas.onmousemove = e => {
       if (!dragging) return;
       yaw -= (e.clientX - lastX) * 0.005;
       pitch -= (e.clientY - lastY) * 0.005;
-      pitch = Math.max(-1.5, Math.min(1.5, pitch));
+      pitch = Math.max(-1.5, Math.min(1.5, pitch)); // Clamp vertical rotation
       lastX = e.clientX;
       lastY = e.clientY;
     };
+    
+    // Touch controls
+    canvas.ontouchstart = e => {
+      dragging = true;
+      lastX = e.touches[0].clientX;
+      lastY = e.touches[0].clientY;
+    };
+    canvas.ontouchend = () => (dragging = false);
+    canvas.ontouchmove = e => {
+        if (!dragging) return;
+        yaw -= (e.touches[0].clientX - lastX) * 0.005;
+        pitch -= (e.touches[0].clientY - lastY) * 0.005;
+        pitch = Math.max(-1.5, Math.min(1.5, pitch));
+        lastX = e.touches[0].clientX;
+        lastY = e.touches[0].clientY;
+    };
+
 
     // ===== RENDER LOOP =====
     const mat4 = (fov: number) => {
       const a = canvas.width / canvas.height;
       const f = 1 / Math.tan(fov / 2);
+      const near = 0.1;
+      const far = 100;
+      const nf = 1 / (near - far);
       return new Float32Array([
         f / a, 0, 0, 0,
         0, f, 0, 0,
-        0, 0, -1, -1,
-        0, 0, -0.2, 0,
+        0, 0, (far + near) * nf, -1,
+        0, 0, 2 * far * near * nf, 0,
       ]);
     };
 
@@ -162,7 +182,7 @@ export function PanoramaViewer({
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       gl.enable(gl.DEPTH_TEST);
 
-      const m = mat4(1.2);
+      const projectionMatrix = mat4(1.2);
       
       const cy = Math.cos(yaw);
       const sy = Math.sin(yaw);
@@ -183,9 +203,8 @@ export function PanoramaViewer({
           0, 0, 0, 1
       ]);
 
-      const multiply = (a: Float32Array, b: Float32Array) => {
+      const multiply = (a: Float32Array, b: Float32Array): Float32Array => {
           const out = new Float32Array(16);
-          // Simple matrix multiplication, you might want a more robust library for this
           for(let i=0; i<4; i++) {
               for(let j=0; j<4; j++) {
                   out[i*4+j] = 0;
@@ -198,7 +217,7 @@ export function PanoramaViewer({
       }
       
       const viewMatrix = multiply(rotX, rotY);
-      const finalMatrix = multiply(m, viewMatrix);
+      const finalMatrix = multiply(projectionMatrix, viewMatrix);
 
       gl.uniformMatrix4fv(uMatrix, false, finalMatrix);
       gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
@@ -213,11 +232,9 @@ export function PanoramaViewer({
   }, [imageUrl]);
 
   return (
-    <div className="relative w-full h-screen bg-black overflow-hidden">
+    <div className="relative w-full h-screen bg-black overflow-hidden cursor-grab active:cursor-grabbing">
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
       {children}
     </div>
   );
 }
-
-    
