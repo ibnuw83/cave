@@ -5,10 +5,10 @@ import Link from 'next/link';
 import { Cave, KioskSettings } from '@/lib/types';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { Mountain, LogIn, LogOut, User, Trash2, ArrowDown, Loader2 } from 'lucide-react';
+import { Mountain, LogOut, User, Trash2, ArrowDown, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +18,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Skeleton } from '@/components/ui/skeleton';
 import { clearOfflineCache } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
 import { getKioskSettings } from '@/lib/firestore';
@@ -118,15 +117,15 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
     }
     fetchSettings();
   }, []);
-
-  if (loading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
   
+  if (loading) {
+      return (
+        <div className="flex h-screen w-full items-center justify-center bg-background">
+          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+        </div>
+      );
+  }
+
   return (
     <div className="min-h-screen">
       <header className="relative flex h-[70vh] w-full flex-col items-center justify-center text-center text-white overflow-hidden">
@@ -159,7 +158,7 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
                         Penjelajah Gua
                     </h1>
                 </div>
-                 <h2 className="text-4xl md:text-6xl font-bold font-headline drop-shadow-2xl">Masuki Dunia Bawah Tanah</h2>
+                 <h2 className="text-4xl md:text-6xl font-bold font-headline drop-shadow-2xl animate-wave">Masuki Dunia Bawah Tanah</h2>
                  <p className="mt-4 max-w-xl text-lg md:text-xl text-white/80">
                     Rasakan pengalaman 4D menjelajahi keindahan gua-gua paling eksotis di Indonesia.
                  </p>
