@@ -1,3 +1,4 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export interface UserProfile {
@@ -17,6 +18,13 @@ export interface Cave {
   isActive: boolean;
 }
 
+export type Hotspot = {
+  id: string;
+  label: string;
+  position: [number, number, number]; // posisi 3D di sphere
+  targetSpotId: string;
+};
+
 export interface Spot {
   id:string;
   caveId: string;
@@ -29,6 +37,7 @@ export interface Spot {
   effects?: {
     vibrationPattern?: number[];
   };
+  hotspots?: Hotspot[];
 }
 
 export interface Artifact {

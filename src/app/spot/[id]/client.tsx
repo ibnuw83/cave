@@ -8,6 +8,7 @@ import SpotPlayerUI from '@/app/components/spot-player-ui';
 import HybridViewer from '@/app/components/hybrid-viewer';
 import { getSpotClient } from '@/lib/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
+import PanoramaViewer from '@/components/viewer-panorama';
 
 async function findSpotOffline(spotId: string): Promise<{ spot: Spot | null, spots: Spot[] }> {
   try {
@@ -93,6 +94,19 @@ export default function SpotPageClient({
   if (spot.isPro && userRole === 'free') {
     return <LockedScreen spot={spot} />;
   }
+  
+  if (spot.viewType === 'panorama') {
+    return (
+        <PanoramaViewer
+            imageUrl={spot.imageUrl}
+            hotspots={spot.hotspots || []}
+            isFull360={true}
+        >
+            <SpotPlayerUI spot={spot} userRole={userRole} allSpots={allSpotsInCave} />
+        </PanoramaViewer>
+    );
+  }
+
 
   return (
     <HybridViewer

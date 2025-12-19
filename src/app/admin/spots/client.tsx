@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -85,7 +86,7 @@ export default function SpotsClient() {
   }
 
   if (isFormOpen) {
-    return <SpotForm spot={selectedSpot} caves={caves} onSave={handleFormSuccess} onCancel={() => { setIsFormOpen(false); setSelectedSpot(null); }} />;
+    return <SpotForm spot={selectedSpot} caves={caves} allSpots={spots || []} onSave={handleFormSuccess} onCancel={() => { setIsFormOpen(false); setSelectedSpot(null); }} />;
   }
 
   return (

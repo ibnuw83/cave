@@ -3,10 +3,14 @@
 
 import { Suspense, ReactNode, useRef, useState } from 'react';
 import { Canvas, useLoader, useFrame } from '@react-three/fiber';
-import { OrbitControls, Sphere, Preload } from '@react-three/drei';
+import { OrbitControls, Sphere, Preload, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useIdleAutoRotate } from '@/hooks/useIdleAutoRotate';
-import { useGyroOffset } from '@/hooks/use-gyro-offset';
+import { useGyroOffset } from '@/hooks/useGyroOffset';
+import type { Hotspot } from '@/lib/types';
+import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { ArrowRight } from 'lucide-react';
 
 function Scene({ imageUrl }: { imageUrl: string }) {
   const texture = useLoader(THREE.TextureLoader, imageUrl);
@@ -19,14 +23,56 @@ function Scene({ imageUrl }: { imageUrl: string }) {
   );
 }
 
+function HotspotPoint({ hotspot }: { hotspot: Hotspot }) {
+  const router = useRouter();
+  const [hovered, setHovered] = useState(false);
+
+  const handleClick = (e: any) => {
+    e.stopPropagation();
+    router.push(`/spot/${hotspot.targetSpotId}`);
+  };
+
+  return (
+    <group position={new THREE.Vector3(...hotspot.position)}>
+      <Html 
+        center
+        distanceFactor={10}
+        occlude
+        onOcclude={setHovered as any}
+        style={{
+          transition: 'all 0.2s',
+          transform: `scale(${hovered ? 1.2 : 1})`,
+          opacity: hovered ? 1 : 0.7,
+        }}
+      >
+        <button
+          onClick={handleClick}
+          onPointerEnter={() => setHovered(true)}
+          onPointerLeave={() => setHovered(false)}
+          className={cn(
+            "flex items-center gap-2 rounded-full bg-black/50 px-4 py-2 text-white backdrop-blur-md transition-all duration-300 hover:bg-black/70 hover:!opacity-100",
+            "focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-transparent"
+          )}
+        >
+          <span>{hotspot.label}</span>
+          <ArrowRight className="h-4 w-4"/>
+        </button>
+      </Html>
+    </group>
+  );
+}
+
+
 export default function PanoramaViewer({
   imageUrl,
   children,
   isFull360 = true,
+  hotspots = [],
 }: {
   imageUrl: string;
   children?: ReactNode;
   isFull360?: boolean;
+  hotspots?: Hotspot[];
 }) {
   const controlsRef = useRef<any>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera>(null);
@@ -65,6 +111,8 @@ export default function PanoramaViewer({
       >
         <Suspense fallback={null}>
           <Scene imageUrl={imageUrl} />
+          
+          {hotspots.map(hotspot => <HotspotPoint key={hotspot.id} hotspot={hotspot} />)}
 
           <OrbitControls
             ref={controlsRef}
@@ -87,7 +135,7 @@ export default function PanoramaViewer({
             dampingFactor={0.07}
 
             minPolarAngle={isFull360 ? 0.01 : Math.PI / 4}
-            maxPolarAngle={isFull360 ? Math.PI - 0.01 : Math.PI / 4}
+            maxPolarAngle={isFull360 ? Math.PI - 0.01 : Math.PI - 0.01}
 
             onStart={() => {
               setIsInteracting(true);

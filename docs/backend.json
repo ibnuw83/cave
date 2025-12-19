@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Cave": {
@@ -60,10 +61,6 @@
           "type": "string",
           "description": "URL of the image for the spot."
         },
-        "audioUrl": {
-          "type": "string",
-          "description": "URL of the audio for the spot (optional)."
-        },
         "isPro": {
           "type": "boolean",
           "description": "Indicates whether the spot is a PRO spot."
@@ -71,6 +68,13 @@
         "effects": {
           "type": "string",
           "description": "A JSON string of vibration effect configuration."
+        },
+        "hotspots": {
+          "type": "array",
+          "description": "An array of hotspots for navigation within a 3D view.",
+          "items": {
+            "$ref": "#/entities/Hotspot"
+          }
         }
       },
       "required": [
@@ -83,6 +87,30 @@
         "isPro",
         "effects"
       ]
+    },
+    "Hotspot": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Hotspot",
+      "type": "object",
+      "description": "Represents a navigation point within a 3D spot.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "position": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "targetSpotId": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "label", "position", "targetSpotId"]
     },
     "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -261,5 +289,3 @@
     "reasoning": "The Firestore data structure is designed to support the \"Cave Explorer 4D\" application, focusing on mobile-first experience, 4D digital immersion (audio, haptics, visuals), and FREE/PRO access control. The structure prioritizes authorization independence using denormalization and structural segregation. It avoids `get()` calls in security rules to enable atomic operations. All read operations are public, so rules act only as validators, and never as filters (QAPs). The structure supports the core app features including listing caves and spots, immersive spot experiences, haptic feedback, Google Authentication, access control based on user roles, and personalized ambience. The addition of Artifacts and UserArtifacts collections supports the new gamification feature, allowing users to collect items and view them in their profile."
   }
 }
-
-    

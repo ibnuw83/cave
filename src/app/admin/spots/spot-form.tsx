@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Cave, Spot } from '@/lib/types';
@@ -13,7 +13,16 @@ import { Switch } from '@/components/ui/switch';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Trash2, PlusCircle } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { useMemo } from 'react';
+
+const hotspotSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1, 'Label tidak boleh kosong.'),
+  position: z.array(z.coerce.number()).length(3, 'Posisi harus 3 angka.'),
+  targetSpotId: z.string().min(1, 'Spot tujuan harus dipilih.'),
+});
 
 const spotSchema = z.object({
   caveId: z.string().min(1, 'Gua harus dipilih.'),
@@ -30,6 +39,7 @@ const spotSchema = z.object({
     },
     { message: 'Pola getaran harus berupa angka dipisahkan koma, cth: 60,40,60' }
   ),
+  hotspots: z.array(hotspotSchema).optional(),
 });
 
 type SpotFormValues = Omit<z.infer<typeof spotSchema>, 'vibrationPattern'> & {vibrationPattern?: string};
@@ -37,11 +47,12 @@ type SpotFormValues = Omit<z.infer<typeof spotSchema>, 'vibrationPattern'> & {vi
 interface SpotFormProps {
   spot: Spot | null;
   caves: Cave[];
+  allSpots: Spot[];
   onSave: (spot: Spot) => void;
   onCancel: () => void;
 }
 
-export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
+export function SpotForm({ spot, caves, allSpots, onSave, onCancel }: SpotFormProps) {
   const { toast } = useToast();
 
   const form = useForm<SpotFormValues>({
@@ -55,10 +66,22 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
       isPro: spot?.isPro ?? false,
       viewType: spot?.viewType || 'auto',
       vibrationPattern: spot?.effects?.vibrationPattern?.join(',') || '',
+      hotspots: spot?.hotspots || [],
     },
   });
-  
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: 'hotspots',
+  });
+
   const isSubmitting = form.formState.isSubmitting;
+  const watchCaveId = form.watch('caveId');
+
+  const spotsInSameCave = useMemo(() => {
+    return allSpots.filter(s => s.caveId === watchCaveId && s.id !== spot?.id);
+  }, [watchCaveId, allSpots, spot]);
+
 
   const onSubmit = async (values: SpotFormValues) => {
     const spotData: Omit<Spot, 'id'> = {
@@ -66,6 +89,7 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
       effects: {
         vibrationPattern: values.vibrationPattern ? values.vibrationPattern.split(',').map(Number) : [],
       },
+      hotspots: values.hotspots || [],
     };
     // remove vibrationPattern from top level
     delete (spotData as any).vibrationPattern;
@@ -233,6 +257,84 @@ export function SpotForm({ spot, caves, onSave, onCancel }: SpotFormProps) {
               </FormItem>
             )}
           />
+          
+          <Separator />
+
+          <div>
+            <h3 className="text-lg font-medium">Hotspot Navigasi</h3>
+            <p className="text-sm text-muted-foreground">Hubungkan spot ini dengan spot lain dalam tampilan 3D.</p>
+          </div>
+
+          <div className="space-y-4">
+            {fields.map((field, index) => (
+              <div key={field.id} className="p-4 border rounded-lg space-y-4 relative">
+                <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2" onClick={() => remove(index)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+                <FormField
+                  control={form.control}
+                  name={`hotspots.${index}.label`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Label Hotspot</FormLabel>
+                      <FormControl><Input {...field} placeholder="cth: Ke Lorong Gelap" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name={`hotspots.${index}.targetSpotId`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Spot Tujuan</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih spot tujuan..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {spotsInSameCave.map(s => (
+                            <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <div className="grid grid-cols-3 gap-2">
+                    <FormField
+                      control={form.control}
+                      name={`hotspots.${index}.position.0`}
+                      render={({ field }) => (<FormItem><FormLabel>Posisi X</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}
+                    />
+                     <FormField
+                      control={form.control}
+                      name={`hotspots.${index}.position.1`}
+                      render={({ field }) => (<FormItem><FormLabel>Posisi Y</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}
+                    />
+                     <FormField
+                      control={form.control}
+                      name={`hotspots.${index}.position.2`}
+                      render={({ field }) => (<FormItem><FormLabel>Posisi Z</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)}
+                    />
+                 </div>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => append({ id: `hotspot-${Date.now()}`, label: '', position: [0, 0, 0], targetSpotId: '' })}
+              disabled={!watchCaveId}
+            >
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Tambah Hotspot
+            </Button>
+            {!watchCaveId && <p className="text-sm text-muted-foreground">Pilih gua terlebih dahulu untuk menambahkan hotspot.</p>}
+          </div>
+
 
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
