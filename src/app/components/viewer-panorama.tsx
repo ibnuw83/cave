@@ -39,7 +39,7 @@ export default function PanoramaViewer({
     const sphere = new THREE.Mesh(geometry, material);
     scene.add(sphere);
 
-    // === ORBIT CONTROL (SIMPLE) ===
+    // === MOUSE/TOUCH DRAG CONTROLS ===
     let isDown = false;
     let lon = 0;
     let lat = 0;
@@ -63,24 +63,77 @@ export default function PanoramaViewer({
 
     const onMouseUp = () => (isDown = false);
     
-    // === ZOOM CONTROL ===
-    let fov = 75;
+    // === ZOOM CONTROL (WHEEL & PINCH) ===
     const MIN_FOV = 30;
     const MAX_FOV = 100;
     
     const onWheel = (e: WheelEvent) => {
         e.preventDefault();
-        fov += e.deltaY * 0.05;
-        fov = Math.max(MIN_FOV, Math.min(MAX_FOV, fov));
-        camera.fov = fov;
+        camera.fov += e.deltaY * 0.05;
+        camera.fov = Math.max(MIN_FOV, Math.min(MAX_FOV, camera.fov));
         camera.updateProjectionMatrix();
     };
 
+    const getDistance = (t1: Touch, t2: Touch) => {
+      const dx = t1.clientX - t2.clientX;
+      const dy = t1.clientY - t2.clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    };
 
+    const onTouchMove = (e: TouchEvent) => {
+      // Handle dragging
+      if (e.touches.length === 1) {
+          if (!isDown) return;
+          const touch = e.touches[0];
+          lon += (touch.clientX - lastX) * 0.1;
+          lat += (touch.clientY - lastY) * 0.1;
+          lat = Math.max(-85, Math.min(85, lat));
+          lastX = touch.clientX;
+          lastY = touch.clientY;
+      }
+      
+      // Handle pinching
+      if (e.touches.length !== 2) return;
+
+      e.preventDefault(); 
+
+      const distance = getDistance(e.touches[0], e.touches[1]);
+
+      if (lastTouchDistance.current !== null) {
+        const delta = lastTouchDistance.current - distance;
+
+        camera.fov += delta * 0.1; // Pinch sensitivity
+        camera.fov = Math.max(MIN_FOV, Math.min(MAX_FOV, camera.fov));
+        camera.updateProjectionMatrix();
+      }
+
+      lastTouchDistance.current = distance;
+    };
+    
+    const onTouchStart = (e: TouchEvent) => {
+        if (e.touches.length === 1) {
+            isDown = true;
+            lastX = e.touches[0].clientX;
+            lastY = e.touches[0].clientY;
+        }
+    };
+
+
+    const onTouchEnd = () => {
+      isDown = false;
+      lastTouchDistance.current = null;
+    };
+
+
+    // === EVENT LISTENERS ===
     renderer.domElement.addEventListener('mousedown', onMouseDown);
     renderer.domElement.addEventListener('mousemove', onMouseMove);
     renderer.domElement.addEventListener('mouseup', onMouseUp);
     renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
+    renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: false });
+    renderer.domElement.addEventListener('touchmove', onTouchMove, { passive: false });
+    renderer.domElement.addEventListener('touchend', onTouchEnd);
+
 
     // === RENDER LOOP ===
     const animate = () => {
@@ -117,6 +170,9 @@ export default function PanoramaViewer({
       renderer.domElement.removeEventListener('mousemove', onMouseMove);
       renderer.domElement.removeEventListener('mouseup', onMouseUp);
       renderer.domElement.removeEventListener('wheel', onWheel);
+      renderer.domElement.removeEventListener('touchstart', onTouchStart);
+      renderer.domElement.removeEventListener('touchmove', onTouchMove);
+      renderer.domElement.removeEventListener('touchend', onTouchEnd);
       window.removeEventListener('resize', handleResize);
       renderer.dispose();
       if(mountRef.current && renderer.domElement){
