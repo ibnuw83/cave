@@ -127,13 +127,18 @@ const AuthSection = () => {
     );
   }
 
-  return null;
+  return (
+     <Button variant="outline" asChild>
+        <Link href="/login">
+            <LogIn className="mr-2 h-4 w-4" />
+            Masuk
+        </Link>
+     </Button>
+  );
 };
 
 
 export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
-  const { user, loading } = useAuth();
-  const router = useRouter();
   const [settings, setSettings] = useState<KioskSettings | null>(null);
 
   const heroImage = placeholderImages.placeholderImages.find(img => img.id === 'spot-jomblang-light')?.imageUrl || '/placeholder.jpg';
@@ -145,23 +150,6 @@ export default function HomeClient({ initialCaves }: { initialCaves: Cave[] }) {
     }
     fetchSettings();
   }, []);
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
-  }, [user, loading, router]);
-  
-  if (loading || !user) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="text-center">
-          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-          <p className="mt-4 text-lg text-muted-foreground">Memuat sesi pengguna...</p>
-        </div>
-      </div>
-    );
-  }
   
   return (
     <div className="min-h-screen">
