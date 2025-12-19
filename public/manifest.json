@@ -1,0 +1,22 @@
+
+{
+  "name": "Penjelajah Gua 4D",
+  "short_name": "Penjelajah Gua",
+  "description": "Pengalaman 4D digital menjelajahi gua-gua eksotis di Indonesia.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#2A2B32",
+  "theme_color": "#2A2B32",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "192x192",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "512x512",
+      "type": "image/x-icon"
+    }
+  ]
+}
