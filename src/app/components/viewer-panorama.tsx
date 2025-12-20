@@ -31,15 +31,16 @@ function Scene({ imageUrl, onHeadingChange }: { imageUrl: string, onHeadingChang
 }
 
 function DollyControls() {
-    const { camera } = useThree();
+    const { camera, gl: { domElement } } = useThree();
     const isInteracting = useRef(false);
     const lastPinchDistance = useRef(0);
 
     useEffect(() => {
         const handleWheel = (e: WheelEvent) => {
             e.preventDefault();
-            const newZ = camera.position.z + e.deltaY * -0.002;
-            camera.position.z = THREE.MathUtils.clamp(newZ, -2, 0.5);
+            const direction = camera.getWorldDirection(new THREE.Vector3());
+            const moveSpeed = e.deltaY * -0.0005;
+            camera.position.addScaledVector(direction, moveSpeed);
         };
         
         const handleTouchStart = (e: TouchEvent) => {
@@ -59,8 +60,9 @@ function DollyControls() {
                     e.touches[0].pageY - e.touches[1].pageY
                 );
                 const delta = lastPinchDistance.current - newPinchDistance;
-                const newZ = camera.position.z + delta * 0.01;
-                camera.position.z = THREE.MathUtils.clamp(newZ, -2, 0.5);
+                const direction = camera.getWorldDirection(new THREE.Vector3());
+                const moveSpeed = delta * 0.002;
+                camera.position.addScaledVector(direction, moveSpeed);
                 lastPinchDistance.current = newPinchDistance;
             }
         };
@@ -70,7 +72,6 @@ function DollyControls() {
         };
 
 
-        const domElement = document;
         domElement.addEventListener('wheel', handleWheel, { passive: false });
         domElement.addEventListener('touchstart', handleTouchStart);
         domElement.addEventListener('touchmove', handleTouchMove);
@@ -83,7 +84,7 @@ function DollyControls() {
             domElement.removeEventListener('touchmove', handleTouchMove);
             domElement.removeEventListener('touchend', handleTouchEnd);
         };
-    }, [camera]);
+    }, [camera, domElement]);
 
     return null;
 }
