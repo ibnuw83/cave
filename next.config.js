@@ -80,6 +80,12 @@ const nextConfig = {
         hostname: 'geoparksnetwork.id',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'blogger.googleusercontent.com',
+        port: '',
+        pathname: '/**',
       }
     ],
   },
