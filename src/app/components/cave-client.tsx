@@ -10,9 +10,9 @@ import { Lock, ChevronLeft, Download, WifiOff, Loader2, Sparkles } from 'lucide-
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { saveLocationForOffline, isLocationAvailableOffline } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter, notFound } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase';
-import { getLocation, getSpots } from '@/lib/firestore';
+import { getSpots } from '@/lib/firestore';
 
 
 function SpotCard({ spot, isLocked, isOffline, lockedMessage }: { spot: Spot; isLocked: boolean; isOffline: boolean, lockedMessage: string; }) {
@@ -72,16 +72,14 @@ function SpotCard({ spot, isLocked, isOffline, lockedMessage }: { spot: Spot; is
   );
 }
 
-export default function CaveClient({ locationId }: { locationId: string; }) {
+export default function CaveClient({ location }: { location: Location; }) {
   const { user, userProfile, isUserLoading, isProfileLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
 
-  const [location, setLocation] = useState<Location | null>(null);
   const [spots, setSpots] = useState<Spot[] | undefined>(undefined);
   
   const [dataLoading, setDataLoading] = useState(true);
-  const [error, setError] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -89,28 +87,22 @@ export default function CaveClient({ locationId }: { locationId: string; }) {
     setDataLoading(true);
     
     Promise.all([
-      getLocation(locationId),
-      getSpots(locationId),
-      isLocationAvailableOffline(locationId)
-    ]).then(([locationData, spotsData, offlineStatus]) => {
-      if (!locationData) {
-        setError(true);
-        return;
-      }
-      setLocation(locationData);
+      getSpots(location.id),
+      isLocationAvailableOffline(location.id)
+    ]).then(([spotsData, offlineStatus]) => {
       setSpots(spotsData);
       setIsOffline(offlineStatus);
     }).catch(err => {
-      console.error("Failed to fetch location data:", err);
-      setError(true);
+      console.error("Failed to fetch spots data:", err);
+      toast({ variant: 'destructive', title: 'Gagal Memuat Spot', description: 'Tidak dapat memuat detail untuk lokasi ini.' });
     }).finally(() => {
       setDataLoading(false);
     });
 
-  }, [locationId]);
+  }, [location.id, toast]);
 
   const handleDownload = async () => {
-    if (!location || !spots) return;
+    if (!spots) return;
     setIsDownloading(true);
     toast({ title: 'Mengunduh...', description: `Konten untuk ${location.name} sedang disimpan untuk mode offline.` });
     try {
@@ -154,10 +146,6 @@ export default function CaveClient({ locationId }: { locationId: string; }) {
         </div>
       </div>
     );
-  }
-  
-  if (error || !location) {
-    notFound();
   }
 
   const role = userProfile?.role || 'free';

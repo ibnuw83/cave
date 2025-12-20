@@ -1,5 +1,5 @@
-import { getLocation } from '@/lib/firestore';
 import type { Metadata } from 'next';
+import { getLocation } from '@/lib/firestore';
 import CaveClient from '@/app/components/cave-client';
 import { notFound } from 'next/navigation';
 
@@ -8,8 +8,7 @@ type Props = {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const id = params.id
-  const location = await getLocation(id)
+  const location = await getLocation(params.id);
  
   if (!location) {
     return {
@@ -36,15 +35,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
+export default async function CavePage({ params }: Props) {
+  const location = await getLocation(params.id);
 
-export default function CavePage({ params }: Props) {
-  const locationId = params.id;
-  
-  if (!locationId) {
+  if (!location) {
     notFound();
   }
 
-  // Pengambilan data dan logika loading/error sekarang
-  // sepenuhnya ditangani di dalam CaveClient.
-  return <CaveClient locationId={locationId} />;
+  return <CaveClient location={location} />;
 }
