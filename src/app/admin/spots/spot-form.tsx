@@ -12,9 +12,9 @@ import { Switch } from '@/components/ui/switch';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Trash2, PlusCircle } from 'lucide-react';
+import { Loader2, Trash2, PlusCircle, Sparkles } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 const hotspotSchema = z.object({
   id: z.string().min(1),
@@ -53,6 +53,7 @@ interface SpotFormProps {
 
 export function SpotForm({ spot, caves, allSpots, onSave, onCancel }: SpotFormProps) {
   const { toast } = useToast();
+  const [isSuggestingImage, setIsSuggestingImage] = useState(false);
 
   const form = useForm<SpotFormValues>({
     resolver: zodResolver(spotSchema),
@@ -76,6 +77,7 @@ export function SpotForm({ spot, caves, allSpots, onSave, onCancel }: SpotFormPr
 
   const isSubmitting = form.formState.isSubmitting;
   const watchCaveId = form.watch('caveId');
+  const watchDescription = form.watch('description');
 
   const spotsInSameCave = useMemo(() => {
     return allSpots.filter(s => s.caveId === watchCaveId && s.id !== spot?.id);
@@ -106,6 +108,43 @@ export function SpotForm({ spot, caves, allSpots, onSave, onCancel }: SpotFormPr
         // The toast will be shown by the global listener.
     }
   };
+
+  const handleSuggestImage = async () => {
+    if (!watchDescription) {
+      toast({
+        variant: 'destructive',
+        title: 'Deskripsi Kosong',
+        description: 'Tulis deskripsi spot terlebih dahulu untuk mendapatkan saran gambar.',
+      });
+      return;
+    }
+    setIsSuggestingImage(true);
+    try {
+      const response = await fetch('/api/suggest-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: watchDescription }),
+      });
+      if (!response.ok) {
+        throw new Error('Gagal mendapatkan saran gambar dari AI.');
+      }
+      const { imageUrl } = await response.json();
+      form.setValue('imageUrl', imageUrl, { shouldValidate: true });
+      toast({
+        title: 'Gambar Disarankan',
+        description: 'URL gambar telah diperbarui. Simpan perubahan jika Anda suka.',
+      });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Gagal',
+        description: error.message || 'Tidak dapat menyarankan gambar saat ini.',
+      });
+    } finally {
+      setIsSuggestingImage(false);
+    }
+  };
+
 
   return (
     <div>
@@ -189,9 +228,15 @@ export function SpotForm({ spot, caves, allSpots, onSave, onCancel }: SpotFormPr
             render={({ field }) => (
               <FormItem>
                 <FormLabel>URL Gambar Spot</FormLabel>
-                <FormControl>
-                  <Input placeholder="https://..." {...field} />
-                </FormControl>
+                <div className="flex gap-2">
+                  <FormControl>
+                    <Input placeholder="https://..." {...field} />
+                  </FormControl>
+                   <Button type="button" variant="outline" onClick={handleSuggestImage} disabled={isSuggestingImage}>
+                    {isSuggestingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    <span className="ml-2 hidden md:inline">Sarankan</span>
+                  </Button>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
