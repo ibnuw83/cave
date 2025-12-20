@@ -18,10 +18,10 @@ service cloud.firestore {
 
 
     /**
-     * @description Controls access to the 'locations' collection. All users can read location data, but only admins can modify it.
+     * @description Controls access to the 'locations' collection. All signed-in users can read location data, but only admins can modify it.
      */
     match /locations/{locationId} {
-      allow get, list: if true;
+      allow get, list: if isSignedIn();
       allow write: if isAdmin();
     }
     
