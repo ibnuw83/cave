@@ -133,8 +133,8 @@
         },
         "role": {
           "type": "string",
-          "description": "The user's role (free, pro, admin).",
-          "format": "string"
+          "description": "The user's role (free, pro1, pro2, pro3, vip, admin).",
+          "enum": ["free", "pro1", "pro2", "pro3", "vip", "admin"]
         },
         "displayName": {
           "type": "string",
@@ -184,6 +184,23 @@
         }
       },
       "required": ["spots", "updatedAt"]
+    },
+    "PricingTier": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Pricing Tier",
+      "type": "object",
+      "description": "Represents a subscription pricing tier.",
+      "properties": {
+        "id": { "type": "string", "description": "The tier ID, which should match a user role (e.g., 'pro1', 'pro2')." },
+        "name": { "type": "string", "description": "The display name of the tier (e.g., 'PRO 1')." },
+        "price": { "type": "string", "description": "The price as a display string (e.g., 'Rp 15k')." },
+        "priceDescription": { "type": "string", "description": "A short description of the price (e.g., 'per bulan')." },
+        "features": { "type": "array", "items": { "type": "string" }, "description": "A list of features for this tier." },
+        "isPopular": { "type": "boolean", "description": "Whether this tier should be highlighted as popular." },
+        "cta": { "type": "string", "description": "The call-to-action text for the button (e.g., 'Pilih PRO 1')." },
+        "order": { "type": "number", "description": "The display order of the tier on the pricing page." }
+      },
+      "required": ["id", "name", "price", "priceDescription", "features", "isPopular", "cta", "order"]
     }
   },
   "auth": {
@@ -256,6 +273,14 @@
               "description": "The ID of the location."
             }
           ]
+        }
+      },
+      {
+        "path": "/pricingTiers/{tierId}",
+        "definition": {
+          "entityName": "PricingTier",
+          "schema": { "$ref": "#/backend/entities/PricingTier" },
+          "description": "Stores the definitions of the pricing tiers. Publicly readable, admin writable."
         }
       }
     ],

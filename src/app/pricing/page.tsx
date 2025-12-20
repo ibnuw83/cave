@@ -1,87 +1,89 @@
-
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, Crown, Gem, Star, X } from 'lucide-react';
+import { Check, Star, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/firebase';
+import { getPricingTiers } from '@/lib/firestore';
+import { PricingTier } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const tiers = [
-  {
-    name: 'Free',
-    price: 'Gratis',
-    priceDescription: 'Untuk memulai petualangan',
-    features: [
-      'Akses 1 spot per kategori lokasi',
-      'Tampilan 360° standar',
-      'Dukungan Komunitas',
-    ],
-    isPopular: false,
-    cta: 'Paket Anda Saat Ini',
-    role: 'free'
-  },
-  {
-    name: 'PRO 1',
-    price: 'Rp 15k',
-    priceDescription: 'Untuk penjelajah pemula',
-    features: [
-      'Akses hingga 5 spot per kategori',
-      'Narasi Audio AI',
-      'Pengalaman 4D (Getaran)',
-      'Akses Offline',
-    ],
-    isPopular: false,
-    cta: 'Pilih PRO 1',
-    role: 'pro1'
-  },
-    {
-    name: 'PRO 2',
-    price: 'Rp 25k',
-    priceDescription: 'Untuk petualang sejati',
-    features: [
-      'Akses hingga 10 spot per kategori',
-      'Semua fitur PRO 1',
-      'Kualitas gambar lebih tinggi',
-      'Dukungan Prioritas',
-    ],
-    isPopular: true,
-    cta: 'Pilih PRO 2',
-    role: 'pro2'
-  },
-  {
-    name: 'PRO 3',
-    price: 'Rp 35k',
-    priceDescription: 'Untuk kolektor pengalaman',
-    features: [
-      'Akses hingga 15 spot per kategori',
-      'Semua fitur PRO 2',
-      'Akses awal ke lokasi baru',
-    ],
-    isPopular: false,
-    cta: 'Pilih PRO 3',
-    role: 'pro3'
-  },
-  {
-    name: 'VIP',
-    price: 'Hubungi Kami',
-    priceDescription: 'Untuk akses tanpa batas',
-    features: [
-      'Akses ke semua spot tanpa batas',
-      'Semua fitur PRO 3',
-      'Lisensi untuk penggunaan komersial',
-      'Manajer Akun Khusus',
-    ],
-    isPopular: false,
-    cta: 'Hubungi Sales',
-    role: 'vip'
-  },
-];
 
 export default function PricingPage() {
     const { userProfile } = useUser();
+    const [tiers, setTiers] = useState<PricingTier[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        getPricingTiers().then(data => {
+            setTiers(data);
+            setLoading(false);
+        }).catch(err => {
+            console.error("Failed to fetch pricing tiers:", err);
+            setLoading(false);
+        });
+    }, []);
+
     const currentRole = userProfile?.role || 'free';
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-background text-foreground">
+                <div className="container mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+                     <div className="text-center">
+                        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl font-headline bg-gradient-to-r from-accent to-white bg-clip-text text-transparent">
+                            Pilih Paket Petualangan Anda
+                        </h1>
+                        <p className="mt-4 text-xl text-muted-foreground">
+                            Buka akses ke lebih banyak keajaiban tersembunyi dengan paket yang sesuai untuk Anda.
+                        </p>
+                    </div>
+                    <div className="mt-16 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                        {[...Array(5)].map((_, i) => (
+                             <Card key={i} className="flex flex-col">
+                                <CardHeader>
+                                    <Skeleton className="h-6 w-3/5" />
+                                    <Skeleton className="h-4 w-4/5" />
+                                </CardHeader>
+                                <CardContent className="flex-grow">
+                                    <Skeleton className="h-10 w-1/2 mb-6" />
+                                    <div className="space-y-4">
+                                        <Skeleton className="h-4 w-full" />
+                                        <Skeleton className="h-4 w-full" />
+                                        <Skeleton className="h-4 w-5/6" />
+                                    </div>
+                                </CardContent>
+                                <CardFooter>
+                                    <Skeleton className="h-10 w-full" />
+                                </CardFooter>
+                             </Card>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+    
+    if (!tiers.length) {
+         return (
+            <div className="flex h-screen items-center justify-center text-center">
+                <div>
+                    <h2 className="text-2xl font-semibold">Paket Tidak Ditemukan</h2>
+                    <p className="text-muted-foreground mt-2">
+                        Sepertinya belum ada paket harga yang dikonfigurasi.
+                    </p>
+                    {userProfile?.role === 'admin' && (
+                        <Button asChild className="mt-4">
+                            <Link href="/admin/pricing">Konfigurasi Paket Sekarang</Link>
+                        </Button>
+                    )}
+                </div>
+            </div>
+        );
+    }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -131,9 +133,9 @@ export default function PricingPage() {
                 </ul>
               </CardContent>
               <CardFooter>
-                 <Button className="w-full" asChild variant={tier.role === currentRole ? 'outline' : 'default'} disabled={tier.role === currentRole}>
-                    <Link href={tier.role === currentRole ? '#' : '/pembayaran'}>
-                        {tier.role === currentRole ? 'Paket Aktif' : tier.cta}
+                 <Button className="w-full" asChild variant={tier.id === currentRole ? 'outline' : 'default'} disabled={tier.id === currentRole}>
+                    <Link href={tier.id === currentRole ? '#' : '/pembayaran'}>
+                        {tier.id === currentRole ? 'Paket Aktif' : tier.cta}
                     </Link>
                 </Button>
               </CardFooter>

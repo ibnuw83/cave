@@ -92,3 +92,14 @@ export type CaveMiniMap = {
   nodes: CaveMapNode[];
   edges: CaveMapEdge[];
 };
+
+export interface PricingTier {
+  id: string; // Corresponds to user role, e.g., 'pro1', 'vip'
+  name: string;
+  price: string;
+  priceDescription: string;
+  features: string[];
+  isPopular: boolean;
+  cta: string;
+  order: number;
+}

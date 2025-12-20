@@ -76,5 +76,13 @@ service cloud.firestore {
         allow create: if true;
         allow read, update, delete: if false;
     }
+
+    /**
+     * @description Public read for pricing tiers, admin write.
+     */
+    match /pricingTiers/{tierId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
   }
 }

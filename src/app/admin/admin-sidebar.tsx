@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -6,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { Mountain, MapPin, Users, Home, LogOut, ArrowLeft, Settings, User as UserIcon } from 'lucide-react';
+import { Mountain, MapPin, Users, Home, LogOut, ArrowLeft, Settings, User as UserIcon, Gem } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { KioskSettings, UserProfile } from '@/lib/types';
 import Image from 'next/image';
@@ -171,10 +170,11 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
 
 
       {/* Main Navigation */}
-      <nav className="grid grid-cols-4 gap-1 md:flex md:flex-col md:gap-1 md:p-4">
+      <nav className="grid grid-cols-5 gap-1 md:flex md:flex-col md:gap-1 md:p-4">
         <AdminNavLink href="/admin" icon={<Home />} label="Dashboard" color="text-sky-400" activeColor="text-sky-300" />
         <AdminNavLink href="/admin/caves" icon={<Mountain />} label="Lokasi" color="text-amber-400" activeColor="text-amber-300" />
         <AdminNavLink href="/admin/spots" icon={<MapPin />} label="Spot" color="text-rose-400" activeColor="text-rose-300" />
+        <AdminNavLink href="/admin/pricing" icon={<Gem />} label="Paket" color="text-teal-400" activeColor="text-teal-300" />
         <div className="md:block">
             <AdminNavLink href="/admin/users" icon={<Users />} label="Pengguna" color="text-emerald-400" activeColor="text-emerald-300" />
         </div>

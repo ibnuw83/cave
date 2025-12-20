@@ -13,10 +13,11 @@ import {
   where,
   serverTimestamp,
   writeBatch,
+  orderBy,
 } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
 import { initializeFirebase } from '@/firebase'; // Menggunakan inisialisasi terpusat
-import type { UserProfile, Location, Spot, KioskSettings } from './types';
+import type { UserProfile, Location, Spot, KioskSettings, PricingTier } from './types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -393,4 +394,54 @@ export function setKioskControl(control: any) {
             errorEmitter.emit('permission-error', permissionError);
         }
     });
+}
+
+// --- Pricing Tier Functions ---
+
+export async function getPricingTiers(): Promise<PricingTier[]> {
+    const tiersRef = collection(db, 'pricingTiers');
+    const q = query(tiersRef, orderBy('order', 'asc'));
+    try {
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PricingTier));
+    } catch (error: any) {
+        if (error.code === 'permission-denied') {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: '/pricingTiers',
+                operation: 'list',
+            }));
+        }
+        throw error;
+    }
+}
+
+export async function setPricingTier(tier: PricingTier): Promise<void> {
+    const tierRef = doc(db, 'pricingTiers', tier.id);
+    try {
+        await setDoc(tierRef, tier, { merge: true });
+    } catch (error: any) {
+        if (error.code === 'permission-denied') {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: `/pricingTiers/${tier.id}`,
+                operation: 'update',
+                requestResourceData: tier,
+            }));
+        }
+        throw error;
+    }
+}
+
+export async function deletePricingTier(tierId: string): Promise<void> {
+    const tierRef = doc(db, 'pricingTiers', tierId);
+    try {
+        await deleteDoc(tierRef);
+    } catch (error: any) {
+        if (error.code === 'permission-denied') {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: `/pricingTiers/${tierId}`,
+                operation: 'delete',
+            }));
+        }
+        throw error;
+    }
 }
