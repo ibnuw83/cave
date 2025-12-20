@@ -60,6 +60,13 @@ export interface KioskPlaylistItem {
   duration: number; // in seconds
 }
 
+export interface PaymentGatewaySettings {
+    provider: 'midtrans' | 'xendit' | 'none';
+    mode: 'sandbox' | 'production';
+    clientKey?: string;
+    serverKey?: string;
+}
+
 export interface KioskSettings {
   id: string; // Should be a singleton, e.g., 'main'
   locationId: string;
@@ -74,6 +81,7 @@ export interface KioskSettings {
   mainTitle?: string;
   heroTitle?: string;
   heroSubtitle?: string;
+  paymentGateway?: PaymentGatewaySettings;
 }
 
 export type CaveMapNode = {

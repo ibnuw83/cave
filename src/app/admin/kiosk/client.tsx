@@ -5,14 +5,14 @@ import { useState, useMemo, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Location, Spot, KioskSettings } from '@/lib/types';
+import { Location, Spot, KioskSettings, PaymentGatewaySettings } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Trash2, Plus, GripVertical, Loader2, Download, WifiOff, ArrowRight, Monitor, MessageSquare, Power, PowerOff, Send, Radio, Facebook, Instagram, Twitter } from 'lucide-react';
+import { Trash2, Plus, GripVertical, Loader2, Download, WifiOff, ArrowRight, Monitor, MessageSquare, Power, PowerOff, Send, Radio, Facebook, Instagram, Twitter, CreditCard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { saveKioskSettings, setKioskControl } from '@/lib/firestore';
 import Link from 'next/link';
@@ -61,11 +61,22 @@ const remoteControlSchema = z.object({
   message: z.string().optional(),
 });
 
+const paymentGatewaySchema = z.object({
+    paymentGateway: z.object({
+        provider: z.enum(['midtrans', 'xendit', 'none']),
+        mode: z.enum(['sandbox', 'production']),
+        clientKey: z.string().optional(),
+        serverKey: z.string().optional(),
+    })
+});
+
 type GlobalSettingsFormValues = z.infer<typeof globalSettingsSchema>;
 type HeroSettingsFormValues = z.infer<typeof heroSettingsSchema>;
 type FooterSettingsFormValues = z.infer<typeof footerSettingsSchema>;
 type PlaylistSettingsFormValues = z.infer<typeof playlistSettingsSchema>;
 type RemoteControlFormValues = z.infer<typeof remoteControlSchema>;
+type PaymentGatewayFormValues = z.infer<typeof paymentGatewaySchema>;
+
 type KioskDevice = { id: string, status: string, currentSpotId?: string, updatedAt: Timestamp };
 
 interface KioskClientProps {
@@ -214,6 +225,18 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
     resolver: zodResolver(playlistSettingsSchema),
     defaultValues: { locationId: '', playlist: [] },
   });
+
+  const paymentForm = useForm<PaymentGatewayFormValues>({
+      resolver: zodResolver(paymentGatewaySchema),
+      defaultValues: {
+          paymentGateway: {
+              provider: 'none',
+              mode: 'sandbox',
+              clientKey: '',
+              serverKey: '',
+          }
+      },
+  });
   
   useEffect(() => {
     if (kioskSettings) {
@@ -237,8 +260,11 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
             locationId: kioskSettings.locationId || '',
             playlist: kioskSettings.playlist || [],
         });
+        paymentForm.reset({
+            paymentGateway: kioskSettings.paymentGateway || { provider: 'none', mode: 'sandbox', clientKey: '', serverKey: '' },
+        })
     }
-  }, [kioskSettings, globalForm, heroForm, footerForm, playlistForm]);
+  }, [kioskSettings, globalForm, heroForm, footerForm, playlistForm, paymentForm]);
 
   const { fields, append, remove } = useFieldArray({
     control: playlistForm.control,
@@ -307,6 +333,11 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
     saveKioskSettings(values);
     toast({ title: 'Berhasil', description: 'Pengaturan daftar putar kios telah disimpan.' });
   };
+
+  const onPaymentSubmit = (values: PaymentGatewayFormValues) => {
+      saveKioskSettings(values);
+      toast({ title: 'Berhasil', description: 'Pengaturan pembayaran telah disimpan.'});
+  }
 
   if (settingsLoading || spotsLoading) {
     return (
@@ -679,6 +710,96 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
                     Simpan Daftar Putar
                 </Button>
             </CardFooter>
+          </Card>
+        </form>
+      </Form>
+
+       <Form {...paymentForm}>
+        <form onSubmit={paymentForm.handleSubmit(onPaymentSubmit)} className="space-y-8 mt-8">
+           <Card>
+              <CardHeader>
+                  <CardTitle>Pengaturan Pembayaran</CardTitle>
+                  <CardDescription>Konfigurasi kunci API dari penyedia gerbang pembayaran Anda.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     <FormField
+                        control={paymentForm.control}
+                        name="paymentGateway.provider"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Penyedia Pembayaran</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Pilih penyedia..." />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="none">Tidak Aktif</SelectItem>
+                                    <SelectItem value="midtrans">Midtrans</SelectItem>
+                                    <SelectItem value="xendit">Xendit</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                      />
+                     <FormField
+                        control={paymentForm.control}
+                        name="paymentGateway.mode"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Mode</FormLabel>
+                             <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Pilih mode..." />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="sandbox">Sandbox (Pengujian)</SelectItem>
+                                    <SelectItem value="production">Produksi (Live)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                      />
+                </div>
+                 <FormField
+                      control={paymentForm.control}
+                      name="paymentGateway.clientKey"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>Client Key</FormLabel>
+                          <FormControl>
+                              <Input placeholder="Midtrans Client Key / Xendit Public Key" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
+                  <FormField
+                      control={paymentForm.control}
+                      name="paymentGateway.serverKey"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>Server Key (Secret)</FormLabel>
+                          <FormControl>
+                              <Input type="password" placeholder="••••••••••••••••••••" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
+              </CardContent>
+               <CardFooter>
+                  <Button type="submit" disabled={paymentForm.formState.isSubmitting} className="ml-auto">
+                      {paymentForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                      Simpan Pengaturan Pembayaran
+                  </Button>
+              </CardFooter>
           </Card>
         </form>
       </Form>
