@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, ReactNode, useState } from 'react';
+import { Suspense, ReactNode, useState, useRef, useEffect, useCallback } from 'react';
 import { Canvas, useFrame, useThree, useLoader } from '@react-three/fiber';
 import { Sphere, OrbitControls, Preload } from '@react-three/drei';
 import * as THREE from 'three';
@@ -29,6 +29,65 @@ function Scene({ imageUrl, onHeadingChange }: { imageUrl: string, onHeadingChang
     </Sphere>
   );
 }
+
+function DollyControls() {
+    const { camera, gl } = useThree();
+    const lastPinchDistance = useRef(0);
+
+    const moveCamera = useCallback((amount: number) => {
+        const direction = camera.getWorldDirection(new THREE.Vector3());
+        // Simple boundary check
+        const nextPos = camera.position.clone().addScaledVector(direction, amount);
+        if (nextPos.length() < 400) { // Don't get too close to the sphere edge or go through it
+             camera.position.copy(nextPos);
+        }
+    }, [camera]);
+
+    useEffect(() => {
+        const domElement = gl.domElement;
+
+        const handleWheel = (e: WheelEvent) => {
+            e.preventDefault();
+            const moveSpeed = e.deltaY * -0.1; // Increased speed
+            moveCamera(moveSpeed);
+        };
+        
+        const handleTouchStart = (e: TouchEvent) => {
+            if (e.touches.length === 2) {
+                lastPinchDistance.current = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+            }
+        };
+
+        const handleTouchMove = (e: TouchEvent) => {
+            if (e.touches.length === 2) {
+                 const newPinchDistance = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+                const delta = newPinchDistance - lastPinchDistance.current;
+                const moveSpeed = delta * 0.2; // Increased speed
+                moveCamera(moveSpeed);
+                lastPinchDistance.current = newPinchDistance;
+            }
+        };
+
+        domElement.addEventListener('wheel', handleWheel, { passive: false });
+        domElement.addEventListener('touchstart', handleTouchStart, { passive: false });
+        domElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+
+        return () => {
+            domElement.removeEventListener('wheel', handleWheel);
+            domElement.removeEventListener('touchstart', handleTouchStart);
+            domElement.removeEventListener('touchmove', handleTouchMove);
+        };
+    }, [gl.domElement, moveCamera]);
+
+    return null;
+}
+
 
 export default function PanoramaViewer({
   imageUrl,
@@ -76,13 +135,16 @@ export default function PanoramaViewer({
 
           {/* NORMAL MODE */}
           {!vrMode && (
-            <OrbitControls
-              enableZoom
-              enablePan={false}
-              rotateSpeed={-0.35}
-              dampingFactor={0.08}
-              enableDamping
-            />
+            <>
+              <OrbitControls
+                enableZoom={false} // Disable default zoom
+                enablePan={false}
+                rotateSpeed={-0.35}
+                dampingFactor={0.08}
+                enableDamping
+              />
+              <DollyControls />
+            </>
           )}
 
           <Preload all />

@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, ReactNode, useState, useRef, useEffect } from 'react';
+import { Suspense, ReactNode, useState, useRef, useEffect, useCallback } from 'react';
 import { Canvas, useFrame, useThree, useLoader } from '@react-three/fiber';
 import { Sphere, OrbitControls, Preload } from '@react-three/drei';
 import * as THREE from 'three';
@@ -31,21 +31,29 @@ function Scene({ imageUrl, onHeadingChange }: { imageUrl: string, onHeadingChang
 }
 
 function DollyControls() {
-    const { camera, gl: { domElement } } = useThree();
-    const isInteracting = useRef(false);
+    const { camera, gl } = useThree();
     const lastPinchDistance = useRef(0);
 
+    const moveCamera = useCallback((amount: number) => {
+        const direction = camera.getWorldDirection(new THREE.Vector3());
+        // Simple boundary check
+        const nextPos = camera.position.clone().addScaledVector(direction, amount);
+        if (nextPos.length() < 400) { // Don't get too close to the sphere edge or go through it
+             camera.position.copy(nextPos);
+        }
+    }, [camera]);
+
     useEffect(() => {
+        const domElement = gl.domElement;
+
         const handleWheel = (e: WheelEvent) => {
             e.preventDefault();
-            const direction = camera.getWorldDirection(new THREE.Vector3());
-            const moveSpeed = e.deltaY * -0.0005;
-            camera.position.addScaledVector(direction, moveSpeed);
+            const moveSpeed = e.deltaY * -0.1; // Increased speed
+            moveCamera(moveSpeed);
         };
         
         const handleTouchStart = (e: TouchEvent) => {
             if (e.touches.length === 2) {
-                isInteracting.current = true;
                 lastPinchDistance.current = Math.hypot(
                     e.touches[0].pageX - e.touches[1].pageX,
                     e.touches[0].pageY - e.touches[1].pageY
@@ -54,37 +62,28 @@ function DollyControls() {
         };
 
         const handleTouchMove = (e: TouchEvent) => {
-            if (isInteracting.current && e.touches.length === 2) {
+            if (e.touches.length === 2) {
                  const newPinchDistance = Math.hypot(
                     e.touches[0].pageX - e.touches[1].pageX,
                     e.touches[0].pageY - e.touches[1].pageY
                 );
-                const delta = lastPinchDistance.current - newPinchDistance;
-                const direction = camera.getWorldDirection(new THREE.Vector3());
-                const moveSpeed = delta * 0.002;
-                camera.position.addScaledVector(direction, moveSpeed);
+                const delta = newPinchDistance - lastPinchDistance.current;
+                const moveSpeed = delta * 0.2; // Increased speed
+                moveCamera(moveSpeed);
                 lastPinchDistance.current = newPinchDistance;
             }
         };
 
-        const handleTouchEnd = () => {
-            isInteracting.current = false;
-        };
-
-
         domElement.addEventListener('wheel', handleWheel, { passive: false });
-        domElement.addEventListener('touchstart', handleTouchStart);
-        domElement.addEventListener('touchmove', handleTouchMove);
-        domElement.addEventListener('touchend', handleTouchEnd);
-
+        domElement.addEventListener('touchstart', handleTouchStart, { passive: false });
+        domElement.addEventListener('touchmove', handleTouchMove, { passive: false });
 
         return () => {
             domElement.removeEventListener('wheel', handleWheel);
             domElement.removeEventListener('touchstart', handleTouchStart);
             domElement.removeEventListener('touchmove', handleTouchMove);
-            domElement.removeEventListener('touchend', handleTouchEnd);
         };
-    }, [camera, domElement]);
+    }, [gl.domElement, moveCamera]);
 
     return null;
 }
