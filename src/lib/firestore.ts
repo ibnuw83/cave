@@ -46,19 +46,20 @@ export async function getUserProfileClient(uid: string): Promise<UserProfile | n
 }
 
 export async function createUserProfile(user: User): Promise<UserProfile> {
-    const userProfileData: Omit<UserProfile, 'id' | 'updatedAt'> = {
+    const userProfileData: Omit<UserProfile, 'id' | 'updatedAt' | 'role'> = {
       displayName: user.displayName || user.email?.split('@')[0] || 'Pengguna Baru',
       email: user.email,
       photoURL: user.photoURL,
-      role: 'free',
     };
     const userRef = doc(db, 'users', user.uid);
 
     try {
-        await setDoc(userRef, { ...userProfileData, updatedAt: serverTimestamp()}, { merge: true });
+        const userDataWithRole = { ...userProfileData, role: 'free' as const, updatedAt: serverTimestamp() };
+        await setDoc(userRef, userDataWithRole, { merge: true });
         const createdProfile: UserProfile = {
             id: user.uid,
             ...userProfileData,
+            role: 'free',
             updatedAt: new Date(), // Use local date for immediate feedback
         } as UserProfile
         return createdProfile;
@@ -111,7 +112,7 @@ export async function getAllUsersAdmin(): Promise<UserProfile[]> {
   }
 }
 
-export async function updateUserRole(uid: string, role: 'free' | 'pro' | 'admin') {
+export async function updateUserRole(uid: string, role: UserProfile['role']) {
   const userRef = doc(db, 'users', uid);
   const dataToUpdate = { role, updatedAt: serverTimestamp() };
 

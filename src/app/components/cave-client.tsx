@@ -16,7 +16,7 @@ import { useUser } from '@/firebase';
 import { getLocation, getSpots } from '@/lib/firestore';
 
 
-function SpotCard({ spot, isLocked, isOffline }: { spot: Spot; isLocked: boolean, isOffline: boolean }) {
+function SpotCard({ spot, isLocked, isOffline, lockedMessage }: { spot: Spot; isLocked: boolean; isOffline: boolean, lockedMessage: string; }) {
   const content = (
     <Card className={`overflow-hidden transition-all duration-300 ${isLocked ? 'bg-muted/30 border-dashed' : 'hover:shadow-lg hover:border-primary/50 hover:scale-105'}`}>
       <CardHeader className="p-0">
@@ -57,7 +57,7 @@ function SpotCard({ spot, isLocked, isOffline }: { spot: Spot; isLocked: boolean
             <div className="cursor-not-allowed">{content}</div>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Upgrade ke PRO untuk mengakses spot ini.</p>
+            <p>{lockedMessage}</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -163,8 +163,18 @@ export default function CaveClient({ locationId }: { locationId: string; }) {
   }
 
   const role = userProfile?.role || 'free';
-  const isPro = role === 'pro' || role === 'admin';
+  const isFullAccess = role === 'admin' || role === 'vip';
   
+  const roleLimits = {
+      free: 1,
+      pro1: 5,
+      pro2: 10,
+      pro3: 15,
+      vip: Infinity,
+      admin: Infinity,
+  };
+
+  const accessibleSpotsCount = roleLimits[role] || 1;
 
   return (
     <div className="container mx-auto min-h-screen max-w-5xl p-4 md:p-8">
@@ -201,7 +211,7 @@ export default function CaveClient({ locationId }: { locationId: string; }) {
                   <Sparkles className="mr-2 h-4 w-4" />
                   Mulai Misi
                 </Button>
-                {isPro && (
+                {(role.startsWith('pro') || isFullAccess) && (
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -224,11 +234,14 @@ export default function CaveClient({ locationId }: { locationId: string; }) {
         <h3 className="text-lg font-semibold md:text-xl mb-4 mt-8">Daftar Spot</h3>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {sortedSpots.map((spot, index) => {
-            // New locking logic:
-            // - If user is pro, nothing is locked.
-            // - If user is free, only the first spot (index 0) is unlocked.
-            const isLocked = !isPro && index > 0;
-            return <SpotCard key={spot.id} spot={spot} isLocked={isLocked} isOffline={isOffline} />;
+            const isLocked = !isFullAccess && index >= accessibleSpotsCount;
+            return <SpotCard 
+                      key={spot.id} 
+                      spot={spot} 
+                      isLocked={isLocked} 
+                      isOffline={isOffline}
+                      lockedMessage="Upgrade level PRO atau VIP Anda untuk mengakses spot ini." 
+                   />;
           })}
         </div>
       </main>

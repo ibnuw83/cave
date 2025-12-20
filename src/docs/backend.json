@@ -1,0 +1,264 @@
+{
+  "entities": {
+    "Location": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Location",
+      "type": "object",
+      "description": "Represents a physical location that can be explored, such as a cave or historical site.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the location."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the location."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the location (e.g., 'Gua', 'Situs Sejarah')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the location."
+        },
+        "coverImage": {
+          "type": "string",
+          "description": "URL of the cover image for the location."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates whether the location is currently active and available."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "category",
+        "description",
+        "coverImage",
+        "isActive"
+      ]
+    },
+    "Spot": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Spot",
+      "type": "object",
+      "description": "Represents a spot within a location.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the spot."
+        },
+        "locationId": {
+          "type": "string",
+          "description": "Reference to the Location entity. (Relationship: Location 1:N Spot)"
+        },
+        "order": {
+          "type": "number",
+          "description": "The order of the spot within the location."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the spot."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the spot."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of the image for the spot."
+        },
+        "isPro": {
+          "type": "boolean",
+          "description": "Indicates whether the spot is a PRO spot."
+        },
+        "effects": {
+          "type": "string",
+          "description": "A JSON string of vibration effect configuration."
+        },
+        "hotspots": {
+          "type": "array",
+          "description": "An array of hotspots for navigation within a 3D view.",
+          "items": {
+            "$ref": "#/entities/Hotspot"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "locationId",
+        "order",
+        "title",
+        "description",
+        "imageUrl",
+        "isPro",
+        "effects"
+      ]
+    },
+    "Hotspot": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Hotspot",
+      "type": "object",
+      "description": "Represents a navigation point within a 3D spot.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "position": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "targetSpotId": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "label", "position", "targetSpotId"]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user (Firebase UID)."
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role (free, pro1, pro2, pro3, vip, admin).",
+          "enum": ["free", "pro1", "pro2", "pro3", "vip", "admin"]
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The user's display name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "The URL of the user's profile photo.",
+          "format": "uri"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The timestamp when the user's information was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "role",
+        "displayName",
+        "email",
+        "updatedAt"
+      ]
+    },
+    "KioskStat": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Kiosk Stat",
+      "type": "object",
+      "description": "Represents heatmap statistics for a location in kiosk mode.",
+      "properties": {
+        "spots": {
+          "type": "object",
+          "description": "A map where keys are spot IDs and values are view counts.",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the stats were last updated."
+        }
+      },
+      "required": ["spots", "updatedAt"]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/locations/{locationId}",
+        "definition": {
+          "entityName": "Location",
+          "schema": {
+            "$ref": "#/backend/entities/Location"
+          },
+          "description": "Stores information about locations. Publicly readable.",
+          "params": [
+            {
+              "name": "locationId",
+              "description": "Unique identifier for the location."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/spots/{spotId}",
+        "definition": {
+          "entityName": "Spot",
+          "schema": {
+            "$ref": "#/backend/entities/Spot"
+          },
+          "description": "Stores information about spots within a location. Publicly readable. `locationId` is denormalized to maintain the relationship.",
+          "params": [
+            {
+              "name": "spotId",
+              "description": "Unique identifier for the spot."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information, including role (free, pro, admin). Only the authenticated user can read/write their own document.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase UID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/kioskStats/{locationId}",
+        "definition": {
+          "entityName": "KioskStat",
+          "schema": {
+            "$ref": "#/backend/entities/KioskStat"
+          },
+          "description": "Stores heatmap data for kiosk views per location.",
+          "params": [
+            {
+              "name": "locationId",
+              "description": "The ID of the location."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support the 'Explorer 4D' application, focusing on a multi-category virtual tour experience (caves, historical sites, etc.), 4D digital immersion (audio, haptics, visuals), and FREE/PRO access control. The structure prioritizes authorization independence using denormalization and structural segregation. It avoids `get()` calls in security rules to enable atomic operations. All read operations are public, so rules act only as validators, and never as filters. The structure supports the core app features including listing locations and spots, immersive spot experiences, haptic feedback, and access control based on user roles."
+  }
+}

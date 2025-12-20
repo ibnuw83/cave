@@ -7,7 +7,7 @@ export interface UserProfile {
   email: string | null;
   displayName: string | null;
   photoURL?: string | null;
-  role: 'free' | 'pro' | 'admin';
+  role: 'free' | 'pro1' | 'pro2' | 'pro3' | 'vip' | 'admin';
   updatedAt: Timestamp;
 }
 

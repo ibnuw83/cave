@@ -21,7 +21,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserProfil
     setUsers(initialUsers);
   }, [initialUsers]);
 
-  const handleRoleChange = async (uid: string, newRole: 'free' | 'pro' | 'admin') => {
+  const handleRoleChange = async (uid: string, newRole: UserProfile['role']) => {
     const userToChange = users.find(u => u.id === uid);
     
     if (currentUser?.uid === uid) {
@@ -80,11 +80,11 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserProfil
                   <CardDescription>{user.email}</CardDescription>
                 </div>
             </div>
-            <div className="flex items-center gap-2 w-full md:w-auto max-w-[120px]">
+            <div className="flex items-center gap-2 w-full md:w-auto max-w-[140px]">
                {loadingStates[user.id] && <Loader2 className="h-5 w-5 animate-spin" />}
               <Select
                 value={user.role}
-                onValueChange={(value: 'free' | 'pro' | 'admin') => handleRoleChange(user.id, value)}
+                onValueChange={(value: UserProfile['role']) => handleRoleChange(user.id, value)}
                 disabled={loadingStates[user.id] || currentUser?.uid === user.id}
               >
                 <SelectTrigger className="w-full" data-uid={user.id}>
@@ -92,7 +92,10 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserProfil
                 </SelectTrigger>
                 <SelectContent data-uid-select={user.id}>
                   <SelectItem value="free">Free</SelectItem>
-                  <SelectItem value="pro">Pro</SelectItem>
+                  <SelectItem value="pro1">PRO 1</SelectItem>
+                  <SelectItem value="pro2">PRO 2</SelectItem>
+                  <SelectItem value="pro3">PRO 3</SelectItem>
+                  <SelectItem value="vip">VIP</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>

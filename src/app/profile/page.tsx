@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useUser } from '@/firebase';
 import { UserProfile } from '@/lib/types';
 import { useRouter } from 'next/navigation';
-import { Loader2, User as UserIcon, Gem, ShieldCheck, Mail, ArrowLeft, Edit } from 'lucide-react';
+import { Loader2, User as UserIcon, Gem, ShieldCheck, Mail, ArrowLeft, Edit, Crown } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -117,13 +117,18 @@ export default function ProfilePage() {
     );
   }
   
-  const getRoleIcon = (role: string) => {
+  const getRoleInfo = (role: UserProfile['role']): { icon: React.ReactNode; label: string; } => {
     switch(role) {
-        case 'pro': return <Gem className="h-4 w-4 text-amber-400" />;
-        case 'admin': return <ShieldCheck className="h-4 w-4 text-red-500" />;
-        default: return <UserIcon className="h-4 w-4 text-gray-400" />;
+        case 'pro1': return { icon: <Gem className="h-4 w-4 text-amber-400" />, label: 'PRO 1' };
+        case 'pro2': return { icon: <Gem className="h-4 w-4 text-amber-400" />, label: 'PRO 2' };
+        case 'pro3': return { icon: <Gem className="h-4 w-4 text-amber-400" />, label: 'PRO 3' };
+        case 'vip': return { icon: <Crown className="h-4 w-4 text-yellow-300" />, label: 'VIP' };
+        case 'admin': return { icon: <ShieldCheck className="h-4 w-4 text-red-500" />, label: 'Admin' };
+        default: return { icon: <UserIcon className="h-4 w-4 text-gray-400" />, label: 'Free' };
     }
   }
+
+  const roleInfo = getRoleInfo(userProfile.role);
 
   return (
     <>
@@ -149,9 +154,9 @@ export default function ProfilePage() {
                             </Button>
                         </div>
                         <div className="flex items-center gap-4 mt-2">
-                           <Badge variant={userProfile.role === 'pro' || userProfile.role === 'admin' ? 'default' : 'secondary'} className="gap-2">
-                                {getRoleIcon(userProfile.role)}
-                                <span className="uppercase">{userProfile.role}</span>
+                           <Badge variant={userProfile.role === 'vip' || userProfile.role === 'admin' ? 'default' : 'secondary'} className="gap-2">
+                                {roleInfo.icon}
+                                <span className="uppercase">{roleInfo.label}</span>
                             </Badge>
                              <div className="flex items-center gap-2 text-muted-foreground text-sm">
                                 <Mail className="h-4 w-4" />
