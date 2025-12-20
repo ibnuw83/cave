@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Location, Spot, KioskSettings, PaymentGatewaySettings } from '@/lib/types';
+import { Location, Spot, KioskSettings, PaymentGatewaySettings, AdSenseSettings } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -70,12 +70,21 @@ const paymentGatewaySchema = z.object({
     })
 });
 
+const adsenseSchema = z.object({
+    adsense: z.object({
+        clientId: z.string().optional(),
+        adSlotId: z.string().optional(),
+    })
+});
+
 type GlobalSettingsFormValues = z.infer<typeof globalSettingsSchema>;
 type HeroSettingsFormValues = z.infer<typeof heroSettingsSchema>;
 type FooterSettingsFormValues = z.infer<typeof footerSettingsSchema>;
 type PlaylistSettingsFormValues = z.infer<typeof playlistSettingsSchema>;
 type RemoteControlFormValues = z.infer<typeof remoteControlSchema>;
 type PaymentGatewayFormValues = z.infer<typeof paymentGatewaySchema>;
+type AdSenseFormValues = z.infer<typeof adsenseSchema>;
+
 
 type KioskDevice = { id: string, status: string, currentSpotId?: string, updatedAt: Timestamp };
 
@@ -237,6 +246,16 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
           }
       },
   });
+
+  const adsenseForm = useForm<AdSenseFormValues>({
+    resolver: zodResolver(adsenseSchema),
+    defaultValues: {
+      adsense: {
+        clientId: '',
+        adSlotId: '',
+      },
+    },
+  });
   
   useEffect(() => {
     if (kioskSettings) {
@@ -262,9 +281,12 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
         });
         paymentForm.reset({
             paymentGateway: kioskSettings.paymentGateway || { provider: 'none', mode: 'sandbox', clientKey: '', serverKey: '' },
-        })
+        });
+        adsenseForm.reset({
+            adsense: kioskSettings.adsense || { clientId: '', adSlotId: '' },
+        });
     }
-  }, [kioskSettings, globalForm, heroForm, footerForm, playlistForm, paymentForm]);
+  }, [kioskSettings, globalForm, heroForm, footerForm, playlistForm, paymentForm, adsenseForm]);
 
   const { fields, append, remove } = useFieldArray({
     control: playlistForm.control,
@@ -337,6 +359,11 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
   const onPaymentSubmit = (values: PaymentGatewayFormValues) => {
       saveKioskSettings(values);
       toast({ title: 'Berhasil', description: 'Pengaturan pembayaran telah disimpan.'});
+  }
+
+  const onAdSenseSubmit = (values: AdSenseFormValues) => {
+      saveKioskSettings(values);
+      toast({ title: 'Berhasil', description: 'Pengaturan AdSense telah disimpan.' });
   }
 
   if (settingsLoading || spotsLoading) {
@@ -798,6 +825,52 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
                   <Button type="submit" disabled={paymentForm.formState.isSubmitting} className="ml-auto">
                       {paymentForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                       Simpan Pengaturan Pembayaran
+                  </Button>
+              </CardFooter>
+          </Card>
+        </form>
+      </Form>
+
+       <Form {...adsenseForm}>
+        <form onSubmit={adsenseForm.handleSubmit(onAdSenseSubmit)} className="space-y-8 mt-8">
+           <Card>
+              <CardHeader>
+                  <CardTitle>Pengaturan Monetisasi</CardTitle>
+                  <CardDescription>Konfigurasi Google AdSense untuk menampilkan iklan.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                 <FormField
+                      control={adsenseForm.control}
+                      name="adsense.clientId"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>ID Klien AdSense</FormLabel>
+                          <FormControl>
+                              <Input placeholder="ca-pub-XXXXXXXXXXXXXXXX" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
+                  <FormField
+                      control={adsenseForm.control}
+                      name="adsense.adSlotId"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>ID Slot Iklan</FormLabel>
+                          <FormControl>
+                              <Input placeholder="XXXXXXXXXX" {...field} />
+                          </FormControl>
+                           <FormDescription>ID untuk unit iklan responsif utama Anda.</FormDescription>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
+              </CardContent>
+               <CardFooter>
+                  <Button type="submit" disabled={adsenseForm.formState.isSubmitting} className="ml-auto">
+                      {adsenseForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                      Simpan Pengaturan AdSense
                   </Button>
               </CardFooter>
           </Card>

@@ -4,10 +4,11 @@ import type { Viewport } from 'next';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 import { FirebaseProvider } from '@/firebase/provider'; // Diubah untuk menggunakan provider tunggal
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Script from 'next/script';
 import Footer from '@/app/components/footer';
 import { getKioskSettings } from '@/lib/firestore';
+import { KioskSettings } from '@/lib/types';
 
 
 export default function RootLayout({
@@ -15,6 +16,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const [adsenseClientId, setAdsenseClientId] = useState<string | null>(null);
 
   useEffect(() => {
     // This is a client-side effect to update metadata
@@ -30,8 +32,11 @@ export default function RootLayout({
                 }
                 favicon.href = settings.logoUrl;
             }
+            if (settings?.adsense?.clientId) {
+                setAdsenseClientId(settings.adsense.clientId);
+            }
         } catch (error) {
-            console.warn("Could not fetch kiosk settings for favicon:", error);
+            console.warn("Could not fetch kiosk settings for metadata:", error);
         }
     }
     setMetadata();
@@ -49,12 +54,14 @@ export default function RootLayout({
         <meta name="theme-color" content="#2A2B32" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
-        <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=YOUR_ADSENSE_CLIENT_ID"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
+        {adsenseClientId && (
+            <Script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClientId}`}
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+            />
+        )}
       </head>
       <body className="font-body antialiased">
         <FirebaseProvider>

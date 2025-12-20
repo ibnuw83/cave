@@ -67,6 +67,11 @@ export interface PaymentGatewaySettings {
     serverKey?: string;
 }
 
+export interface AdSenseSettings {
+    clientId?: string;
+    adSlotId?: string;
+}
+
 export interface KioskSettings {
   id: string; // Should be a singleton, e.g., 'main'
   locationId: string;
@@ -82,6 +87,7 @@ export interface KioskSettings {
   heroTitle?: string;
   heroSubtitle?: string;
   paymentGateway?: PaymentGatewaySettings;
+  adsense?: AdSenseSettings;
 }
 
 export type CaveMapNode = {
