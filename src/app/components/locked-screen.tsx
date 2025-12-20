@@ -5,12 +5,15 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Lock, ArrowLeft, Gem } from 'lucide-react';
+import placeholderImages from '@/lib/placeholder-images.json';
 
 export default function LockedScreen({ spot }: { spot: Spot }) {
+  const bgImage = placeholderImages.placeholderImages.find(img => img.id === 'locked-screen-background')?.imageUrl || spot.imageUrl;
+  
   return (
     <div className="relative h-screen w-screen overflow-hidden">
       <Image
-        src={spot.imageUrl}
+        src={bgImage}
         alt={spot.title}
         fill
         className="object-cover z-0"
@@ -26,9 +29,11 @@ export default function LockedScreen({ spot }: { spot: Spot }) {
           Upgrade akun Anda ke PRO untuk mengakses spot eksklusif ini dan semua fitur premium lainnya.
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
-          <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
-            <Gem className="mr-2 h-5 w-5" />
-            Upgrade ke PRO
+          <Button size="lg" asChild>
+            <Link href="/pricing">
+                <Gem className="mr-2 h-5 w-5" />
+                Upgrade ke PRO
+            </Link>
           </Button>
           <Button size="lg" variant="outline" className="border-accent text-accent hover:bg-accent hover:text-accent-foreground" asChild>
             <Link href={`/cave/${spot.locationId}`}>

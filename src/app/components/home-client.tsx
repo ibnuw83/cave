@@ -150,7 +150,7 @@ export default function HomeClient() {
   const [settings, setSettings] = useState<KioskSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  const heroImage = placeholderImages.placeholderImages.find(img => img.id === 'spot-jomblang-light')?.imageUrl || '/placeholder.jpg';
+  const heroImage = placeholderImages.placeholderImages.find(img => img.id === 'hero-background')?.imageUrl || '/placeholder.jpg';
   
   useEffect(() => {
     setIsLoading(true);

@@ -1,6 +1,12 @@
 {
   "placeholderImages": [
     {
+      "id": "hero-background",
+      "description": "Dramatic view from inside a cave looking out.",
+      "imageUrl": "https://images.unsplash.com/photo-1531874993088-51b60dda4452?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjYXZlJTIwbGlnaHR8ZW58MHx8fHwxNzY1OTc3NTIyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "dramatic cave"
+    },
+    {
       "id": "cave-jomblang-cover",
       "description": "Cover image for Jomblang Cave, showing the 'light from heaven'.",
       "imageUrl": "https://images.unsplash.com/photo-1531874993088-51b60dda4452?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjYXZlJTIwbGlnaHR8ZW58MHx8fHwxNzY1OTc3NTIyfDA&ixlib=rb-4.1.0&q=80&w=1080",
@@ -41,6 +47,12 @@
       "description": "An underground pool inside Gong Cave.",
       "imageUrl": "https://images.unsplash.com/photo-1506352943274-c817554039c1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHx1bmRlcmdyb3VuZCUyMGxha2V8ZW58MHx8fHwxNzIxODk2NDQxfDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "underground pool"
+    },
+    {
+      "id": "locked-screen-background",
+      "description": "A blurry, out-of-focus image of a cave interior for use on locked screens.",
+      "imageUrl": "https://images.unsplash.com/photo-1531874993088-51b60dda4452?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjYXZlJTIwbGlnaHR8ZW58MHx8fHwxNzY1OTc3NTIyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "blurry cave"
     }
   ]
 }
