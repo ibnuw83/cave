@@ -18,21 +18,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   return {
-    title: `${location.name} - Penjelajah Gua 4D`,
+    title: `${location.name} - C.A.V.E Experience`,
     description: location.description,
-    openGraph: {
-      title: location.name,
-      description: location.description,
-      images: [
-        {
-          url: location.coverImage,
-          width: 1200,
-          height: 630,
-          alt: location.name,
-        },
-      ],
-    },
-  }
+  };
 }
 
 export default async function CavePage({ params }: Props) {
