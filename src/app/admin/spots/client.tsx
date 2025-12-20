@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { collection } from 'firebase/firestore';
-import { Cave, Spot } from '@/lib/types';
+import { Location, Spot } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,7 +11,7 @@ import { Plus, Edit, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { deleteSpot, getCaves } from "@/lib/firestore";
+import { deleteSpot, getLocations } from "@/lib/firestore";
 import { SpotForm } from "./spot-form";
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -19,21 +19,21 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function SpotsClient() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState<Spot | null>(null);
-  const [filterCaveId, setFilterCaveId] = useState<string>('all');
+  const [filterLocationId, setFilterLocationId] = useState<string>('all');
   const { toast } = useToast();
   const firestore = useFirestore();
 
-  const [caves, setCaves] = useState<Cave[]>([]);
-  const [loadingCaves, setLoadingCaves] = useState(true);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [loadingLocations, setLoadingLocations] = useState(true);
 
   const spotsQuery = useMemoFirebase(() => collection(firestore, 'spots'), [firestore]);
   const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(spotsQuery);
 
   useEffect(() => {
-    setLoadingCaves(true);
-    getCaves(true).then(c => {
-      setCaves(c);
-      setLoadingCaves(false);
+    setLoadingLocations(true);
+    getLocations(true).then(l => {
+      setLocations(l);
+      setLoadingLocations(false);
     });
   }, []);
 
@@ -63,19 +63,19 @@ export default function SpotsClient() {
       return [];
     }
     const spotsToSort = [...spots];
-    if (filterCaveId === 'all') {
+    if (filterLocationId === 'all') {
       return spotsToSort.sort((a, b) => a.order - b.order);
     }
-    const filtered = spotsToSort.filter((spot) => spot.caveId === filterCaveId);
+    const filtered = spotsToSort.filter((spot) => spot.locationId === filterLocationId);
     return filtered.sort((a, b) => a.order - b.order);
-  }, [spots, filterCaveId]);
+  }, [spots, filterLocationId]);
 
 
-  const getCaveName = (caveId: string) => {
-    return caves.find(c => c.id === caveId)?.name || 'Gua tidak ditemukan';
+  const getLocationName = (locationId: string) => {
+    return locations.find(l => l.id === locationId)?.name || 'Lokasi tidak ditemukan';
   };
 
-  if (loadingCaves) {
+  if (loadingLocations) {
      return (
         <div className="space-y-4">
           <Skeleton className="h-12 w-full mb-4" />
@@ -86,20 +86,20 @@ export default function SpotsClient() {
   }
 
   if (isFormOpen) {
-    return <SpotForm spot={selectedSpot} caves={caves} allSpots={spots || []} onSave={handleFormSuccess} onCancel={() => { setIsFormOpen(false); setSelectedSpot(null); }} />;
+    return <SpotForm spot={selectedSpot} locations={locations} allSpots={spots || []} onSave={handleFormSuccess} onCancel={() => { setIsFormOpen(false); setSelectedSpot(null); }} />;
   }
 
   return (
     <div>
       <div className="flex justify-between items-center mb-4 gap-2">
-        <Select value={filterCaveId} onValueChange={setFilterCaveId}>
+        <Select value={filterLocationId} onValueChange={setFilterLocationId}>
           <SelectTrigger className="w-full md:w-[280px]">
-            <SelectValue placeholder="Filter berdasarkan gua" />
+            <SelectValue placeholder="Filter berdasarkan lokasi" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Semua Gua</SelectItem>
-            {caves.map((cave) => (
-              <SelectItem key={cave.id} value={cave.id}>{cave.name}</SelectItem>
+            <SelectItem value="all">Semua Lokasi</SelectItem>
+            {locations.map((location) => (
+              <SelectItem key={location.id} value={location.id}>{location.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -124,7 +124,7 @@ export default function SpotsClient() {
                 <div>
                   <CardTitle className="text-lg">{spot.title}</CardTitle>
                   <CardDescription className="flex items-center gap-2 mt-1">
-                    <span className="text-xs">{getCaveName(spot.caveId)}</span>
+                    <span className="text-xs">{getLocationName(spot.locationId)}</span>
                     {spot.isPro && <Badge>PRO</Badge>}
                   </CardDescription>
                 </div>
@@ -156,7 +156,7 @@ export default function SpotsClient() {
             </CardHeader>
           </Card>
         ))}
-         {filteredSpots.length === 0 && <p className="text-center text-muted-foreground pt-8">Belum ada spot untuk gua ini.</p>}
+         {filteredSpots.length === 0 && <p className="text-center text-muted-foreground pt-8">Belum ada spot untuk lokasi ini.</p>}
       </div>
       )}
     </div>

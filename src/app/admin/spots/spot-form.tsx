@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Cave, Spot } from '@/lib/types';
+import { Location, Spot } from '@/lib/types';
 import { addSpot, updateSpot } from '@/lib/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,7 +25,7 @@ const hotspotSchema = z.object({
 });
 
 const spotSchema = z.object({
-  caveId: z.string().min(1, 'Gua harus dipilih.'),
+  locationId: z.string().min(1, 'Lokasi harus dipilih.'),
   order: z.coerce.number().min(0, 'Urutan tidak boleh negatif.'),
   title: z.string().min(1, 'Judul tidak boleh kosong.'),
   description: z.string().min(1, 'Deskripsi tidak boleh kosong.'),
@@ -45,20 +46,20 @@ type SpotFormValues = Omit<z.infer<typeof spotSchema>, 'vibrationPattern'> & {vi
 
 interface SpotFormProps {
   spot: Spot | null;
-  caves: Cave[];
+  locations: Location[];
   allSpots: Spot[];
   onSave: (spot: Spot) => void;
   onCancel: () => void;
 }
 
-export function SpotForm({ spot, caves, allSpots, onSave, onCancel }: SpotFormProps) {
+export function SpotForm({ spot, locations, allSpots, onSave, onCancel }: SpotFormProps) {
   const { toast } = useToast();
   const [isSuggestingImage, setIsSuggestingImage] = useState(false);
 
   const form = useForm<SpotFormValues>({
     resolver: zodResolver(spotSchema),
     defaultValues: {
-      caveId: spot?.caveId || '',
+      locationId: spot?.locationId || '',
       order: spot?.order ?? 0,
       title: spot?.title || '',
       description: spot?.description || '',
@@ -76,12 +77,12 @@ export function SpotForm({ spot, caves, allSpots, onSave, onCancel }: SpotFormPr
   });
 
   const isSubmitting = form.formState.isSubmitting;
-  const watchCaveId = form.watch('caveId');
+  const watchLocationId = form.watch('locationId');
   const watchDescription = form.watch('description');
 
-  const spotsInSameCave = useMemo(() => {
-    return allSpots.filter(s => s.caveId === watchCaveId && s.id !== spot?.id);
-  }, [watchCaveId, allSpots, spot]);
+  const spotsInSameLocation = useMemo(() => {
+    return allSpots.filter(s => s.locationId === watchLocationId && s.id !== spot?.id);
+  }, [watchLocationId, allSpots, spot]);
 
 
   const onSubmit = async (values: SpotFormValues) => {
@@ -156,20 +157,20 @@ export function SpotForm({ spot, caves, allSpots, onSave, onCancel }: SpotFormPr
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField
             control={form.control}
-            name="caveId"
+            name="locationId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Gua</FormLabel>
+                <FormLabel>Lokasi</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Pilih gua..." />
+                      <SelectValue placeholder="Pilih lokasi..." />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {caves.map((cave) => (
-                      <SelectItem key={cave.id} value={cave.id}>
-                        {cave.name}
+                    {locations.map((location) => (
+                      <SelectItem key={location.id} value={location.id}>
+                        {location.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -339,7 +340,7 @@ export function SpotForm({ spot, caves, allSpots, onSave, onCancel }: SpotFormPr
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {spotsInSameCave.map(s => (
+                          {spotsInSameLocation.map(s => (
                             <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>
                           ))}
                         </SelectContent>
@@ -371,12 +372,12 @@ export function SpotForm({ spot, caves, allSpots, onSave, onCancel }: SpotFormPr
               type="button"
               variant="outline"
               onClick={() => append({ id: `hotspot-${Date.now()}`, label: '', position: [0, 0, 0], targetSpotId: '' })}
-              disabled={!watchCaveId}
+              disabled={!watchLocationId}
             >
               <PlusCircle className="mr-2 h-4 w-4" />
               Tambah Hotspot
             </Button>
-            {!watchCaveId && <p className="text-sm text-muted-foreground">Pilih gua terlebih dahulu untuk menambahkan hotspot.</p>}
+            {!watchLocationId && <p className="text-sm text-muted-foreground">Pilih lokasi terlebih dahulu untuk menambahkan hotspot.</p>}
           </div>
 
 

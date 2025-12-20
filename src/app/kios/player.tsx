@@ -16,12 +16,12 @@ interface Props {
 
 const { firestore: db } = initializeFirebase();
 
-async function logSpotView(kioskId: string, caveId: string, spotId: string) {
+async function logSpotView(kioskId: string, locationId: string, spotId: string) {
   try {
     await addDoc(collection(db, 'kioskEvents'), {
       type: 'SPOT_VIEW',
       kioskId,
-      caveId,
+      locationId,
       spotId,
       ts: serverTimestamp(),
     });
@@ -30,12 +30,12 @@ async function logSpotView(kioskId: string, caveId: string, spotId: string) {
   }
 }
 
-async function logEdge(kioskId: string, caveId: string, fromSpotId: string, toSpotId: string) {
+async function logEdge(kioskId: string, locationId: string, fromSpotId: string, toSpotId: string) {
   try {
     await addDoc(collection(db, 'kioskEvents'), {
       type: 'SPOT_EDGE',
       kioskId,
-      caveId,
+      locationId,
       fromSpotId,
       toSpotId,
       ts: serverTimestamp(),
@@ -92,9 +92,9 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
     if (!kioskEnabled || !playlist || playlist.length === 0 || !current) return;
     
     if (current.id) {
-        logSpotView(kioskId, current.caveId, current.id);
+        logSpotView(kioskId, current.locationId, current.id);
         if (prevSpotIdRef.current) {
-            logEdge(kioskId, current.caveId, prevSpotIdRef.current, current.id);
+            logEdge(kioskId, current.locationId, prevSpotIdRef.current, current.id);
         }
         prevSpotIdRef.current = current.id;
     }

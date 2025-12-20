@@ -5,18 +5,18 @@ import { useState, useMemo, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Cave, Spot, KioskSettings } from '@/lib/types';
+import { Location, Spot, KioskSettings } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/componentsui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Trash2, Plus, GripVertical, Loader2, Download, WifiOff, ArrowRight, Monitor, MessageSquare, Power, PowerOff, Send, Radio, Facebook, Instagram, Twitter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { saveKioskSettings, setKioskControl } from '@/lib/firestore';
 import Link from 'next/link';
-import { isCaveAvailableOffline, saveCaveForOffline } from '@/lib/offline';
+import { isLocationAvailableOffline, saveLocationForOffline } from '@/lib/offline';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCollection, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc, Timestamp } from 'firebase/firestore';
@@ -47,7 +47,7 @@ const footerSettingsSchema = z.object({
 });
 
 const playlistSettingsSchema = z.object({
-  caveId: z.string().min(1, 'Gua harus dipilih.'),
+  locationId: z.string().min(1, 'Lokasi harus dipilih.'),
   playlist: z.array(z.object({
     spotId: z.string().min(1, 'Spot harus dipilih.'),
     duration: z.coerce.number().min(5, 'Durasi minimal 5 detik.').max(300, 'Durasi maksimal 300 detik.'),
@@ -69,7 +69,7 @@ type RemoteControlFormValues = z.infer<typeof remoteControlSchema>;
 type KioskDevice = { id: string, status: string, currentSpotId?: string, updatedAt: Timestamp };
 
 interface KioskClientProps {
-  initialCaves: Cave[];
+  initialLocations: Location[];
 }
 
 
@@ -184,7 +184,7 @@ function KioskRemoteControl({ allSpots }: { allSpots: Spot[] }) {
 }
 
 
-export default function KioskClient({ initialCaves }: KioskClientProps) {
+export default function KioskClient({ initialLocations }: KioskClientProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const [isOffline, setIsOffline] = useState(false);
@@ -212,7 +212,7 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
 
   const playlistForm = useForm<PlaylistSettingsFormValues>({
     resolver: zodResolver(playlistSettingsSchema),
-    defaultValues: { caveId: '', playlist: [] },
+    defaultValues: { locationId: '', playlist: [] },
   });
   
   useEffect(() => {
@@ -234,7 +234,7 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
             twitterUrl: kioskSettings.twitterUrl || '',
         });
         playlistForm.reset({
-            caveId: kioskSettings.caveId || '',
+            locationId: kioskSettings.locationId || '',
             playlist: kioskSettings.playlist || [],
         });
     }
@@ -245,41 +245,41 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
     name: 'playlist',
   });
 
-  const watchCaveId = playlistForm.watch('caveId');
+  const watchLocationId = playlistForm.watch('locationId');
 
   const availableSpots = useMemo(() => {
-    if (!watchCaveId || !spots) return [];
-    return spots.filter(spot => spot.caveId === watchCaveId);
-  }, [watchCaveId, spots]);
+    if (!watchLocationId || !spots) return [];
+    return spots.filter(spot => spot.locationId === watchLocationId);
+  }, [watchLocationId, spots]);
 
-  const selectedCave = useMemo(() => {
-    return initialCaves.find(c => c.id === watchCaveId) || null;
-  }, [watchCaveId, initialCaves]);
+  const selectedLocation = useMemo(() => {
+    return initialLocations.find(l => l.id === watchLocationId) || null;
+  }, [watchLocationId, initialLocations]);
   
   useEffect(() => {
     async function checkOfflineStatus() {
-      if (watchCaveId) {
-        const offline = await isCaveAvailableOffline(watchCaveId);
+      if (watchLocationId) {
+        const offline = await isLocationAvailableOffline(watchLocationId);
         setIsOffline(offline);
       } else {
         setIsOffline(false);
       }
     }
     checkOfflineStatus();
-  }, [watchCaveId]);
+  }, [watchLocationId]);
 
   const handleDownload = async () => {
-    if (!selectedCave || availableSpots.length === 0) {
-      toast({ variant: 'destructive', title: 'Gagal', description: 'Pilih gua dan pastikan ada spot tersedia untuk diunduh.' });
+    if (!selectedLocation || availableSpots.length === 0) {
+      toast({ variant: 'destructive', title: 'Gagal', description: 'Pilih lokasi dan pastikan ada spot tersedia untuk diunduh.' });
       return;
     }
 
     setIsDownloading(true);
-    toast({ title: 'Mengunduh...', description: `Konten untuk ${selectedCave.name} sedang disimpan untuk mode offline.` });
+    toast({ title: 'Mengunduh...', description: `Konten untuk ${selectedLocation.name} sedang disimpan untuk mode offline.` });
     try {
-      await saveCaveForOffline(selectedCave, availableSpots);
+      await saveLocationForOffline(selectedLocation, availableSpots);
       setIsOffline(true);
-      toast({ title: 'Berhasil!', description: `${selectedCave.name} telah tersedia untuk mode offline.` });
+      toast({ title: 'Berhasil!', description: `${selectedLocation.name} telah tersedia untuk mode offline.` });
     } catch (error) {
       console.error('Failed to save for offline:', error);
       toast({ variant: 'destructive', title: 'Gagal', description: 'Gagal menyimpan konten untuk mode offline.' });
@@ -551,21 +551,21 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
                 <div className='flex justify-between items-start gap-4'>
                     <div>
                         <CardTitle>Daftar Putar Kios</CardTitle>
-                        <CardDescription>Pilih gua dan atur spot yang akan diputar otomatis.</CardDescription>
+                        <CardDescription>Pilih lokasi dan atur spot yang akan diputar otomatis.</CardDescription>
                     </div>
                     <div className='flex items-center gap-2 flex-wrap justify-end'>
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <div>
-                                        <Button onClick={handleDownload} disabled={isDownloading || isOffline || !selectedCave} variant="secondary" type="button">
+                                        <Button onClick={handleDownload} disabled={isDownloading || isOffline || !selectedLocation} variant="secondary" type="button">
                                             {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : isOffline ? <WifiOff className="h-4 w-4"/> : <Download className="h-4 w-4" />}
                                             <span className='hidden sm:inline ml-2'>{isOffline ? 'Tersimpan Offline' : 'Simpan Offline'}</span>
                                         </Button>
                                     </div>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                <p>{isOffline ? 'Konten gua ini sudah bisa diakses offline.' : 'Unduh semua spot di gua ini untuk akses offline.'}</p>
+                                <p>{isOffline ? 'Konten lokasi ini sudah bisa diakses offline.' : 'Unduh semua spot di lokasi ini untuk akses offline.'}</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -581,10 +581,10 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
             <CardContent className="space-y-6">
               <FormField
                 control={playlistForm.control}
-                name="caveId"
+                name="locationId"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Pilih Gua untuk Kios</FormLabel>
+                    <FormLabel>Pilih Lokasi untuk Kios</FormLabel>
                     <Select 
                         onValueChange={(value) => {
                         field.onChange(value);
@@ -594,13 +594,13 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
                     >
                         <FormControl>
                         <SelectTrigger>
-                            <SelectValue placeholder="Pilih gua untuk ditampilkan di kios..." />
+                            <SelectValue placeholder="Pilih lokasi untuk ditampilkan di kios..." />
                         </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                        {initialCaves.filter(c => c.isActive).map((cave) => (
-                            <SelectItem key={cave.id} value={cave.id}>
-                            {cave.name}
+                        {initialLocations.filter(l => l.isActive).map((location) => (
+                            <SelectItem key={location.id} value={location.id}>
+                            {location.name}
                             </SelectItem>
                         ))}
                         </SelectContent>
@@ -668,7 +668,7 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
                 type="button"
                 variant="outline"
                 onClick={() => append({ spotId: '', duration: 30 })}
-                disabled={!watchCaveId || spotsLoading}
+                disabled={!watchLocationId || spotsLoading}
                 >
                 <Plus className="mr-2 h-4 w-4" /> Tambah Spot ke Playlist
                 </Button>
@@ -685,5 +685,3 @@ export default function KioskClient({ initialCaves }: KioskClientProps) {
     </>
   );
 }
-
-    

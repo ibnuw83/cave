@@ -1,18 +1,19 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Cave, Spot, UserProfile } from '@/lib/types';
+import { Location, Spot, UserProfile } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Lock, ChevronLeft, Download, WifiOff, Loader2, Sparkles } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { saveCaveForOffline, isCaveAvailableOffline } from '@/lib/offline';
+import { saveLocationForOffline, isLocationAvailableOffline } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter, notFound } from 'next/navigation';
 import { useUser } from '@/firebase';
-import { getCave, getSpots } from '@/lib/firestore';
+import { getLocation, getSpots } from '@/lib/firestore';
 
 
 function SpotCard({ spot, isLocked, isOffline }: { spot: Spot; isLocked: boolean, isOffline: boolean }) {
@@ -70,12 +71,12 @@ function SpotCard({ spot, isLocked, isOffline }: { spot: Spot; isLocked: boolean
   );
 }
 
-export default function CaveClient({ caveId }: { caveId: string; }) {
+export default function CaveClient({ locationId }: { locationId: string; }) {
   const { user, userProfile, isUserLoading, isProfileLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
 
-  const [cave, setCave] = useState<Cave | null>(null);
+  const [location, setLocation] = useState<Location | null>(null);
   const [spots, setSpots] = useState<Spot[] | undefined>(undefined);
   
   const [dataLoading, setDataLoading] = useState(true);
@@ -94,34 +95,34 @@ export default function CaveClient({ caveId }: { caveId: string; }) {
     setDataLoading(true);
     
     Promise.all([
-      getCave(caveId),
-      getSpots(caveId),
-      isCaveAvailableOffline(caveId)
-    ]).then(([caveData, spotsData, offlineStatus]) => {
-      if (!caveData) {
+      getLocation(locationId),
+      getSpots(locationId),
+      isLocationAvailableOffline(locationId)
+    ]).then(([locationData, spotsData, offlineStatus]) => {
+      if (!locationData) {
         setError(true);
         return;
       }
-      setCave(caveData);
+      setLocation(locationData);
       setSpots(spotsData);
       setIsOffline(offlineStatus);
     }).catch(err => {
-      console.error("Failed to fetch cave data:", err);
+      console.error("Failed to fetch location data:", err);
       setError(true);
     }).finally(() => {
       setDataLoading(false);
     });
 
-  }, [caveId, user, isUserLoading, router]);
+  }, [locationId, user, isUserLoading, router]);
 
   const handleDownload = async () => {
-    if (!cave || !spots) return;
+    if (!location || !spots) return;
     setIsDownloading(true);
-    toast({ title: 'Mengunduh...', description: `Konten untuk ${cave.name} sedang disimpan untuk mode offline.` });
+    toast({ title: 'Mengunduh...', description: `Konten untuk ${location.name} sedang disimpan untuk mode offline.` });
     try {
-      await saveCaveForOffline(cave, spots);
+      await saveLocationForOffline(location, spots);
       setIsOffline(true);
-      toast({ title: 'Berhasil!', description: `${cave.name} telah tersedia untuk mode offline.` });
+      toast({ title: 'Berhasil!', description: `${location.name} telah tersedia untuk mode offline.` });
     } catch (error) {
       console.error('Failed to save for offline:', error);
       toast({ variant: 'destructive', title: 'Gagal', description: 'Gagal menyimpan konten untuk mode offline.' });
@@ -139,7 +140,7 @@ export default function CaveClient({ caveId }: { caveId: string; }) {
       toast({
         variant: 'destructive',
         title: 'Misi Tidak Tersedia',
-        description: 'Tidak ada spot yang ditemukan di gua ini untuk memulai misi.',
+        description: 'Tidak ada spot yang ditemukan di lokasi ini untuk memulai misi.',
       });
     }
   };
@@ -151,13 +152,13 @@ export default function CaveClient({ caveId }: { caveId: string; }) {
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="text-center">
           <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-          <p className="mt-4 text-lg text-muted-foreground">Memuat data gua...</p>
+          <p className="mt-4 text-lg text-muted-foreground">Memuat data lokasi...</p>
         </div>
       </div>
     );
   }
   
-  if (error || !cave) {
+  if (error || !location) {
     notFound();
   }
 
@@ -171,14 +172,14 @@ export default function CaveClient({ caveId }: { caveId: string; }) {
         <Button variant="ghost" asChild className="mb-4 -ml-4">
           <Link href="/">
             <ChevronLeft className="mr-2 h-4 w-4" />
-            Kembali ke Daftar Gua
+            Kembali ke Daftar Lokasi
           </Link>
         </Button>
         <div className="relative h-64 w-full overflow-hidden rounded-lg shadow-xl">
-          <Image src={cave.coverImage} alt={cave.name} fill className="object-cover" data-ai-hint="cave landscape" />
+          <Image src={location.coverImage} alt={location.name} fill className="object-cover" data-ai-hint="cave landscape" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
           <h1 className="font-headline absolute bottom-4 left-4 text-3xl font-bold text-white md:text-4xl">
-            {cave.name}
+            {location.name}
           </h1>
            {isOffline && (
             <div className="absolute top-4 right-4 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1 text-sm text-white backdrop-blur-sm">
@@ -193,7 +194,7 @@ export default function CaveClient({ caveId }: { caveId: string; }) {
         <div className="mb-6 flex flex-col md:flex-row justify-between md:items-center gap-4">
             <div>
               <h2 className="text-xl font-semibold md:text-2xl">Misi Penjelajahan</h2>
-              <p className="text-muted-foreground text-sm">Temukan artefak tersembunyi di dalam gua ini.</p>
+              <p className="text-muted-foreground text-sm">Jelajahi setiap sudut di lokasi ini.</p>
             </div>
             <div className='flex items-center gap-2 flex-wrap'>
                 <Button onClick={handleStartMission} size="lg">
@@ -212,7 +213,7 @@ export default function CaveClient({ caveId }: { caveId: string; }) {
                                 </div>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>{isOffline ? 'Konten gua ini sudah bisa diakses offline.' : 'Unduh semua spot di gua ini untuk akses offline.'}</p>
+                              <p>{isOffline ? 'Konten lokasi ini sudah bisa diakses offline.' : 'Unduh semua spot di lokasi ini untuk akses offline.'}</p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>

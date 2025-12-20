@@ -17,10 +17,10 @@ async function findSpotOffline(spotId: string): Promise<{ spot: Spot | null, spo
     if (!indexRes) return { spot: null, spots: [] };
 
     const index = await indexRes.json();
-    const caveId = index[spotId];
-    if (!caveId) return { spot: null, spots: [] };
+    const locationId = index[spotId];
+    if (!locationId) return { spot: null, spots: [] };
 
-    const dataRes = await cache.match(`cave-data-${caveId}`);
+    const dataRes = await cache.match(`location-data-${locationId}`);
     if (!dataRes) return { spot: null, spots: [] };
 
     const data = await dataRes.json();
@@ -43,7 +43,7 @@ export default function SpotPageClient({
   userRole: 'free' | 'pro' | 'admin';
 }) {
   const [spot, setSpot] = useState<Spot | null>(initialSpot);
-  const [allSpotsInCave, setAllSpotsInCave] = useState<Spot[]>(initialAllSpots.sort((a, b) => a.order - b.order));
+  const [allSpotsInLocation, setAllSpotsInLocation] = useState<Spot[]>(initialAllSpots.sort((a, b) => a.order - b.order));
   const [loading, setLoading] = useState(!initialSpot);
   const [vrMode, setVrMode] = useState(false);
   const router = useRouter();
@@ -60,7 +60,7 @@ export default function SpotPageClient({
           } else {
             const { spot: offlineSpot, spots: offlineSiblings } = await findSpotOffline(spotId);
             setSpot(offlineSpot);
-            setAllSpotsInCave(offlineSiblings.sort((a, b) => a.order - b.order));
+            setAllSpotsInLocation(offlineSiblings.sort((a, b) => a.order - b.order));
           }
         } catch (error) {
           console.error("Client-side fallback failed:", error);
@@ -108,7 +108,7 @@ export default function SpotPageClient({
             <SpotPlayerUI 
               spot={spot} 
               userRole={userRole} 
-              allSpots={allSpotsInCave}
+              allSpots={allSpotsInLocation}
               vrMode={vrMode}
               onVrModeChange={setVrMode}
             />
@@ -122,7 +122,7 @@ export default function SpotPageClient({
       imageUrl={spot.imageUrl}
       forcedType={spot.viewType !== 'auto' ? spot.viewType : undefined}
     >
-        <SpotPlayerUI spot={spot} userRole={userRole} allSpots={allSpotsInCave} />
+        <SpotPlayerUI spot={spot} userRole={userRole} allSpots={allSpotsInLocation} />
     </HybridViewer>
   );
 }

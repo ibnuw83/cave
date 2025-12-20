@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -247,7 +248,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         if (!document.fullscreenElement) {
-            router.push(`/cave/${spot.caveId}`);
+            router.push(`/cave/${spot.locationId}`);
         }
       } else {
         handleActivity(event); 
@@ -267,7 +268,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
       window.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
-  }, [router, spot.caveId, showUI, resetUiTimeout]);
+  }, [router, spot.locationId, showUI, resetUiTimeout]);
 
   
   useEffect(() => {
@@ -405,7 +406,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
             )}
         >
              <Button variant="ghost" className="text-white hover:bg-white/20 hover:text-white pointer-events-auto" asChild>
-                <Link href={`/cave/${spot.caveId}`}>
+                <Link href={`/cave/${spot.locationId}`}>
                     <ChevronLeft className="mr-2 h-5 w-5" />
                     Kembali
                 </Link>

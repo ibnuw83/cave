@@ -31,9 +31,9 @@ export default function LockedScreen({ spot }: { spot: Spot }) {
             Upgrade ke PRO
           </Button>
           <Button size="lg" variant="outline" className="border-accent text-accent hover:bg-accent hover:text-accent-foreground" asChild>
-            <Link href={`/cave/${spot.caveId}`}>
+            <Link href={`/cave/${spot.locationId}`}>
               <ArrowLeft className="mr-2 h-5 w-5" />
-              Kembali ke Gua
+              Kembali ke Lokasi
             </Link>
           </Button>
         </div>

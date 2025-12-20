@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Spot, KioskSettings } from '@/lib/types';
 import { getSpotClient } from '@/lib/firestore';
-import { getOfflineCaveData } from '@/lib/offline';
+import { getOfflineLocationData } from '@/lib/offline';
 import { enterKioskLock, exitKioskLock } from '@/lib/kiosk';
 import KioskPlayer from './player';
 
@@ -73,8 +73,8 @@ export default function KiosClient({ settings }: { settings: KioskSettings }) {
 
           // 2. Fallback to offline
           try {
-              if(settings.caveId) {
-                const offline = await getOfflineCaveData(settings.caveId);
+              if(settings.locationId) {
+                const offline = await getOfflineLocationData(settings.locationId);
                 const cachedSpot = offline?.spots.find(s => s.id === item.spotId);
                 if (cachedSpot) {
                     return { ...cachedSpot, duration: item.duration };
@@ -128,7 +128,7 @@ export default function KiosClient({ settings }: { settings: KioskSettings }) {
     <KioskPlayer
         spots={spots}
         mode={settings.mode || 'loop'}
-        kioskId={settings.caveId || 'unknown_kiosk'}
+        kioskId={settings.locationId || 'unknown_kiosk'}
       />
   );
 }

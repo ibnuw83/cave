@@ -1,31 +1,41 @@
 {
   "entities": {
-    "Cave": {
+    "Location": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Cave",
+      "title": "Location",
       "type": "object",
-      "description": "Represents a cave in the application.",
+      "description": "Represents a physical location that can be explored, such as a cave or historical site.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the cave."
+          "description": "Unique identifier for the location."
         },
         "name": {
           "type": "string",
-          "description": "The name of the cave."
+          "description": "The name of the location."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the location (e.g., 'Gua', 'Situs Sejarah')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the location."
         },
         "coverImage": {
           "type": "string",
-          "description": "URL of the cover image for the cave."
+          "description": "URL of the cover image for the location."
         },
         "isActive": {
           "type": "boolean",
-          "description": "Indicates whether the cave is currently active and available."
+          "description": "Indicates whether the location is currently active and available."
         }
       },
       "required": [
         "id",
         "name",
+        "category",
+        "description",
         "coverImage",
         "isActive"
       ]
@@ -34,19 +44,19 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Spot",
       "type": "object",
-      "description": "Represents a spot within a cave.",
+      "description": "Represents a spot within a location.",
       "properties": {
         "id": {
           "type": "string",
           "description": "Unique identifier for the spot."
         },
-        "caveId": {
+        "locationId": {
           "type": "string",
-          "description": "Reference to the Cave entity. (Relationship: Cave 1:N Spot)"
+          "description": "Reference to the Location entity. (Relationship: Location 1:N Spot)"
         },
         "order": {
           "type": "number",
-          "description": "The order of the spot within the cave."
+          "description": "The order of the spot within the location."
         },
         "title": {
           "type": "string",
@@ -78,7 +88,7 @@
       },
       "required": [
         "id",
-        "caveId",
+        "locationId",
         "order",
         "title",
         "description",
@@ -158,7 +168,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Kiosk Stat",
       "type": "object",
-      "description": "Represents heatmap statistics for a cave in kiosk mode.",
+      "description": "Represents heatmap statistics for a location in kiosk mode.",
       "properties": {
         "spots": {
           "type": "object",
@@ -185,34 +195,30 @@
   "firestore": {
     "structure": [
       {
-        "path": "/caves/{caveId}",
+        "path": "/locations/{locationId}",
         "definition": {
-          "entityName": "Cave",
+          "entityName": "Location",
           "schema": {
-            "$ref": "#/backend/entities/Cave"
+            "$ref": "#/backend/entities/Location"
           },
-          "description": "Stores information about caves. Publicly readable.",
+          "description": "Stores information about locations. Publicly readable.",
           "params": [
             {
-              "name": "caveId",
-              "description": "Unique identifier for the cave."
+              "name": "locationId",
+              "description": "Unique identifier for the location."
             }
           ]
         }
       },
       {
-        "path": "/caves/{caveId}/spots/{spotId}",
+        "path": "/spots/{spotId}",
         "definition": {
           "entityName": "Spot",
           "schema": {
             "$ref": "#/backend/entities/Spot"
           },
-          "description": "Stores information about spots within a cave. Publicly readable. `caveId` is denormalized to maintain the relationship.",
+          "description": "Stores information about spots within a location. Publicly readable. `locationId` is denormalized to maintain the relationship.",
           "params": [
-            {
-              "name": "caveId",
-              "description": "Unique identifier for the cave."
-            },
             {
               "name": "spotId",
               "description": "Unique identifier for the spot."
@@ -237,22 +243,22 @@
         }
       },
       {
-        "path": "/kioskStats/{caveId}",
+        "path": "/kioskStats/{locationId}",
         "definition": {
           "entityName": "KioskStat",
           "schema": {
             "$ref": "#/backend/entities/KioskStat"
           },
-          "description": "Stores heatmap data for kiosk views per cave.",
+          "description": "Stores heatmap data for kiosk views per location.",
           "params": [
             {
-              "name": "caveId",
-              "description": "The ID of the cave."
+              "name": "locationId",
+              "description": "The ID of the location."
             }
           ]
         }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support the \"Cave Explorer 4D\" application, focusing on a mobile-first experience, 4D digital immersion (audio, haptics, visuals), and FREE/PRO access control. The structure prioritizes authorization independence using denormalization and structural segregation. It avoids `get()` calls in security rules to enable atomic operations. All read operations are public, so rules act only as validators, and never as filters. The structure supports the core app features including listing caves and spots, immersive spot experiences, haptic feedback, and access control based on user roles."
+    "reasoning": "The Firestore data structure is designed to support the 'Explorer 4D' application, focusing on a multi-category virtual tour experience (caves, historical sites, etc.), 4D digital immersion (audio, haptics, visuals), and FREE/PRO access control. The structure prioritizes authorization independence using denormalization and structural segregation. It avoids `get()` calls in security rules to enable atomic operations. All read operations are public, so rules act only as validators, and never as filters. The structure supports the core app features including listing locations and spots, immersive spot experiences, haptic feedback, and access control based on user roles."
   }
 }

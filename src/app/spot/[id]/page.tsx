@@ -37,7 +37,7 @@ export default function SpotPage() {
           return;
         }
         
-        const siblingSpots = await getSpots(spotData.caveId);
+        const siblingSpots = await getSpots(spotData.locationId);
 
         setSpot(spotData);
         setAllSpots(siblingSpots);

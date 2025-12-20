@@ -1,19 +1,19 @@
 
 'use client';
 
-import { getCaves } from "@/lib/firestore";
+import { getLocations } from "@/lib/firestore";
 import KioskClient from "./client";
-import { Cave } from "@/lib/types";
+import { Location } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function KioskSettingsPage() {
-  const [caves, setCaves] = useState<Cave[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getCaves(true).then(c => {
-      setCaves(c);
+    getLocations(true).then(l => {
+      setLocations(l);
       setLoading(false);
     });
   }, []);
@@ -33,7 +33,7 @@ export default function KioskSettingsPage() {
           </div>
         ) : (
           <KioskClient 
-            initialCaves={caves}
+            initialLocations={locations}
           />
         )}
       </div>

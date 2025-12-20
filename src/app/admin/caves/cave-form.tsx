@@ -4,8 +4,8 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Cave } from '@/lib/types';
-import { addCave, updateCave } from '@/lib/firestore';
+import { Location } from '@/lib/types';
+import { addLocation, updateLocation } from '@/lib/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,39 +14,42 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/firebase';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const caveSchema = z.object({
-  name: z.string().min(1, { message: 'Nama gua tidak boleh kosong.' }),
+const locationSchema = z.object({
+  name: z.string().min(1, { message: 'Nama lokasi tidak boleh kosong.' }),
+  category: z.string().min(1, { message: 'Kategori harus dipilih.' }),
   description: z.string().min(1, { message: 'Deskripsi tidak boleh kosong.' }),
   coverImage: z.string().url({ message: 'URL gambar tidak valid.' }),
   isActive: z.boolean(),
 });
 
-type CaveFormValues = z.infer<typeof caveSchema>;
+type LocationFormValues = z.infer<typeof locationSchema>;
 
-interface CaveFormProps {
-  cave: Cave | null;
-  onSave: (cave: Cave) => void;
+interface LocationFormProps {
+  location: Location | null;
+  onSave: (location: Location) => void;
   onCancel: () => void;
 }
 
-export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
+export function CaveForm({ location, onSave, onCancel }: LocationFormProps) {
   const { toast } = useToast();
   const auth = useAuth();
 
-  const form = useForm<CaveFormValues>({
-    resolver: zodResolver(caveSchema),
+  const form = useForm<LocationFormValues>({
+    resolver: zodResolver(locationSchema),
     defaultValues: {
-      name: cave?.name || '',
-      description: cave?.description || '',
-      coverImage: cave?.coverImage || '',
-      isActive: cave?.isActive ?? true,
+      name: location?.name || '',
+      category: location?.category || 'Gua',
+      description: location?.description || '',
+      coverImage: location?.coverImage || '',
+      isActive: location?.isActive ?? true,
     },
   });
   
   const isSubmitting = form.formState.isSubmitting;
 
-  const onSubmit = async (values: CaveFormValues) => {
+  const onSubmit = async (values: LocationFormValues) => {
     if (!auth.currentUser) {
         toast({
             variant: 'destructive',
@@ -56,14 +59,14 @@ export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
         return;
     }
     try {
-      if (cave) {
-        const updatedCaveData = { ...cave, ...values };
-        await updateCave(cave.id, values);
-        onSave(updatedCaveData);
+      if (location) {
+        const updatedLocationData = { ...location, ...values };
+        await updateLocation(location.id, values);
+        onSave(updatedLocationData);
       } else {
-        const newCaveData: Omit<Cave, 'id'> = values;
-        const newCaveId = await addCave(newCaveData);
-        onSave({ id: newCaveId, ...newCaveData });
+        const newLocationData: Omit<Location, 'id'> = values;
+        const newLocationId = await addLocation(newLocationData);
+        onSave({ id: newLocationId, ...newLocationData });
       }
     } catch (error) {
         // Error is now handled by the permission-error emitter in firestore.ts
@@ -73,8 +76,8 @@ export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
   return (
     <div>
       <header className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold">{cave ? 'Edit Gua' : 'Tambah Gua Baru'}</h1>
-        <p className="text-muted-foreground">Isi detail gua di bawah ini.</p>
+        <h1 className="text-2xl md:text-3xl font-bold">{location ? 'Edit Lokasi' : 'Tambah Lokasi Baru'}</h1>
+        <p className="text-muted-foreground">Isi detail lokasi di bawah ini.</p>
       </header>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -83,7 +86,7 @@ export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Nama Gua</FormLabel>
+                <FormLabel>Nama Lokasi</FormLabel>
                 <FormControl>
                   <Input placeholder="cth: Gua Jomblang" {...field} />
                 </FormControl>
@@ -92,13 +95,34 @@ export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
             )}
           />
            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Kategori</FormLabel>
+                   <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih kategori lokasi..." />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Gua">Gua</SelectItem>
+                      <SelectItem value="Situs Sejarah">Situs Sejarah</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+           <FormField
             control={form.control}
             name="description"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Deskripsi</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="Deskripsi singkat tentang gua..." {...field} />
+                  <Textarea placeholder="Deskripsi singkat tentang lokasi..." {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -125,7 +149,7 @@ export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
                 <div className="space-y-0.5">
                     <FormLabel>Aktif</FormLabel>
                     <FormDescription>
-                        Jika aktif, gua akan muncul di halaman utama.
+                        Jika aktif, lokasi akan muncul di halaman utama.
                     </FormDescription>
                 </div>
                 <FormControl>
@@ -143,7 +167,7 @@ export function CaveForm({ cave, onSave, onCancel }: CaveFormProps) {
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {cave ? 'Simpan Perubahan' : 'Simpan Gua'}
+              {location ? 'Simpan Perubahan' : 'Simpan Lokasi'}
             </Button>
           </div>
         </form>

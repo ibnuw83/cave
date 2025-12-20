@@ -16,11 +16,11 @@ const { firestore: db } = initializeFirebase();
 /**
  * Melacak penayangan spot di mode kios dengan menambah (increment)
  * jumlah penayangan di koleksi kioskStats.
- * @param caveId ID dari gua.
+ * @param locationId ID dari lokasi.
  * @param spotId ID dari spot yang dilihat.
  */
-export function trackSpotView(caveId: string, spotId: string) {
-  const statRef = doc(db, 'kioskStats', caveId);
+export function trackSpotView(locationId: string, spotId: string) {
+  const statRef = doc(db, 'kioskStats', locationId);
   const data = {
     spots: {
       [spotId]: increment(1),
@@ -32,7 +32,7 @@ export function trackSpotView(caveId: string, spotId: string) {
   setDoc(statRef, data, { merge: true }).catch((error) => {
     if (error.code === 'permission-denied') {
       const permissionError = new FirestorePermissionError({
-        path: `/kioskStats/${caveId}`,
+        path: `/kioskStats/${locationId}`,
         operation: 'update',
         requestResourceData: data,
       });

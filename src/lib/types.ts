@@ -11,9 +11,10 @@ export interface UserProfile {
   updatedAt: Timestamp;
 }
 
-export interface Cave {
+export interface Location {
   id: string;
   name: string;
+  category: 'Gua' | 'Situs Sejarah' | string;
   description: string;
   coverImage: string;
   isActive: boolean;
@@ -28,7 +29,7 @@ export type Hotspot = {
 
 export interface Spot {
   id:string;
-  caveId: string;
+  locationId: string;
   order: number;
   title: string;
   description: string;
@@ -41,8 +42,8 @@ export interface Spot {
   hotspots?: Hotspot[];
 }
 
-export interface OfflineCaveData {
-    cave: Cave;
+export interface OfflineLocationData {
+    location: Location;
     spots: Spot[];
     timestamp: number;
 }
@@ -61,7 +62,7 @@ export interface KioskPlaylistItem {
 
 export interface KioskSettings {
   id: string; // Should be a singleton, e.g., 'main'
-  caveId: string;
+  locationId: string;
   playlist: KioskPlaylistItem[];
   mode: 'loop' | 'shuffle';
   exitPin: string;

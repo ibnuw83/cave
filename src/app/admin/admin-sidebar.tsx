@@ -173,7 +173,7 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
       {/* Main Navigation */}
       <nav className="grid grid-cols-4 gap-1 md:flex md:flex-col md:gap-1 md:p-4">
         <AdminNavLink href="/admin" icon={<Home />} label="Dashboard" color="text-sky-400" activeColor="text-sky-300" />
-        <AdminNavLink href="/admin/caves" icon={<Mountain />} label="Gua" color="text-amber-400" activeColor="text-amber-300" />
+        <AdminNavLink href="/admin/caves" icon={<Mountain />} label="Lokasi" color="text-amber-400" activeColor="text-amber-300" />
         <AdminNavLink href="/admin/spots" icon={<MapPin />} label="Spot" color="text-rose-400" activeColor="text-rose-300" />
         <div className="md:block">
             <AdminNavLink href="/admin/users" icon={<Users />} label="Pengguna" color="text-emerald-400" activeColor="text-emerald-300" />

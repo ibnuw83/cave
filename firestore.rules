@@ -18,21 +18,11 @@ service cloud.firestore {
 
 
     /**
-     * @description Controls access to the 'caves' collection. All users can read cave data, but only admins can modify it.
+     * @description Controls access to the 'locations' collection. All users can read location data, but only admins can modify it.
      */
-    match /caves/{caveId} {
+    match /locations/{locationId} {
       allow get, list: if true;
       allow write: if isAdmin();
-
-      /**
-       * @description Controls access to the 'spots' subcollection within a cave. All users can read spots.
-       * This rule is primarily for data organization. The main CRUD operations are handled by the global /spots/{spotId} rule.
-       */
-      match /spots/{spotId} {
-        allow get, list: if true;
-        // Write operations are handled by the global rule below for simplicity
-        allow write: if false; 
-      }
     }
     
     /**

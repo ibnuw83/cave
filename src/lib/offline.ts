@@ -1,16 +1,15 @@
-
 // lib/offline.ts
 'use client';
 
-import { Cave, Spot, OfflineCaveData } from './types';
+import { Location, Spot, OfflineLocationData } from './types';
 
 const CACHE_NAME = 'penjelajah-gua-offline-v1';
-const CAVE_DATA_KEY_PREFIX = 'cave-data-';
+const LOCATION_DATA_KEY_PREFIX = 'location-data-';
 const OFFLINE_INDEX_KEY = 'offline-index';
 
 // --- Helper Functions ---
 
-const getCaveDataKey = (caveId: string) => `${CAVE_DATA_KEY_PREFIX}${caveId}`;
+const getLocationDataKey = (locationId: string) => `${LOCATION_DATA_KEY_PREFIX}${locationId}`;
 
 /**
  * Caches multiple files individually.
@@ -40,12 +39,12 @@ async function cacheFiles(urls: string[]): Promise<void> {
 // --- Public API for Offline Management ---
 
 /**
- * Saves all data for a specific cave for offline use.
+ * Saves all data for a specific location for offline use.
  * This function also updates the offline index.
- * @param cave The cave object.
- * @param spots An array of spots belonging to the cave.
+ * @param location The location object.
+ * @param spots An array of spots belonging to the location.
  */
-export async function saveCaveForOffline(cave: Cave, spots: Spot[]): Promise<void> {
+export async function saveLocationForOffline(location: Location, spots: Spot[]): Promise<void> {
   const cache = await caches.open(CACHE_NAME);
 
   // 1. Update the offline index
@@ -55,58 +54,58 @@ export async function saveCaveForOffline(cave: Cave, spots: Spot[]): Promise<voi
     offlineIndex = await indexResponse.json();
   }
   spots.forEach(spot => {
-    offlineIndex[spot.id] = cave.id;
+    offlineIndex[spot.id] = location.id;
   });
   await cache.put(OFFLINE_INDEX_KEY, new Response(JSON.stringify(offlineIndex)));
 
-  // 2. Cache the JSON metadata for the cave and spots
-  const caveDataKey = getCaveDataKey(cave.id);
-  const dataToStore: OfflineCaveData = {
-    cave,
+  // 2. Cache the JSON metadata for the location and spots
+  const locationDataKey = getLocationDataKey(location.id);
+  const dataToStore: OfflineLocationData = {
+    location,
     spots,
     timestamp: Date.now(),
   };
   const metadataResponse = new Response(JSON.stringify(dataToStore), {
     headers: { 'Content-Type': 'application/json' },
   });
-  await cache.put(caveDataKey, metadataResponse);
+  await cache.put(locationDataKey, metadataResponse);
 
   // 3. Cache all associated media files (images, audio)
   const mediaUrls = [
-    cave.coverImage,
+    location.coverImage,
     ...spots.map(spot => spot.imageUrl),
   ];
   await cacheFiles(mediaUrls as string[]);
 }
 
 /**
- * Retrieves cached data for a specific cave.
- * @param caveId The ID of the cave to retrieve.
- * @returns The cached OfflineCaveData or null if not found.
+ * Retrieves cached data for a specific location.
+ * @param locationId The ID of the location to retrieve.
+ * @returns The cached OfflineLocationData or null if not found.
  */
-export async function getOfflineCaveData(caveId: string): Promise<OfflineCaveData | null> {
+export async function getOfflineLocationData(locationId: string): Promise<OfflineLocationData | null> {
   try {
     const cache = await caches.open(CACHE_NAME);
-    const response = await cache.match(getCaveDataKey(caveId));
+    const response = await cache.match(getLocationDataKey(locationId));
     if (!response) {
       return null;
     }
     return await response.json();
   } catch (error) {
-    console.error('Error fetching offline cave data:', error);
+    console.error('Error fetching offline location data:', error);
     return null;
   }
 }
 
 /**
- * Checks if a specific cave is available offline.
- * @param caveId The ID of the cave.
- * @returns True if the cave is cached, false otherwise.
+ * Checks if a specific location is available offline.
+ * @param locationId The ID of the location.
+ * @returns True if the location is cached, false otherwise.
  */
-export async function isCaveAvailableOffline(caveId: string): Promise<boolean> {
+export async function isLocationAvailableOffline(locationId: string): Promise<boolean> {
   try {
     const cache = await caches.open(CACHE_NAME);
-    const response = await cache.match(getCaveDataKey(caveId));
+    const response = await cache.match(getLocationDataKey(locationId));
     return !!response;
   } catch {
     return false;

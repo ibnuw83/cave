@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Cave, KioskSettings, UserProfile } from '@/lib/types';
+import { Location, KioskSettings, UserProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -26,7 +27,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { clearOfflineCache } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
-import { getKioskSettings, getCaves } from '@/lib/firestore';
+import { getKioskSettings, getLocations } from '@/lib/firestore';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { useRouter } from 'next/navigation';
 import { useUser, useAuth } from '@/firebase';
@@ -73,7 +74,7 @@ const AuthSection = () => {
       <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
     );
   }
-
+  
   if (user && userProfile) {
     return (
        <DropdownMenu>
@@ -133,12 +134,13 @@ const AuthSection = () => {
     );
   }
 
+  // Render nothing if not logged in
   return null;
 };
 
 
 export default function HomeClient() {
-  const [caves, setCaves] = useState<Cave[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [settings, setSettings] = useState<KioskSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useUser();
@@ -148,10 +150,10 @@ export default function HomeClient() {
   useEffect(() => {
     setIsLoading(true);
     Promise.all([
-      getCaves(false),
+      getLocations(false),
       getKioskSettings()
-    ]).then(([cavesData, settingsData]) => {
-      setCaves(cavesData);
+    ]).then(([locationsData, settingsData]) => {
+      setLocations(locationsData);
       setSettings(settingsData);
     }).catch(err => {
       console.error("Failed to fetch initial data", err);
@@ -219,8 +221,8 @@ export default function HomeClient() {
 
       <main id="cave-list" className="bg-black pb-16">
          <div className="container mx-auto max-w-5xl px-4 md:px-8">
-            <h2 className="mb-8 text-center text-3xl font-semibold text-white/90 md:text-4xl">Gua yang Tersedia</h2>
-            {caves.length > 0 ? (
+            <h2 className="mb-8 text-center text-3xl font-semibold text-white/90 md:text-4xl">Lokasi Tersedia</h2>
+            {locations.length > 0 ? (
             <Carousel
               opts={{
                 align: "start",
@@ -228,22 +230,22 @@ export default function HomeClient() {
               className="w-full"
             >
               <CarouselContent>
-                {caves.map((cave) => (
-                  <CarouselItem key={cave.id} className="md:basis-1/2 lg:basis-1/3">
+                {locations.map((location) => (
+                  <CarouselItem key={location.id} className="md:basis-1/2 lg:basis-1/3">
                     <div className="p-1">
-                      <Link href={`/cave/${cave.id}`} className="group">
+                      <Link href={`/cave/${location.id}`} className="group">
                         <Card className="h-full overflow-hidden transition-all duration-300 hover:shadow-primary/20 hover:shadow-2xl hover:border-primary/50 hover:-translate-y-2 bg-card border-border/50">
                           <CardHeader className="p-0">
                             <div className="relative h-56 w-full">
                               <Image
-                                src={cave.coverImage}
-                                alt={`Gambar ${cave.name}`}
+                                src={location.coverImage}
+                                alt={`Gambar ${location.name}`}
                                 fill
                                 className="object-cover transition-transform duration-300 group-hover:scale-110"
                                 data-ai-hint="cave entrance"
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-4">
-                                <CardTitle className="text-lg font-bold font-headline text-white transition-transform duration-300 group-hover:translate-y-[-4px]">{cave.name}</CardTitle>
+                                <CardTitle className="text-lg font-bold font-headline text-white transition-transform duration-300 group-hover:translate-y-[-4px]">{location.name}</CardTitle>
                               </div>
                             </div>
                           </CardHeader>
@@ -257,7 +259,7 @@ export default function HomeClient() {
               <CarouselNext className="hidden sm:flex" />
             </Carousel>
             ) : (
-            <p className="text-center text-muted-foreground">Tidak ada gua yang tersedia saat ini. Silakan tambahkan melalui Panel Admin.</p>
+            <p className="text-center text-muted-foreground">Tidak ada lokasi yang tersedia saat ini. Silakan tambahkan melalui Panel Admin.</p>
             )}
         </div>
       </main>
