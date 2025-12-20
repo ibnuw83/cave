@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { getLocation } from '@/lib/firestore';
+import { getLocation, getSpots } from '@/lib/firestore';
 import CaveClient from './client';
 import { notFound } from 'next/navigation';
 
@@ -42,5 +42,7 @@ export default async function CavePage({ params }: Props) {
     notFound();
   }
 
-  return <CaveClient location={location} />;
+  const spots = await getSpots(location.id);
+
+  return <CaveClient location={location} initialSpots={spots} />;
 }

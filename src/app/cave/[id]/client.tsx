@@ -12,7 +12,6 @@ import { saveLocationForOffline, isLocationAvailableOffline } from '@/lib/offlin
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase';
-import { getSpots } from '@/lib/firestore';
 
 
 function SpotCard({ spot, isLocked, isOffline, lockedMessage }: { spot: Spot; isLocked: boolean; isOffline: boolean, lockedMessage: string; }) {
@@ -72,34 +71,19 @@ function SpotCard({ spot, isLocked, isOffline, lockedMessage }: { spot: Spot; is
   );
 }
 
-export default function CaveClient({ location }: { location: Location; }) {
+export default function CaveClient({ location, initialSpots }: { location: Location; initialSpots: Spot[] }) {
   const { user, userProfile, isUserLoading, isProfileLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
 
-  const [spots, setSpots] = useState<Spot[] | undefined>(undefined);
-  
-  const [dataLoading, setDataLoading] = useState(true);
+  const [spots, setSpots] = useState<Spot[]>(initialSpots);
   const [isOffline, setIsOffline] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
-    setDataLoading(true);
-    
-    Promise.all([
-      getSpots(location.id),
-      isLocationAvailableOffline(location.id)
-    ]).then(([spotsData, offlineStatus]) => {
-      setSpots(spotsData);
-      setIsOffline(offlineStatus);
-    }).catch(err => {
-      console.error("Failed to fetch spots data:", err);
-      toast({ variant: 'destructive', title: 'Gagal Memuat Spot', description: 'Tidak dapat memuat detail untuk lokasi ini.' });
-    }).finally(() => {
-      setDataLoading(false);
-    });
-
-  }, [location.id, toast]);
+    // Check offline status on mount
+    isLocationAvailableOffline(location.id).then(setIsOffline);
+  }, [location.id]);
 
   const handleDownload = async () => {
     if (!spots) return;
@@ -135,14 +119,14 @@ export default function CaveClient({ location }: { location: Location; }) {
     }
   };
   
-  const isLoading = isUserLoading || isProfileLoading || dataLoading;
+  const isLoading = isUserLoading || isProfileLoading;
 
   if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="text-center">
           <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-          <p className="mt-4 text-lg text-muted-foreground">Memuat data lokasi...</p>
+          <p className="mt-4 text-lg text-muted-foreground">Memuat data pengguna...</p>
         </div>
       </div>
     );
