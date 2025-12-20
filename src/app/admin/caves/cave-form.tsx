@@ -13,11 +13,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/firebase';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const locationSchema = z.object({
   name: z.string().min(1, { message: 'Nama lokasi tidak boleh kosong.' }),
-  category: z.string().min(1, { message: 'Kategori harus dipilih.' }),
+  category: z.string().min(1, { message: 'Kategori harus diisi.' }),
   description: z.string().min(1, { message: 'Deskripsi tidak boleh kosong.' }),
   coverImage: z.string().url({ message: 'URL gambar tidak valid.' }),
   isActive: z.boolean(),
@@ -39,7 +38,7 @@ export function CaveForm({ location, onSave, onCancel }: LocationFormProps) {
     resolver: zodResolver(locationSchema),
     defaultValues: {
       name: location?.name || '',
-      category: location?.category || 'Gua',
+      category: location?.category || '',
       description: location?.description || '',
       coverImage: location?.coverImage || '',
       isActive: location?.isActive ?? true,
@@ -99,19 +98,12 @@ export function CaveForm({ location, onSave, onCancel }: LocationFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Kategori</FormLabel>
-                   <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Pilih kategori lokasi..." />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Gua">Gua</SelectItem>
-                      <SelectItem value="Situs Sejarah">Situs Sejarah</SelectItem>
-                      <SelectItem value="Geosite">Geosite</SelectItem>
-                      <SelectItem value="Geopark">Geopark</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <Input placeholder="cth: Gua, Situs Sejarah, Pantai, dll." {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Masukkan jenis lokasi wisata (contoh: Gua, Situs Sejarah, Geopark).
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

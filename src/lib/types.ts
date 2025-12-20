@@ -14,7 +14,7 @@ export interface UserProfile {
 export interface Location {
   id: string;
   name: string;
-  category: 'Gua' | 'Situs Sejarah' | 'Geosite' | 'Geopark' | string;
+  category: string;
   description: string;
   coverImage: string;
   isActive: boolean;
