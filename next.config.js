@@ -86,6 +86,12 @@ const nextConfig = {
         hostname: 'blogger.googleusercontent.com',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'salsawisata.com',
+        port: '',
+        pathname: '/**',
       }
     ],
   },
