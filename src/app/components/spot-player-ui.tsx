@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -6,7 +5,7 @@ import { Spot } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Play, Pause, Loader2, Maximize, Minimize, Orbit, Mic, MicOff } from 'lucide-react';
+import { ChevronLeft, Play, Pause, Loader2, Maximize, Minimize, Orbit } from 'lucide-react';
 import { canVibrate, vibrate } from '@/lib/haptics';
 import {
   Carousel,
@@ -140,54 +139,6 @@ async function convertPcmToWavUrl(base64PcmData: string): Promise<string> {
     // Create a URL for the Blob
     return URL.createObjectURL(wavBlob);
 }
-
-// --- Speech Recognition Hook ---
-const useSpeechRecognition = (onResult: (transcript: string) => void) => {
-    const recognitionRef = useRef<any>(null);
-    const [isListening, setIsListening] = useState(false);
-  
-    useEffect(() => {
-      if (typeof window === 'undefined') return;
-      
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        console.warn('Speech Recognition not supported by this browser.');
-        return;
-      }
-  
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.lang = 'id-ID';
-      recognition.interimResults = false;
-  
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        onResult(transcript);
-        setIsListening(false);
-      };
-  
-      recognition.onerror = (event) => {
-        console.error('Speech recognition error', event.error);
-        setIsListening(false);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      }
-  
-      recognitionRef.current = recognition;
-    }, [onResult]);
-  
-    const startListening = () => {
-      if (recognitionRef.current && !isListening) {
-        recognitionRef.current.start();
-        setIsListening(true);
-      }
-    };
-  
-    return { isListening, startListening };
-};
-
 
 export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false, onVrModeChange }: { spot: Spot, userRole: 'free' | 'pro' | 'admin', allSpots: Spot[], vrMode?: boolean; onVrModeChange?: (active: boolean) => void }) {
   const { user } = useUser();
@@ -359,43 +310,6 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
       e.stopPropagation();
       setIsDescriptionExpanded(prev => !prev);
   };
-
-  // --- AI Voice Assistant Logic ---
-  const handleAiQuestion = async (question: string) => {
-    if (!question) return;
-
-    stopSpeaking();
-    handlePlaybackEnd();
-    setIsLoading(true);
-
-    try {
-        const response = await fetch('/api/ask', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ spotId: spot.id, question }),
-        });
-
-        if (!response.ok) throw new Error('Failed to get AI answer');
-
-        const base64Pcm = await response.text();
-        await playAudioFromBase64(base64Pcm);
-        
-    } catch (error) {
-        console.error('Error asking AI:', error);
-        toast({ variant: 'destructive', title: 'Gagal', description: 'Asisten AI tidak dapat merespons.' });
-    } finally {
-        setIsLoading(false);
-    }
-  };
-
-  const { isListening, startListening } = useSpeechRecognition(handleAiQuestion);
-
-  const handleMicClick = () => {
-    stopSpeaking();
-    handlePlaybackEnd();
-    startListening();
-  };
-
   
   return (
     <>
@@ -425,7 +339,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
             <div className="flex items-end justify-between gap-4">
                 <div className="flex items-start gap-4">
                     {isProUser && (
-                        <Button size="icon" className="rounded-full h-16 w-16 bg-white/30 text-white backdrop-blur-sm hover:bg-white/50 flex-shrink-0" onClick={handleTogglePlay} disabled={isLoading || isListening}>
+                        <Button size="icon" className="rounded-full h-16 w-16 bg-white/30 text-white backdrop-blur-sm hover:bg-white/50 flex-shrink-0" onClick={handleTogglePlay} disabled={isLoading}>
                             {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
                         </Button>
                     )}
@@ -444,21 +358,6 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
                     </div>
                 </div>
                 <div className='flex items-center gap-2'>
-                  {isProUser && (
-                     <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        className={cn(
-                            "rounded-full h-12 w-12 bg-white/20 text-white backdrop-blur-sm hover:bg-white/40 flex-shrink-0",
-                            isListening && "bg-red-500/50 animate-pulse"
-                        )}
-                        onClick={handleMicClick}
-                        disabled={isLoading}
-                    >
-                        {isListening ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
-                        <span className="sr-only">Tanya AI</span>
-                    </Button>
-                  )}
                   {onVrModeChange && (
                     <Button 
                         size="icon" 
