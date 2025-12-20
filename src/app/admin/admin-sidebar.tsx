@@ -170,14 +170,11 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
 
 
       {/* Main Navigation */}
-      <nav className="grid grid-cols-5 gap-1 md:flex md:flex-col md:gap-1 md:p-4">
+      <nav className="grid grid-cols-4 gap-1 md:flex md:flex-col md:gap-1 md:p-4">
         <AdminNavLink href="/admin" icon={<Home />} label="Dashboard" color="text-sky-400" activeColor="text-sky-300" />
         <AdminNavLink href="/admin/caves" icon={<Mountain />} label="Lokasi" color="text-amber-400" activeColor="text-amber-300" />
         <AdminNavLink href="/admin/spots" icon={<MapPin />} label="Spot" color="text-rose-400" activeColor="text-rose-300" />
         <AdminNavLink href="/admin/pricing" icon={<Gem />} label="Paket" color="text-teal-400" activeColor="text-teal-300" />
-        <div className="md:block">
-            <AdminNavLink href="/admin/users" icon={<Users />} label="Pengguna" color="text-emerald-400" activeColor="text-emerald-300" />
-        </div>
         <AdminNavLink href="/admin/kiosk" icon={<Settings />} label="Pengaturan" color="text-violet-400" activeColor="text-violet-300" />
       </nav>
 
@@ -193,6 +190,13 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
             <p className="text-xs text-muted-foreground">{userProfile.email}</p>
           </div>
         </div>
+        
+        <Button variant="ghost" className="w-full justify-start" asChild>
+          <Link href="/admin/users">
+            <Users className="mr-2 h-4 w-4" />
+            Manajemen Pengguna
+          </Link>
+        </Button>
         
         <Button variant="ghost" className="w-full justify-start" asChild>
           <Link href="/profile">
