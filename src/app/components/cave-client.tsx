@@ -223,9 +223,13 @@ export default function CaveClient({ locationId }: { locationId: string; }) {
 
         <h3 className="text-lg font-semibold md:text-xl mb-4 mt-8">Daftar Spot</h3>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {sortedSpots.map((spot) => (
-            <SpotCard key={spot.id} spot={spot} isLocked={spot.isPro && !isPro} isOffline={isOffline} />
-          ))}
+          {sortedSpots.map((spot, index) => {
+            // New locking logic:
+            // - If user is pro, nothing is locked.
+            // - If user is free, only the first spot (index 0) is unlocked.
+            const isLocked = !isPro && index > 0;
+            return <SpotCard key={spot.id} spot={spot} isLocked={isLocked} isOffline={isOffline} />;
+          })}
         </div>
       </main>
     </div>
