@@ -1,7 +1,6 @@
-
 import type { Metadata } from 'next';
 import { getLocation } from '@/lib/firestore';
-import CaveClient from '@/app/components/cave-client';
+import CaveClient from './client';
 import { notFound } from 'next/navigation';
 
 type Props = {
