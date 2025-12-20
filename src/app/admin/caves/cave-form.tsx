@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -109,6 +108,8 @@ export function CaveForm({ location, onSave, onCancel }: LocationFormProps) {
                     <SelectContent>
                       <SelectItem value="Gua">Gua</SelectItem>
                       <SelectItem value="Situs Sejarah">Situs Sejarah</SelectItem>
+                      <SelectItem value="Geosite">Geosite</SelectItem>
+                      <SelectItem value="Geopark">Geopark</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
