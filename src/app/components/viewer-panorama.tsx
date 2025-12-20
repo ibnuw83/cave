@@ -24,7 +24,7 @@ function Scene({ imageUrl, onHeadingChange }: { imageUrl: string, onHeadingChang
   });
 
   return (
-    <Sphere args={[500, 60, 40]}>
+    <Sphere args={[500, 60, 40]} scale={[-1, 1, 1]}>
       <meshBasicMaterial map={texture} side={THREE.BackSide} />
     </Sphere>
   );
