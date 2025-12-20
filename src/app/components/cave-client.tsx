@@ -18,7 +18,7 @@ import { getLocation, getSpots } from '@/lib/firestore';
 
 function SpotCard({ spot, isLocked, isOffline, lockedMessage }: { spot: Spot; isLocked: boolean; isOffline: boolean, lockedMessage: string; }) {
   const content = (
-    <Card className={`overflow-hidden transition-all duration-300 ${isLocked ? 'bg-muted/30 border-dashed' : 'hover:shadow-lg hover:border-primary/50 hover:scale-105'}`}>
+    <Card className={`overflow-hidden transition-all duration-300 ${isLocked ? 'bg-muted/30 border-dashed cursor-pointer hover:border-primary/50 hover:scale-105' : 'hover:shadow-lg hover:border-primary/50 hover:scale-105'}`}>
       <CardHeader className="p-0">
         <div className="relative h-40 w-full">
           <Image
@@ -51,16 +51,18 @@ function SpotCard({ spot, isLocked, isOffline, lockedMessage }: { spot: Spot; is
 
   if (isLocked) {
     return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="cursor-not-allowed">{content}</div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{lockedMessage}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+       <Link href="/pricing" className="group">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {content}
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{lockedMessage}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </Link>
     );
   }
 
@@ -163,7 +165,6 @@ export default function CaveClient({ locationId }: { locationId: string; }) {
   }
 
   const role = userProfile?.role || 'free';
-  const isFullAccess = role === 'admin' || role === 'vip';
   
   const roleLimits = {
       free: 1,
@@ -211,7 +212,7 @@ export default function CaveClient({ locationId }: { locationId: string; }) {
                   <Sparkles className="mr-2 h-4 w-4" />
                   Mulai Misi
                 </Button>
-                {(role.startsWith('pro') || isFullAccess) && (
+                {(role.startsWith('pro') || role === 'vip' || role === 'admin') && (
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -234,7 +235,7 @@ export default function CaveClient({ locationId }: { locationId: string; }) {
         <h3 className="text-lg font-semibold md:text-xl mb-4 mt-8">Daftar Spot</h3>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {sortedSpots.map((spot, index) => {
-            const isLocked = !isFullAccess && index >= accessibleSpotsCount;
+            const isLocked = index >= accessibleSpotsCount && role !== 'admin' && role !== 'vip';
             return <SpotCard 
                       key={spot.id} 
                       spot={spot} 
