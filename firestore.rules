@@ -2,7 +2,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions for reusable logic
     function isSignedIn() {
       return request.auth != null;
     }
@@ -11,33 +10,31 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Checks if the requesting user has the 'admin' role in their user document.
     function isAdmin() {
       return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-
-    /**
-     * @description Controls access to the 'locations' collection. All signed-in users can read location data, but only admins can modify it.
-     */
     match /locations/{locationId} {
+      /**
+       * @description Controls access to the 'locations' collection. All signed-in users can read location data, but only admins can modify it.
+       */
       allow get, list: if isSignedIn();
       allow write: if isAdmin();
     }
     
-    /**
-     * @description Controls access to the global 'spots' collection.
-     * All users can read spots, but only admins can create, update, or delete them.
-     */
     match /spots/{spotId} {
+        /**
+         * @description Controls access to the global 'spots' collection.
+         * All users can read spots, but only admins can create, update, or delete them.
+         */
         allow get, list: if true;
-        allow write: if isAdmin(); // Allows create, update, delete for admins
+        allow write: if isAdmin();
     }
 
-    /**
-     * @description Controls access to user documents. Users can only manage their own data.
-     */
     match /users/{userId} {
+      /**
+       * @description Controls access to user documents. Users can only manage their own data.
+       */
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isOwner(userId);
@@ -45,42 +42,42 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    /**
-     * @description Public read for kiosk settings, admin write.
-     */
     match /kioskSettings/{settingId} {
+      /**
+       * @description Public read for kiosk settings, admin write.
+       */
       allow get, list: if true;
       allow write: if isAdmin();
     }
     
-    /**
-     * @description Kiosk devices can write their own heartbeat. Admin can read all.
-     */
     match /kioskDevices/{deviceId} {
+      /**
+       * @description Kiosk devices can write their own heartbeat. Admin can read all.
+       */
       allow read: if isAdmin();
-      allow write: if true; // Allow any device to write its heartbeat
+      allow write: if true;
     }
 
-    /**
-     * @description Kiosk control is read by devices, written by admin.
-     */
     match /kioskControl/{controlId} {
+        /**
+         * @description Kiosk control is read by devices, written by admin.
+         */
         allow read: if true;
         allow write: if isAdmin();
     }
 
-    /**
-     * @description Any device can write kiosk events.
-     */
     match /kioskEvents/{eventId} {
+        /**
+         * @description Any device can write kiosk events.
+         */
         allow create: if true;
         allow read, update, delete: if false;
     }
 
-    /**
-     * @description Public read for pricing tiers, admin write.
-     */
     match /pricingTiers/{tierId} {
+      /**
+       * @description Public read for pricing tiers, admin write.
+       */
       allow get, list: if true;
       allow write: if isAdmin();
     }
