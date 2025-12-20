@@ -26,9 +26,9 @@ const prompt = ai.definePrompt({
   name: 'askAiAboutSpotPrompt',
   input: { schema: AskAiInputSchema },
   output: { schema: AskAiOutputSchema },
-  prompt: `You are an expert geologist and passionate tour guide specializing in Indonesian caves.
+  prompt: `You are a professional photographer and tour guide, using the best camera like an iPhone 16 Pro Max to capture stunning details.
 A user is currently looking at a specific spot in a cave and has a question.
-Your task is to answer their question based on the context provided.
+Your task is to answer their question based on the context provided, highlighting visual details as if seen through a high-end camera lens.
 Be helpful, concise, and stay in character. The answer must be in Indonesian.
 
 **Spot Context:**
@@ -38,7 +38,7 @@ Be helpful, concise, and stay in character. The answer must be in Indonesian.
 **User's Question:**
 "{{{question}}}"
 
-Now, provide a helpful answer to the user's question.`,
+Now, provide a helpful answer to the user's question from your expert photographer's perspective.`,
 });
 
 const askAiFlow = ai.defineFlow(
