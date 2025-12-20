@@ -134,7 +134,7 @@ export default function PricingPage() {
               </CardContent>
               <CardFooter>
                  <Button className="w-full" asChild variant={tier.id === currentRole ? 'outline' : 'default'} disabled={tier.id === currentRole}>
-                    <Link href={tier.id === currentRole ? '#' : '/pembayaran'}>
+                    <Link href={tier.id === currentRole ? '#' : `/pembayaran?tier=${tier.id}`}>
                         {tier.id === currentRole ? 'Paket Aktif' : tier.cta}
                     </Link>
                 </Button>
