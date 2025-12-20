@@ -152,7 +152,7 @@ export default function CaveClient({ location }: { location: Location; }) {
   const role = userProfile?.role || 'free';
   
   const roleLimits = {
-      free: 1,
+      free: 3, // Increased from 1
       pro1: 5,
       pro2: 10,
       pro3: 15,
@@ -160,7 +160,7 @@ export default function CaveClient({ location }: { location: Location; }) {
       admin: Infinity,
   };
 
-  const accessibleSpotsCount = roleLimits[role] || 1;
+  const accessibleSpotsCount = roleLimits[role] || 3;
 
   return (
     <div className="container mx-auto min-h-screen max-w-5xl p-4 md:p-8">
