@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import AdBanner from '@/app/components/AdBanner';
 
 
 const profileSchema = z.object({
@@ -169,6 +170,7 @@ export default function ProfilePage() {
         </header>
 
         <main>
+           <AdBanner />
            <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-3">

@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 import { FirebaseProvider } from '@/firebase/provider'; // Diubah untuk menggunakan provider tunggal
 import { useEffect } from 'react';
+import Script from 'next/script';
 import Footer from '@/app/components/footer';
 import { getKioskSettings } from '@/lib/firestore';
 
@@ -48,6 +49,12 @@ export default function RootLayout({
         <meta name="theme-color" content="#2A2B32" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=YOUR_ADSENSE_CLIENT_ID"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
       </head>
       <body className="font-body antialiased">
         <FirebaseProvider>
