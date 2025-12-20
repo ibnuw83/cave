@@ -44,7 +44,7 @@ export default function CavePage({ params }: Props) {
     notFound();
   }
 
-  // The data fetching and loading/error logic is now
-  // fully handled within the CaveClient component.
+  // Pengambilan data dan logika loading/error sekarang
+  // sepenuhnya ditangani di dalam CaveClient.
   return <CaveClient locationId={locationId} />;
 }
