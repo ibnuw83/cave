@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -87,13 +86,6 @@ export default function CaveClient({ locationId }: { locationId: string; }) {
   const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
-    if (isUserLoading) return; // Wait for auth state
-
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-    
     setDataLoading(true);
     
     Promise.all([
@@ -115,7 +107,7 @@ export default function CaveClient({ locationId }: { locationId: string; }) {
       setDataLoading(false);
     });
 
-  }, [locationId, user, isUserLoading, router]);
+  }, [locationId]);
 
   const handleDownload = async () => {
     if (!location || !spots) return;
@@ -136,6 +128,10 @@ export default function CaveClient({ locationId }: { locationId: string; }) {
   const sortedSpots = spots ? [...spots].sort((a, b) => a.order - b.order) : [];
 
   const handleStartMission = () => {
+    if (!user) {
+        router.push(`/login?redirect=/spot/${sortedSpots[0].id}`);
+        return;
+    }
     if (sortedSpots.length > 0) {
       router.push(`/spot/${sortedSpots[0].id}`);
     } else {
@@ -235,13 +231,14 @@ export default function CaveClient({ locationId }: { locationId: string; }) {
         <h3 className="text-lg font-semibold md:text-xl mb-4 mt-8">Daftar Spot</h3>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {sortedSpots.map((spot, index) => {
-            const isLocked = index >= accessibleSpotsCount && role !== 'admin' && role !== 'vip';
+            const isLocked = user ? (index >= accessibleSpotsCount && role !== 'admin' && role !== 'vip') : spot.isPro;
+            const lockedMessage = user ? "Upgrade level PRO atau VIP Anda untuk mengakses spot ini." : "Login atau daftar untuk mengakses spot ini.";
             return <SpotCard 
                       key={spot.id} 
                       spot={spot} 
                       isLocked={isLocked} 
                       isOffline={isOffline}
-                      lockedMessage="Upgrade level PRO atau VIP Anda untuk mengakses spot ini." 
+                      lockedMessage={lockedMessage} 
                    />;
           })}
         </div>

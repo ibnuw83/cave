@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { Mountain, LogOut, User, Trash2, ArrowRight, Loader2 } from 'lucide-react';
+import { Mountain, LogOut, User, Trash2, ArrowRight, Loader2, KeyRound } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -134,8 +133,15 @@ const AuthSection = () => {
     );
   }
 
-  // Render nothing if not logged in
-  return null;
+  // If not logged in, show a login button
+  return (
+    <Button variant="outline" asChild>
+      <Link href="/login">
+        <KeyRound className="mr-2 h-4 w-4" />
+        Masuk
+      </Link>
+    </Button>
+  );
 };
 
 
@@ -143,7 +149,6 @@ export default function HomeClient() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [settings, setSettings] = useState<KioskSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useUser();
   
   const heroImage = placeholderImages.placeholderImages.find(img => img.id === 'spot-jomblang-light')?.imageUrl || '/placeholder.jpg';
   
@@ -210,7 +215,7 @@ export default function HomeClient() {
                     {settings?.heroSubtitle || 'Rasakan pengalaman 4D menjelajahi keindahan gua-gua paling eksotis di Indonesia.'}
                  </p>
                  <Button size="lg" className="mt-8 animate-glow text-lg" asChild>
-                    <Link href={user ? "#cave-list" : "/login"}>
+                    <Link href="#cave-list">
                         Mulai Menjelajah
                         <ArrowRight className="ml-2 h-5 w-5" />
                     </Link>

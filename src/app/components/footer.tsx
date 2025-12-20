@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -27,11 +26,11 @@ export default function Footer() {
   return (
     <footer className="bg-card border-t border-border/50">
       <div className="container mx-auto max-w-5xl px-4 py-8 md:px-8">
-        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+        <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
           {loading ? (
              <Skeleton className="h-5 w-64" />
           ) : (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground text-center sm:text-left">
               {footerText}
             </p>
           )}
@@ -69,6 +68,11 @@ export default function Footer() {
             )}
           </div>
         </div>
+         <div className="mt-6 flex justify-center space-x-4 text-sm text-muted-foreground border-t border-border/50 pt-6">
+            <Link href="/about" className="hover:text-primary">Tentang Kami</Link>
+            <Link href="/contact" className="hover:text-primary">Kontak</Link>
+            <Link href="/privacy" className="hover:text-primary">Kebijakan Privasi</Link>
+          </div>
       </div>
     </footer>
   );
