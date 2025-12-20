@@ -1,0 +1,38 @@
+import 'server-only';
+
+import { cookies } from 'next/headers';
+import { initializeAdminApp } from '../admin';
+import { UserProfile } from '@/lib/types';
+import { getDoc } from 'firebase-admin/firestore';
+
+/**
+ * Server-side hook to get the current user and their profile.
+ * Reads the session cookie and uses the Firebase Admin SDK.
+ */
+export const useUser = async () => {
+  const { auth, db } = await initializeAdminApp();
+  const sessionCookie = cookies().get('session')?.value;
+
+  if (!sessionCookie) {
+    return { user: null, userProfile: null };
+  }
+
+  try {
+    const decodedIdToken = await auth.verifySessionCookie(sessionCookie, true);
+    const user = await auth.getUser(decodedIdToken.uid);
+
+    const profileRef = db.collection('users').doc(user.uid);
+    const profileSnap = await getDoc(profileRef);
+
+    if (!profileSnap.exists) {
+      return { user, userProfile: null };
+    }
+
+    const userProfile = { id: profileSnap.id, ...profileSnap.data() } as UserProfile;
+
+    return { user, userProfile };
+  } catch (error) {
+    // Session cookie is invalid or expired.
+    return { user: null, userProfile: null };
+  }
+};

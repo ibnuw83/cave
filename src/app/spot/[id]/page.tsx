@@ -1,77 +1,51 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { useParams, notFound } from 'next/navigation';
-import { useUser } from '@/firebase';
-import SpotPageClient from './client';
 import { getSpotClient, getSpots } from '@/lib/firestore';
-import { Spot } from '@/lib/types';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useUser } from '@/firebase/auth/use-user-server'; // Server-side user hook
+import SpotPageClient from './client';
+import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 
-export default function SpotPage() {
-  const params = useParams();
-  const { user, userProfile, isUserLoading, isProfileLoading } = useUser();
-  
-  const spotId = Array.isArray(params.id) ? params.id[0] : params.id;
+type Props = {
+  params: { id: string }
+}
 
-  const [spot, setSpot] = useState<Spot | null>(null);
-  const [allSpots, setAllSpots] = useState<Spot[]>([]);
-
-  const [dataLoading, setDataLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    if (!spotId) {
-      setError(true);
-      setDataLoading(false);
-      return;
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const spot = await getSpotClient(params.id);
+ 
+  if (!spot) {
+    return {
+      title: 'Spot Tidak Ditemukan',
     }
-    
-    setDataLoading(true);
-
-    const fetchData = async () => {
-      try {
-        const spotData = await getSpotClient(spotId);
-        if (!spotData) {
-          setError(true);
-          return;
-        }
-        
-        const siblingSpots = await getSpots(spotData.locationId);
-
-        setSpot(spotData);
-        setAllSpots(siblingSpots);
-
-      } catch (err) {
-        console.error("Failed to fetch spot data", err);
-        setError(true);
-      } finally {
-        setDataLoading(false);
-      }
-    };
-
-    fetchData();
-
-  }, [spotId]);
-
-  const isLoading = isUserLoading || isProfileLoading || dataLoading;
-
-  if (isLoading) {
-    return <Skeleton className="h-screen w-screen bg-black" />;
-  }
-  
-  if (error || !spot) {
-      notFound();
   }
 
-  // Determine user role, default to 'free' if not logged in or no profile
+  return {
+    title: `${spot.title} - Penjelajahan 4D`,
+    description: spot.description,
+    openGraph: {
+      title: spot.title,
+      description: spot.description,
+      images: [spot.imageUrl],
+    },
+  }
+}
+
+export default async function SpotPage({ params }: Props) {
+  const spotId = params.id;
+  const { userProfile } = await useUser();
+
+  const spot = await getSpotClient(spotId);
+
+  if (!spot) {
+    notFound();
+  }
+
+  const allSpotsInLocation = await getSpots(spot.locationId);
   const role = userProfile?.role || 'free';
 
   return (
     <SpotPageClient
       spotId={spotId}
       initialSpot={spot}
-      initialAllSpots={allSpots}
+      initialAllSpots={allSpotsInLocation}
       userRole={role}
     />
   );

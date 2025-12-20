@@ -1,5 +1,3 @@
-'use client';
-
 import SpotsClient from "./client";
 
 export default function SpotsPage() {

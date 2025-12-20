@@ -1,10 +1,4 @@
-'use client';
-
-import { getLocations } from "@/lib/firestore";
 import CavesClient from "./client";
-import { useEffect, useState } from "react";
-import { Location } from "@/lib/types";
-import { Skeleton } from "@/components/ui/skeleton";
 
 export default function CavesPage() {
   return (

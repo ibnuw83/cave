@@ -1,23 +1,10 @@
-
-'use client';
-
 import { getLocations } from "@/lib/firestore";
 import KioskClient from "./client";
 import { Location } from "@/lib/types";
-import { useEffect, useState } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
 
-export default function KioskSettingsPage() {
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    getLocations(true).then(l => {
-      setLocations(l);
-      setLoading(false);
-    });
-  }, []);
-
+export default async function KioskSettingsPage() {
+  // Fetch initial locations on the server
+  const locations: Location[] = await getLocations(true).catch(() => []);
 
   return (
     <div className="p-4 md:p-8">
@@ -26,16 +13,9 @@ export default function KioskSettingsPage() {
         <p className="text-muted-foreground">Kelola pengaturan umum dan mode kios.</p>
       </header>
       <div className="space-y-8">
-        {loading ? (
-           <div className="space-y-8">
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-96 w-full" />
-          </div>
-        ) : (
           <KioskClient 
             initialLocations={locations}
           />
-        )}
       </div>
     </div>
   );
