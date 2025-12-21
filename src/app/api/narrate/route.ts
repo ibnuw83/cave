@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 // This endpoint now returns the raw base64 encoded PCM audio data.
 export async function POST(req: NextRequest) {
   try {
-    const { spotId, language } = await req.json();
+    const { spotId } = await req.json();
     if (!spotId) {
       return new Response(JSON.stringify({ error: 'spotId is required' }), { status: 400 });
     }
@@ -23,7 +23,6 @@ export async function POST(req: NextRequest) {
     const { narrative } = await narrateSpot({
       title: spot.title,
       description: spot.description,
-      language: language || 'en-US', // Default to English if no language is provided
     });
     
     if (!narrative) {

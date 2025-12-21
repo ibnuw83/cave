@@ -8,7 +8,6 @@ import { z } from 'zod';
 const NarrateSpotInputSchema = z.object({
   title: z.string().describe('The title of the cave spot.'),
   description: z.string().describe('The simple description of the cave spot.'),
-  language: z.string().optional().describe('The language for the narrative (e.g., "en-US", "id-ID"). Defaults to English.'),
 });
 export type NarrateSpotInput = z.infer<typeof NarrateSpotInputSchema>;
 
@@ -26,8 +25,7 @@ const prompt = ai.definePrompt({
   input: { schema: NarrateSpotInputSchema },
   output: { schema: NarrateSpotOutputSchema },
   prompt: `You are an expert geologist and passionate tour guide specializing in world caves.
-Your task is to transform a simple spot description into a rich, atmospheric, and dramatic narrative script.
-The script should be in the following language: {{{language}}}. If the language is not specified, default to English.
+Your task is to transform a simple spot description into a rich, atmospheric, and dramatic narrative script in Indonesian.
 Make the user feel like they are standing right there, experiencing the cave's wonders. Use evocative language.
 
 Spot Title: {{{title}}}

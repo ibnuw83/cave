@@ -14,18 +14,11 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
 import { stopSpeechSynthesis } from '@/lib/tts';
-import { Skeleton } from '@/components/ui/skeleton';
 import AdBanner from '@/app/components/AdBanner';
 
 
@@ -150,33 +143,12 @@ async function convertPcmToWavUrl(base64PcmData: string): Promise<string> {
     return URL.createObjectURL(wavBlob);
 }
 
-// A list of some common languages for the selector
-const supportedLanguages = [
-    { code: 'en-US', name: 'English' },
-    { code: 'id-ID', name: 'Bahasa Indonesia' },
-    { code: 'es-ES', name: 'Español' },
-    { code: 'fr-FR', name: 'Français' },
-    { code: 'de-DE', name: 'Deutsch' },
-    { code: 'ja-JP', name: '日本語' },
-    { code: 'ko-KR', name: '한국어' },
-    { code: 'zh-CN', name: '中文 (简体)' },
-];
-
 export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false, onVrModeChange }: { spot: Spot, userRole: string, allSpots: Spot[], vrMode?: boolean; onVrModeChange?: (active: boolean) => void }) {
-  const { user } = useUser();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isUIVisible, setIsUIVisible] = useState(true);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isTranslating, setIsTranslating] = useState(false);
-  
-  const [selectedLanguage, setSelectedLanguage] = useState(() => 
-    typeof navigator !== 'undefined' ? navigator.language : 'id-ID'
-  );
-  
-  const [translatedTitle, setTranslatedTitle] = useState(spot.title);
-  const [translatedDescription, setTranslatedDescription] = useState(spot.description);
   const uiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const router = useRouter();
@@ -195,58 +167,6 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
         audioRef.current = null;
     }
   }, []);
-
-  useEffect(() => {
-    const translateContent = async () => {
-      const language = selectedLanguage;
-
-      if (language.startsWith('id')) { // Assuming original is Indonesian
-        setTranslatedTitle(spot.title);
-        setTranslatedDescription(spot.description);
-        return;
-      }
-      
-      setIsTranslating(true);
-      
-      try {
-        const [titleRes, descriptionRes] = await Promise.all([
-          fetch('/api/translate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: spot.title, targetLanguage: language }),
-          }),
-          fetch('/api/translate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: spot.description, targetLanguage: language }),
-          }),
-        ]);
-
-        if (titleRes.ok) {
-          const { translatedText } = await titleRes.json();
-          setTranslatedTitle(translatedText);
-        } else {
-          setTranslatedTitle(spot.title);
-        }
-         if (descriptionRes.ok) {
-          const { translatedText } = await descriptionRes.json();
-          setTranslatedDescription(translatedText);
-        } else {
-          setTranslatedDescription(spot.description);
-        }
-
-      } catch (error) {
-        console.error('Text translation failed, using original text:', error);
-        setTranslatedTitle(spot.title);
-        setTranslatedDescription(spot.description);
-      } finally {
-        setIsTranslating(false);
-      }
-    };
-
-    translateContent();
-  }, [spot.id, spot.title, spot.description, selectedLanguage]);
-
 
    const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -406,7 +326,6 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 spotId: spot.id,
-                language: selectedLanguage 
             }),
         });
 
@@ -430,8 +349,8 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
             description: 'Menggunakan suara browser karena narasi AI tidak tersedia.'
         });
         
-        const u = new SpeechSynthesisUtterance(translatedDescription);
-        u.lang = selectedLanguage;
+        const u = new SpeechSynthesisUtterance(spot.description);
+        u.lang = 'id-ID';
         u.onend = handlePlaybackEnd;
         stopSpeechSynthesis(); // Ensure no prior utterance is queued
         window.speechSynthesis.speak(u);
@@ -468,21 +387,6 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
                     Kembali
                 </Link>
             </Button>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                     <Button variant="ghost" className="text-white hover:bg-white/20 hover:text-white pointer-events-auto">
-                        <Languages className="mr-2 h-5 w-5" />
-                        <span>{supportedLanguages.find(l => l.code === selectedLanguage)?.name || selectedLanguage}</span>
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-black/70 border-white/20 text-white backdrop-blur-md">
-                    {supportedLanguages.map(lang => (
-                         <DropdownMenuItem key={lang.code} onSelect={() => setSelectedLanguage(lang.code)}>
-                            {lang.name}
-                        </DropdownMenuItem>
-                    ))}
-                </DropdownMenuContent>
-            </DropdownMenu>
         </div>
 
         <SpotNavigation currentSpotId={spot.id} allSpots={allSpots} isUIVisible={isUIVisible} />
@@ -511,30 +415,20 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
                     </Button>
                     
                     <div>
-                        {isTranslating ? (
-                            <Skeleton className="h-9 w-64 mb-1" />
-                        ) : (
-                            <h1 className="text-3xl font-bold font-headline mb-1 flex items-center gap-2">
-                                {translatedTitle}
-                                {spot.isPro && <Gem className="h-5 w-5 text-primary" />}
-                            </h1>
-                        )}
-                        {isTranslating ? (
-                            <Skeleton className="h-5 w-full max-w-lg mt-2" />
-                        ) : (
-                            <>
-                                <p className={cn("text-base text-white/80 max-w-prose", !isDescriptionExpanded && "line-clamp-1")}>
-                                    {translatedDescription}
-                                </p>
-                                <Button 
-                                    variant="link" 
-                                    onClick={handleToggleDescription}
-                                    className="text-accent hover:text-accent/80 p-0 h-auto text-sm mt-1"
-                                >
-                                    {isDescriptionExpanded ? "Sembunyikan" : "Selanjutnya"}
-                                </Button>
-                            </>
-                        )}
+                        <h1 className="text-3xl font-bold font-headline mb-1 flex items-center gap-2">
+                            {spot.title}
+                            {spot.isPro && <Gem className="h-5 w-5 text-primary" />}
+                        </h1>
+                        <p className={cn("text-base text-white/80 max-w-prose", !isDescriptionExpanded && "line-clamp-1")}>
+                            {spot.description}
+                        </p>
+                        <Button 
+                            variant="link" 
+                            onClick={handleToggleDescription}
+                            className="text-accent hover:text-accent/80 p-0 h-auto text-sm mt-1"
+                        >
+                            {isDescriptionExpanded ? "Sembunyikan" : "Selanjutnya"}
+                        </Button>
                     </div>
                 </div>
                 <div className='flex items-center gap-2'>
