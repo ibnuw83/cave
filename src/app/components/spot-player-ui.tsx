@@ -302,7 +302,10 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
         const response = await fetch('/api/narrate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ spotId: spot.id }),
+            body: JSON.stringify({ 
+                spotId: spot.id,
+                language: navigator.language 
+            }),
         });
 
         if (!response.ok) {
@@ -321,7 +324,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
         });
         
         const u = new SpeechSynthesisUtterance(spot.description);
-        u.lang = 'id-ID';
+        u.lang = navigator.language;
         u.onend = handlePlaybackEnd;
         (window as any).currentUtterance = u;
         window.speechSynthesis.speak(u);
@@ -403,5 +406,3 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
     </>
   );
 }
-
-    
