@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -402,3 +403,5 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
     </>
   );
 }
+
+    
