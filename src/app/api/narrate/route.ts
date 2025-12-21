@@ -1,5 +1,5 @@
 
-import { getSpotClient } from '@/lib/firestore-client';
+import { getSpot } from '@/lib/firestore-admin';
 import { narrateSpot } from '@/ai/flows/narrate-spot-flow';
 import { textToSpeech } from '@/ai/flows/tts-flow';
 import {NextRequest} from 'next/server';
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
       return new Response(JSON.stringify({ error: 'spotId is required' }), { status: 400 });
     }
 
-    const spot = await getSpotClient(spotId);
+    const spot = await getSpot(spotId);
     if (!spot) {
       return new Response(JSON.stringify({ error: 'Spot not found' }), { status: 404 });
     }
