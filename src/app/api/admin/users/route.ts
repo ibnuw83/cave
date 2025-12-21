@@ -47,7 +47,11 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Field email, password, displayName, dan role diperlukan.' }, { status: 400 });
         }
         
-        if (!['free', 'pro1', 'pro2', 'pro3', 'vip', 'admin'].includes(role)) {
+        if (role === 'admin') {
+            return NextResponse.json({ error: 'Pembuatan admin baru harus melalui konfigurasi khusus.' }, { status: 403 });
+        }
+
+        if (!['free', 'pro1', 'pro2', 'pro3', 'vip'].includes(role)) {
             return NextResponse.json({ error: 'Role tidak valid.' }, { status: 400 });
         }
 
