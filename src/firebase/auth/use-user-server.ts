@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { cookies } from 'next/headers';
-import { initializeAdminApp } from '../admin';
+import { safeGetAdminApp } from '../admin';
 import { UserProfile } from '@/lib/types';
 import { getDoc } from 'firebase-admin/firestore';
 
@@ -10,7 +10,12 @@ import { getDoc } from 'firebase-admin/firestore';
  * Reads the session cookie and uses the Firebase Admin SDK.
  */
 export const useUser = async () => {
-  const { auth, db } = await initializeAdminApp();
+  const admin = safeGetAdminApp();
+  if (!admin) {
+      return { user: null, userProfile: null };
+  }
+  const { auth, db } = admin;
+  
   const sessionCookie = cookies().get('session')?.value;
 
   if (!sessionCookie) {

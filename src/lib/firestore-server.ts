@@ -1,79 +1,65 @@
-import { initializeAdminApp } from '@/firebase/admin';
+import { safeGetAdminApp } from '@/firebase/admin';
 import { Location, Spot } from './types';
 
-const handleAuthError = (error: any, context: string) => {
-    console.error(`[Firestore Server Error] in ${context}:`, error.message);
-    if (error.message.includes('Could not refresh access token') || error.code === 'auth/invalid-credential') {
-        console.warn(`\n[ACTION REQUIRED] Firebase Admin SDK authentication failed. 
-If you are running locally, try authenticating with the gcloud CLI: 
-$ gcloud auth application-default login
-Then, restart the development server.\n`);
+// This function now uses safeGetAdminApp to avoid crashing if the Admin SDK isn't initialized.
+const getDb = () => {
+    const app = safeGetAdminApp();
+    if (!app) {
+        console.warn(`[Firestore Server] Firebase Admin SDK is not available. Server-side data fetching is disabled.`);
     }
-    return null; // Return null or empty array to prevent crash
+    return app?.db;
 }
 
 export async function getLocations(includeInactive = false): Promise<Location[]> {
-    try {
-        const { db } = await initializeAdminApp();
-        let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = db.collection('locations');
+    const db = getDb();
+    if (!db) return [];
+    
+    let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = db.collection('locations');
 
-        if (!includeInactive) {
-            query = query.where('isActive', '==', true);
-        }
-        
-        const snapshot = await query.get();
-        if (snapshot.empty) {
-            return [];
-        }
-        
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Location));
-    } catch (error) {
-        handleAuthError(error, 'getLocations');
+    if (!includeInactive) {
+        query = query.where('isActive', '==', true);
+    }
+    
+    const snapshot = await query.get();
+    if (snapshot.empty) {
         return [];
     }
+    
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Location));
 }
 
 export async function getLocation(id: string): Promise<Location | null> {
-    try {
-        const { db } = await initializeAdminApp();
-        const docRef = db.collection('locations').doc(id);
-        const docSnap = await docRef.get();
+    const db = getDb();
+    if (!db) return null;
+    
+    const docRef = db.collection('locations').doc(id);
+    const docSnap = await docRef.get();
 
-        if (!docSnap.exists) {
-            return null;
-        }
-
-        return { id: docSnap.id, ...docSnap.data() } as Location;
-    } catch (error) {
-        handleAuthError(error, `getLocation(id: ${id})`);
+    if (!docSnap.exists) {
         return null;
     }
+
+    return { id: docSnap.id, ...docSnap.data() } as Location;
 }
 
 export async function getSpots(locationId: string): Promise<Spot[]> {
-    try {
-        const { db } = await initializeAdminApp();
-        const spotsRef = db.collection('spots');
-        const q = spotsRef.where('locationId', '==', locationId);
-        const querySnapshot = await q.get();
-        return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Spot));
-    } catch (error) {
-        handleAuthError(error, `getSpots(locationId: ${locationId})`);
-        return [];
-    }
+    const db = getDb();
+    if (!db) return [];
+
+    const spotsRef = db.collection('spots');
+    const q = spotsRef.where('locationId', '==', locationId);
+    const querySnapshot = await q.get();
+    return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Spot));
 }
 
 export async function getSpotClient(id: string): Promise<Spot | null> {
-  try {
-    const { db } = await initializeAdminApp();
-    const docRef = db.collection('spots').doc(id);
-    const docSnap = await docRef.get();
-    if (docSnap.exists) {
-        return { id: docSnap.id, ...docSnap.data() } as Spot;
-    }
-    return null;
-  } catch(error: any) {
-      handleAuthError(error, `getSpotClient(id: ${id})`);
-      return null;
+  const db = getDb();
+  if (!db) return null;
+
+  const docRef = db.collection('spots').doc(id);
+  const docSnap = await docRef.get();
+  if (docSnap.exists) {
+      return { id: docSnap.id, ...docSnap.data() } as Spot;
   }
+  return null;
 }
