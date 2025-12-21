@@ -1,4 +1,5 @@
 
+import 'server-only';
 import { safeGetAdminApp } from '@/firebase/admin';
 import { Location, Spot } from './types';
 
