@@ -38,7 +38,18 @@ export async function getLocations(includeInactive = false): Promise<Location[]>
 
 export async function getLocation(id: string): Promise<Location | null> {
     const { db } = getAdminServices();
-    if (!db) return null; 
+    if (!db) {
+        // Degraded mode: return placeholder data
+        console.warn(`[Firestore Admin] Degraded Mode: Mengembalikan data placeholder untuk getLocation(id: ${id})`);
+        return {
+            id,
+            name: 'Lokasi (Degraded Mode)',
+            description: 'Koneksi ke database server gagal. Data ini adalah placeholder.',
+            coverImage: '/placeholder.jpg',
+            isActive: true,
+            category: 'placeholder'
+        } as Location;
+    }
     
     try {
         const docRef = db.collection('locations').doc(id);
@@ -49,8 +60,6 @@ export async function getLocation(id: string): Promise<Location | null> {
         }
 
         const location = { id: docSnap.id, ...docSnap.data() } as Location;
-
-        // Logic for handling inactive locations is now moved to the client
         return location;
     } catch (error: any) {
         console.error(`[Firestore Admin] Gagal mengambil getLocation untuk id ${id}:`, error.message);
@@ -75,7 +84,20 @@ export async function getSpots(locationId: string): Promise<Spot[]> {
 
 export async function getSpot(id: string): Promise<Spot | null> {
   const { db } = getAdminServices();
-  if (!db) return null;
+  if (!db) {
+    // Degraded mode: return placeholder data
+    console.warn(`[Firestore Admin] Degraded Mode: Mengembalikan data placeholder untuk getSpot(id: ${id})`);
+    return {
+        id,
+        locationId: 'placeholder-location',
+        order: 0,
+        title: 'Spot (Degraded Mode)',
+        description: 'Koneksi ke database server gagal. Data ini adalah placeholder.',
+        imageUrl: '/placeholder.jpg',
+        isPro: false,
+        viewType: 'flat',
+    } as Spot;
+  }
 
   try {
     const docRef = db.collection('spots').doc(id);
