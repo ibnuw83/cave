@@ -5,38 +5,39 @@ let adminApp: admin.app.App | null = null;
 let initError: Error | null = null;
 
 function initialize() {
+  // Hindari inisialisasi ulang jika sudah ada
   if (admin.apps.length > 0) {
     adminApp = admin.apps[0];
     return;
   }
   
   try {
-    // This will succeed in a deployed environment (App Hosting, Cloud Functions, etc.)
-    // or if Application Default Credentials are set up locally.
+    // Ini akan berhasil di lingkungan server (App Hosting, Cloud Functions)
+    // atau jika Application Default Credentials (ADC) sudah di-setup secara lokal.
      adminApp = admin.initializeApp({
         credential: admin.credential.applicationDefault(),
      });
   } catch (e: any) {
+    // Tangkap error jika inisialisasi gagal (misalnya, tidak ada kredensial)
     initError = e;
-    console.warn(`[Firebase Admin] Initialization failed. This is expected in local development if ADC is not set up. App will run in a degraded mode where server-side data fetching is disabled. Error: ${e.message}`);
+    console.warn(`[Firebase Admin] Inisialisasi gagal. Ini wajar dalam pengembangan lokal jika ADC tidak di-setup. Aplikasi akan berjalan dalam mode terdegradasi (data sisi server dinonaktifkan). Error: ${e.message}`);
   }
 }
 
-// Initialize on module load
+// Lakukan inisialisasi saat modul dimuat
 initialize();
 
 /**
- * Returns the initialized Firebase Admin SDK services (auth, db).
- * Throws an error if initialization failed. This is the intended behavior
- * for functions that absolutely require the Admin SDK to operate.
+ * Mengembalikan instance Firebase Admin SDK yang telah diinisialisasi.
+ * Ini akan melempar error jika inisialisasi gagal.
+ * Sebaiknya gunakan safeGetAdminApp untuk menghindari crash.
  */
 export function getAdminApp() {
   if (initError) {
-    // Re-throw the original initialization error to make it clear why it's failing.
-    throw new Error(`Firebase Admin SDK not initialized. Please ensure your server environment has the correct credentials. Original error: ${initError.message}`);
+    throw new Error(`Firebase Admin SDK tidak terinisialisasi. Pastikan lingkungan server memiliki kredensial yang benar. Original error: ${initError.message}`);
   }
   if (!adminApp) {
-      throw new Error('Firebase Admin SDK is not available. The app may not have been initialized correctly.');
+      throw new Error('Firebase Admin SDK tidak tersedia. Aplikasi mungkin tidak terinisialisasi dengan benar.');
   }
 
   return {
@@ -47,9 +48,9 @@ export function getAdminApp() {
 
 
 /**
- * Safely attempts to get the Firebase Admin SDK services.
- * Returns null if the SDK failed to initialize, allowing the app
- * to continue in a degraded state instead of crashing.
+ * Mencoba mendapatkan service Firebase Admin SDK dengan aman.
+ * Mengembalikan null jika SDK gagal diinisialisasi, memungkinkan aplikasi
+ * untuk berjalan dalam mode terdegradasi daripada crash.
  */
 export function safeGetAdminApp() {
     if (initError || !adminApp) {

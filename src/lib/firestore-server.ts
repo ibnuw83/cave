@@ -1,25 +1,25 @@
-
 import 'server-only';
 import { safeGetAdminApp } from '@/firebase/admin';
 import { Location, Spot } from './types';
 
-// This function now uses safeGetAdminApp to avoid crashing if the Admin SDK isn't initialized.
+// Fungsi ini sekarang menggunakan safeGetAdminApp untuk menghindari crash jika Admin SDK tidak terinisialisasi.
 const getDb = () => {
     const app = safeGetAdminApp();
+    // Log ini penting untuk debugging masalah server-side rendering.
     if (!app) {
-        // This log is important for debugging server-side rendering issues.
-        console.warn(`[Firestore Server] Firebase Admin SDK is not available. Server-side data fetching is disabled.`);
+        console.warn(`[Firestore Server] Firebase Admin SDK tidak tersedia. Pengambilan data sisi server dinonaktifkan.`);
     }
     return app?.db;
 }
 
 export async function getLocations(includeInactive = false): Promise<Location[]> {
     const db = getDb();
-    if (!db) return [];
+    if (!db) return []; // Kembalikan array kosong jika DB tidak tersedia
     
     try {
         let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = db.collection('locations');
 
+        // Filter lokasi yang tidak aktif jika tidak diminta sebaliknya
         if (!includeInactive) {
             query = query.where('isActive', '==', true);
         }
@@ -31,40 +31,44 @@ export async function getLocations(includeInactive = false): Promise<Location[]>
         
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Location));
     } catch (error: any) {
-        console.error("[Firestore Server] Failed to getLocations:", error.message);
+        console.error("[Firestore Server] Gagal mengambil getLocations:", error.message);
+        // Kembalikan array kosong jika terjadi kesalahan
         return [];
     }
 }
 
 export async function getLocation(id: string): Promise<Location | null> {
     const db = getDb();
-    if (!db) return null;
+    if (!db) return null; // Kembalikan null jika DB tidak tersedia
     
     try {
         const docRef = db.collection('locations').doc(id);
         const docSnap = await docRef.get();
 
+        // Jika dokumen tidak ada, kembalikan null
         if (!docSnap.exists) {
             return null;
         }
 
         const location = { id: docSnap.id, ...docSnap.data() } as Location;
 
-        // Ensure we don't return inactive locations on server-side fetching either.
+        // PENTING: Periksa apakah lokasi aktif. Jika tidak, perlakukan seolah-olah tidak ditemukan.
+        // Ini akan memicu notFound() di page component dengan benar.
         if (!location.isActive) {
             return null;
         }
 
         return location;
     } catch (error: any) {
-        console.error(`[Firestore Server] Failed to getLocation for id ${id}:`, error.message);
+        console.error(`[Firestore Server] Gagal mengambil getLocation untuk id ${id}:`, error.message);
+        // Kembalikan null jika terjadi kesalahan
         return null;
     }
 }
 
 export async function getSpots(locationId: string): Promise<Spot[]> {
     const db = getDb();
-    if (!db) return [];
+    if (!db) return []; // Kembalikan array kosong jika DB tidak tersedia
 
     try {
         const spotsRef = db.collection('spots');
@@ -72,14 +76,14 @@ export async function getSpots(locationId: string): Promise<Spot[]> {
         const querySnapshot = await q.get();
         return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Spot));
     } catch (error: any) {
-        console.error(`[Firestore Server] Failed to getSpots for locationId ${locationId}:`, error.message);
+        console.error(`[Firestore Server] Gagal mengambil getSpots untuk locationId ${locationId}:`, error.message);
         return [];
     }
 }
 
 export async function getSpotClient(id: string): Promise<Spot | null> {
   const db = getDb();
-  if (!db) return null;
+  if (!db) return null; // Kembalikan null jika DB tidak tersedia
 
   try {
     const docRef = db.collection('spots').doc(id);
@@ -89,7 +93,7 @@ export async function getSpotClient(id: string): Promise<Spot | null> {
     }
     return null;
   } catch (error: any) {
-    console.error(`[Firestore Server] Failed to getSpotClient for id ${id}:`, error.message);
+    console.error(`[Firestore Server] Gagal mengambil getSpotClient untuk id ${id}:`, error.message);
     return null;
   }
 }
