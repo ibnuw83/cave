@@ -1,6 +1,5 @@
 'use client';
 
-import type { Viewport } from 'next';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';

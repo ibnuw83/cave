@@ -4,8 +4,34 @@ import React, { DependencyList, createContext, useContext, ReactNode, useMemo, u
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth } from 'firebase/auth';
-import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { initializeFirebase } from '@/firebase';
+import { errorEmitter } from './error-emitter';
+import { FirestorePermissionError } from './errors';
+import { useToast } from '@/hooks/use-toast';
+
+
+function FirebaseErrorListener() {
+  const { toast } = useToast();
+  useEffect(() => {
+    const handleError = (error: FirestorePermissionError) => {
+        if (error instanceof FirestorePermissionError) {
+          toast({
+            variant: 'destructive',
+            title: 'Akses Ditolak',
+            description: 'Anda tidak memiliki izin untuk melakukan tindakan ini.',
+          });
+          console.warn('[PERMISSION DENIED]', {
+            path: error.request,
+          });
+        }
+    };
+    errorEmitter.on('permission-error', handleError);
+    return () => {
+      errorEmitter.off('permission-error', handleError);
+    };
+  }, [toast]);
+  return null;
+}
 
 interface FirebaseServices {
   firebaseApp: FirebaseApp;
@@ -15,7 +41,7 @@ interface FirebaseServices {
 
 export const FirebaseContext = createContext<FirebaseServices | undefined>(undefined);
 
-export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const FirebaseClientProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [services, setServices] = useState<FirebaseServices | null>(null);
 
   useEffect(() => {
@@ -46,7 +72,7 @@ export const useFirebase = (): FirebaseServices => {
   const context = useContext(FirebaseContext);
 
   if (context === undefined) {
-    throw new Error('useFirebase must be used within a FirebaseProvider.');
+    throw new Error('useFirebase must be used within a FirebaseClientProvider.');
   }
   
   return context;
