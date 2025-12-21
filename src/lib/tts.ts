@@ -52,9 +52,10 @@ export function stopSpeaking() {
  * Uses the browser's built-in Web Speech API for text-to-speech.
  * This is used as a fallback if the AI narration fails.
  * @param text The text to be spoken.
+ * @param lang The language for the utterance (e.g., 'en-US', 'id-ID').
  * @param onEnd Callback to be executed when speech is finished.
  */
-export function speak(text: string, onEnd?: () => void) {
+export function speak(text: string, lang: string = 'id-ID', onEnd?: () => void) {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
     console.warn('Web Speech API tidak didukung di browser ini.');
     onEnd?.();
@@ -64,7 +65,7 @@ export function speak(text: string, onEnd?: () => void) {
   stopSpeaking(); // Ensure nothing else is playing
 
   const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'id-ID';
+  u.lang = lang;
   u.rate = 0.95;
   u.pitch = 1.1;
   u.onend = () => {

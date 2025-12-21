@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -184,8 +183,11 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
   useEffect(() => {
     const translateContent = async () => {
       const targetLanguage = selectedLanguage;
-      const sourceLanguage = 'id'; // Assuming the original content is in Indonesian
+      // Assuming the original content is in Indonesian or a neutral language.
+      // For a robust system, the source language should ideally be stored with the content.
+      const sourceLanguage = 'id'; 
 
+      // Do not translate if the target is the same as the source
       if (targetLanguage.startsWith(sourceLanguage)) {
         setTranslatedTitle(spot.title);
         setTranslatedDescription(spot.description);
@@ -211,10 +213,14 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
         if (titleRes.ok) {
           const { translatedText } = await titleRes.json();
           setTranslatedTitle(translatedText);
+        } else {
+          setTranslatedTitle(spot.title); // fallback to original
         }
          if (descriptionRes.ok) {
           const { translatedText } = await descriptionRes.json();
           setTranslatedDescription(translatedText);
+        } else {
+          setTranslatedDescription(spot.description); // fallback to original
         }
 
       } catch (error) {
@@ -408,6 +414,13 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
       e.stopPropagation();
       setIsDescriptionExpanded(prev => !prev);
   };
+
+    const canVibrate = () => typeof window !== 'undefined' && 'vibrate' in navigator;
+    const vibrate = (pattern: number | number[]) => {
+        if (canVibrate()) {
+            navigator.vibrate(pattern);
+        }
+    }
   
   return (
     <>
@@ -500,3 +513,5 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
     </>
   );
 }
+
+    
