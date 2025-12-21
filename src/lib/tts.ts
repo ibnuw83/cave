@@ -1,19 +1,16 @@
 
 'use client';
 
-// This file is now used for both browser TTS and for controlling AI-generated audio
-// to provide a single, unified interface for speech control.
+// This file now only handles the browser's built-in SpeechSynthesis API,
+// which is used as a fallback. The control of AI-generated audio (<audio> elements)
+// is now managed locally within the React component that creates it (SpotPlayerUI).
 
-let currentAudio: HTMLAudioElement | null = null;
 let currentUtterance: SpeechSynthesisUtterance | null = null;
 
-// A hack to allow the SpotPlayerUI to assign the dynamically created audio element
-// so that it can be stopped by this module.
-if (typeof window !== 'undefined') {
-    (window as any).currentAudio = null;
-}
-
-function stopSpeechSynthesis() {
+/**
+ * Stops any currently playing speech from the browser's Web Speech API.
+ */
+export function stopSpeechSynthesis() {
   if (typeof window !== 'undefined' && window.speechSynthesis) {
     if (currentUtterance) {
       currentUtterance.onend = null; // Prevent onEnd from firing after manual stop
@@ -21,31 +18,6 @@ function stopSpeechSynthesis() {
     }
     window.speechSynthesis.cancel();
   }
-}
-
-function stopAudioElement() {
-  // Use the globally assigned audio element if it exists
-  const audioToStop = currentAudio || (typeof window !== 'undefined' ? (window as any).currentAudio : null);
-  if (audioToStop) {
-    audioToStop.pause();
-    audioToStop.currentTime = 0;
-    if (audioToStop.src && audioToStop.src.startsWith('blob:')) {
-      URL.revokeObjectURL(audioToStop.src);
-    }
-    currentAudio = null;
-    if (typeof window !== 'undefined') {
-      (window as any).currentAudio = null;
-    }
-  }
-}
-
-/**
- * Stops any currently playing audio, whether it's from the Web Speech API
- * or an <audio> element from the AI narration.
- */
-export function stopSpeaking() {
-  stopAudioElement();
-  stopSpeechSynthesis();
 }
 
 /**
@@ -62,7 +34,7 @@ export function speak(text: string, lang: string = 'id-ID', onEnd?: () => void) 
     return;
   }
 
-  stopSpeaking(); // Ensure nothing else is playing
+  stopSpeechSynthesis(); // Ensure no other utterance is playing
 
   const u = new SpeechSynthesisUtterance(text);
   u.lang = lang;
@@ -76,5 +48,3 @@ export function speak(text: string, lang: string = 'id-ID', onEnd?: () => void) 
   currentUtterance = u;
   window.speechSynthesis.speak(u);
 }
-
-    

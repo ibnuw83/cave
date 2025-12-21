@@ -24,7 +24,7 @@ import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
-import { stopSpeaking } from '@/lib/tts';
+import { stopSpeechSynthesis } from '@/lib/tts';
 import { Skeleton } from '@/components/ui/skeleton';
 
 
@@ -175,11 +175,25 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
   const [translatedTitle, setTranslatedTitle] = useState(spot.title);
   const [translatedDescription, setTranslatedDescription] = useState(spot.description);
   const uiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
   const isProUser = userRole.startsWith('pro') || userRole === 'vip' || userRole === 'admin';
   const isFreeUser = !isProUser;
+
+  const stopSpeaking = useCallback(() => {
+    // Stop browser TTS
+    stopSpeechSynthesis();
+    // Stop and cleanup the Audio element
+    if (audioRef.current) {
+        audioRef.current.pause();
+        if (audioRef.current.src && audioRef.current.src.startsWith('blob:')) {
+            URL.revokeObjectURL(audioRef.current.src);
+        }
+        audioRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     const translateContent = async () => {
@@ -305,13 +319,14 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
 
   
   useEffect(() => {
+    // Cleanup function when spot.id changes or component unmounts
     return () => {
-      stopSpeaking(); 
+      stopSpeaking();
       if (canVibrate()) {
         vibrate(0);
       }
     };
-  }, [spot.id]);
+  }, [spot.id, stopSpeaking]);
 
   const handlePlaybackEnd = () => {
     setIsPlaying(false);
@@ -349,11 +364,10 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
       const audio = new Audio(audioUrl);
       
       audio.onended = () => {
-          URL.revokeObjectURL(audioUrl);
           handlePlaybackEnd();
       };
       
-      (window as any).currentAudio = audio;
+      audioRef.current = audio;
       await audio.play();
       
       setIsPlaying(true);
@@ -402,7 +416,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
         const u = new SpeechSynthesisUtterance(translatedDescription);
         u.lang = selectedLanguage;
         u.onend = handlePlaybackEnd;
-        (window as any).currentUtterance = u;
+        stopSpeechSynthesis(); // Ensure no prior utterance is queued
         window.speechSynthesis.speak(u);
 
         setIsPlaying(true);
