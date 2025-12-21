@@ -26,7 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
 import { stopSpeechSynthesis } from '@/lib/tts';
 import { Skeleton } from '@/components/ui/skeleton';
-import AdBanner from '../AdBanner';
+import AdBanner from '@/app/components/AdBanner';
 
 
 function SpotNavigation({ currentSpotId, allSpots, isUIVisible }: { currentSpotId: string, allSpots: Spot[], isUIVisible: boolean }) {
