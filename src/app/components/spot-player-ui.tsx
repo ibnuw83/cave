@@ -198,9 +198,9 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
 
   useEffect(() => {
     const translateContent = async () => {
-      const targetLanguage = selectedLanguage;
+      const language = selectedLanguage;
 
-      if (targetLanguage.startsWith('id')) { // Assuming original is Indonesian
+      if (language.startsWith('id')) { // Assuming original is Indonesian
         setTranslatedTitle(spot.title);
         setTranslatedDescription(spot.description);
         return;
@@ -213,12 +213,12 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
           fetch('/api/translate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: spot.title, targetLanguage }),
+            body: JSON.stringify({ text: spot.title, targetLanguage: language }),
           }),
           fetch('/api/translate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: spot.description, targetLanguage }),
+            body: JSON.stringify({ text: spot.description, targetLanguage: language }),
           }),
         ]);
 

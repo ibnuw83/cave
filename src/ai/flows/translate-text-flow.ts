@@ -9,7 +9,7 @@ import { z } from 'zod';
 
 const TranslateTextInputSchema = z.object({
   text: z.string().describe('The text to be translated.'),
-  targetLanguage: z.string().describe('The target language for the translation (e.g., "en-US", "id-ID", "es-ES").'),
+  language: z.string().describe('The target language for the translation (e.g., "en-US", "id-ID", "es-ES").'),
   sourceLanguage: z.string().optional().describe('The source language of the text. If not provided, the model will attempt to detect it.'),
 });
 export type TranslateTextInput = z.infer<typeof TranslateTextInputSchema>;
@@ -27,7 +27,7 @@ const prompt = ai.definePrompt({
   name: 'translateTextPrompt',
   input: { schema: TranslateTextInputSchema },
   output: { schema: TranslateTextOutputSchema },
-  prompt: `Translate the following text from {{{sourceLanguage or 'the source language'}}} to {{{targetLanguage}}}.
+  prompt: `Translate the following text from {{{sourceLanguage or 'the source language'}}} to {{{language}}}.
 Only return the translated text itself, with no additional commentary.
 
 Text: {{{text}}}

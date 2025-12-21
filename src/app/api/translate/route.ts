@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'text and targetLanguage are required' }, { status: 400 });
     }
 
-    const result = await translateText({ text, targetLanguage, sourceLanguage });
+    const result = await translateText({ text, language: targetLanguage, sourceLanguage });
 
     return NextResponse.json(result);
   } catch (e: any) {
