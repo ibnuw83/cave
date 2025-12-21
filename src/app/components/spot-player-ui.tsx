@@ -5,7 +5,7 @@ import { Spot } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Play, Pause, Loader2, Maximize, Minimize, Orbit } from 'lucide-react';
+import { ChevronLeft, Play, Pause, Loader2, Maximize, Minimize, Orbit, SkipForward, Gem } from 'lucide-react';
 import { canVibrate, vibrate } from '@/lib/haptics';
 import {
   Carousel,
@@ -152,6 +152,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
   const { toast } = useToast();
 
   const isProUser = userRole.startsWith('pro') || userRole === 'vip' || userRole === 'admin';
+  const isFreeUser = !isProUser;
 
    const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -235,13 +236,37 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
   const handlePlaybackEnd = () => {
     setIsPlaying(false);
     if (canVibrate()) {
-      vibrate(0);
+        vibrate(0);
+    }
+    // "Mode Misi" logic starts here
+    const currentSpotIndex = allSpots.findIndex(s => s.id === spot.id);
+    const hasNextSpot = currentSpotIndex !== -1 && currentSpotIndex < allSpots.length - 1;
+
+    if (hasNextSpot) {
+        const nextSpot = allSpots[currentSpotIndex + 1];
+        if (isProUser || !nextSpot.isPro) { // PRO users can always continue, free users can if next is not pro
+            router.push(`/spot/${nextSpot.id}`);
+        } else {
+            // Free user trying to access a PRO spot next
+            toast({
+                title: "Mode Misi Khusus PRO",
+                description: "Upgrade ke PRO untuk melanjutkan tur otomatis ke semua spot.",
+                action: (
+                    <Button asChild><Link href="/pricing"><Gem className="mr-2"/>Upgrade</Link></Button>
+                )
+            });
+        }
+    } else {
+      // Reached the end of the tour
+       toast({
+        title: "Misi Selesai!",
+        description: "Anda telah mencapai akhir dari penjelajahan di lokasi ini.",
+      });
     }
   };
 
   const playAudioFromBase64 = async (base64Pcm: string, vibrationPattern?: number[]) => {
       stopSpeaking(); // Stop any currently playing audio
-      handlePlaybackEnd();
       
       const audioUrl = await convertPcmToWavUrl(base64Pcm);
       const audio = new Audio(audioUrl);
@@ -263,11 +288,11 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
 
   const handleTogglePlay = async (e: React.MouseEvent) => {
     e.stopPropagation(); 
-    if (!isProUser) return;
 
     if (isPlaying) {
       stopSpeaking();
-      handlePlaybackEnd();
+      setIsPlaying(false);
+      if (canVibrate()) vibrate(0);
       return;
     }
 
@@ -338,11 +363,10 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
         >
             <div className="flex items-end justify-between gap-4">
                 <div className="flex items-start gap-4">
-                    {isProUser && (
-                        <Button size="icon" className="rounded-full h-16 w-16 bg-white/30 text-white backdrop-blur-sm hover:bg-white/50 flex-shrink-0" onClick={handleTogglePlay} disabled={isLoading}>
-                            {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
-                        </Button>
-                    )}
+                   <Button size="icon" className="rounded-full h-16 w-16 bg-white/30 text-white backdrop-blur-sm hover:bg-white/50 flex-shrink-0" onClick={handleTogglePlay} disabled={isLoading}>
+                        {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
+                    </Button>
+                    
                     <div>
                         <h1 className="text-3xl font-bold font-headline mb-1">{spot.title}</h1>
                          <p className={cn("text-base text-white/80 max-w-prose", !isDescriptionExpanded && "line-clamp-1")}>
