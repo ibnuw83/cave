@@ -3,26 +3,34 @@ import { NextRequest, NextResponse } from 'next/server';
 import { safeGetAdminApp } from '@/firebase/admin';
 import { cookies } from 'next/headers';
 import { createUserAdmin } from '@/lib/firestore-admin';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 
-async function verifyAdmin(req: NextRequest): Promise<boolean> {
+async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
     const admin = safeGetAdminApp();
     if (!admin) {
       console.warn('[ADMIN API] Admin SDK tidak tersedia');
-      return false;
+      return null;
     }
   
     const sessionCookie = cookies().get('__session')?.value;
-    if (!sessionCookie) return false;
+    if (!sessionCookie) {
+      console.warn('[ADMIN API] Cookie sesi tidak ditemukan.');
+      return null;
+    }
   
     try {
       const decoded = await admin.auth.verifySessionCookie(sessionCookie, true);
       const userDoc = await admin.db.collection('users').doc(decoded.uid).get();
-      return userDoc.exists && userDoc.data()?.role === 'admin';
+      if (userDoc.exists && userDoc.data()?.role === 'admin') {
+        return decoded;
+      }
+      console.warn(`[ADMIN API] Verifikasi gagal: Pengguna ${decoded.uid} bukan admin.`);
+      return null;
     } catch (err) {
-      console.warn('[ADMIN API] Gagal verifikasi admin');
-      return false;
+      console.warn('[ADMIN API] Gagal verifikasi cookie admin:', err);
+      return null;
     }
-  }
+}
 
 // Handler for POST /api/admin/users
 export async function POST(req: NextRequest) {

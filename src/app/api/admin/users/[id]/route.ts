@@ -13,7 +13,10 @@ async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
     }
   
     const sessionCookie = cookies().get('__session')?.value;
-    if (!sessionCookie) return null;
+    if (!sessionCookie) {
+      console.warn('[ADMIN API] Cookie sesi tidak ditemukan.');
+      return null;
+    }
   
     try {
       const decoded = await admin.auth.verifySessionCookie(sessionCookie, true);
@@ -21,9 +24,10 @@ async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
       if (userDoc.exists && userDoc.data()?.role === 'admin') {
         return decoded;
       }
+      console.warn(`[ADMIN API] Verifikasi gagal: Pengguna ${decoded.uid} bukan admin.`);
       return null;
     } catch (err) {
-      console.warn('[ADMIN API] Gagal verifikasi admin');
+      console.warn('[ADMIN API] Gagal verifikasi cookie admin:', err);
       return null;
     }
 }
