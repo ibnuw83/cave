@@ -104,10 +104,7 @@ export default function CaveClient({ location, initialSpots }: { location: Locat
   const sortedSpots = spots ? [...spots].sort((a, b) => a.order - b.order) : [];
 
   const handleStartMission = () => {
-    if (!user) {
-        router.push(`/login?redirect=/spot/${sortedSpots[0].id}`);
-        return;
-    }
+    // No longer forces login. Directly navigates to the first spot.
     if (sortedSpots.length > 0) {
       router.push(`/spot/${sortedSpots[0].id}`);
     } else {
@@ -121,16 +118,8 @@ export default function CaveClient({ location, initialSpots }: { location: Locat
   
   const isLoading = isUserLoading || isProfileLoading;
 
-  if (isLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="text-center">
-          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-          <p className="mt-4 text-lg text-muted-foreground">Memuat data pengguna...</p>
-        </div>
-      </div>
-    );
-  }
+  // We no longer show a full screen loader, to improve initial page load experience.
+  // The UI will handle the loading state for user-specific elements.
 
   const role = userProfile?.role || 'free';
   
@@ -143,7 +132,7 @@ export default function CaveClient({ location, initialSpots }: { location: Locat
       admin: Infinity,
   };
 
-  const accessibleSpotsCount = roleLimits[role] || 3;
+  const accessibleSpotsCount = user ? (roleLimits[role] || 3) : 3;
 
   return (
     <div className="container mx-auto min-h-screen max-w-5xl p-4 md:p-8">
@@ -180,7 +169,7 @@ export default function CaveClient({ location, initialSpots }: { location: Locat
                   <Sparkles className="mr-2 h-4 w-4" />
                   Mulai Misi
                 </Button>
-                {(role.startsWith('pro') || role === 'vip' || role === 'admin') && (
+                {(user && (role.startsWith('pro') || role === 'vip' || role === 'admin')) && (
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -203,8 +192,8 @@ export default function CaveClient({ location, initialSpots }: { location: Locat
         <h3 className="text-lg font-semibold md:text-xl mb-4 mt-8">Daftar Spot</h3>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {sortedSpots.map((spot, index) => {
-            const isLocked = user ? (index >= accessibleSpotsCount && role !== 'admin' && role !== 'vip') : spot.isPro;
-            const lockedMessage = user ? "Upgrade level PRO atau VIP Anda untuk mengakses spot ini." : "Login atau daftar untuk mengakses spot ini.";
+            const isLocked = spot.isPro && !(user && (role.startsWith('pro') || role === 'vip' || role === 'admin'));
+            const lockedMessage = user ? "Upgrade level PRO atau VIP Anda untuk mengakses spot ini." : "Login atau daftar untuk mengakses konten PRO.";
             return <SpotCard 
                       key={spot.id} 
                       spot={spot} 

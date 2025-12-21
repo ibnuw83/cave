@@ -8,7 +8,7 @@ export interface UserProfile {
   displayName: string | null;
   photoURL?: string | null;
   role: 'free' | 'pro1' | 'pro2' | 'pro3' | 'vip' | 'admin';
-  updatedAt: Timestamp;
+  updatedAt: Timestamp | Date;
 }
 
 export interface Location {

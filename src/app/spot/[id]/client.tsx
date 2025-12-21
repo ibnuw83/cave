@@ -40,7 +40,7 @@ export default function SpotPageClient({
   spotId: string;
   initialSpot: Spot | null;
   initialAllSpots: Spot[];
-  userRole: 'free' | 'pro' | 'admin';
+  userRole: string;
 }) {
   const [spot, setSpot] = useState<Spot | null>(initialSpot);
   const [allSpotsInLocation, setAllSpotsInLocation] = useState<Spot[]>(initialAllSpots.sort((a, b) => a.order - b.order));

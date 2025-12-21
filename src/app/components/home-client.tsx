@@ -93,7 +93,7 @@ const AuthSection = () => {
                 {userProfile.email}
               </p>
             </div>
-             <Badge variant={userProfile.role === 'pro' || userProfile.role === 'admin' ? 'default' : 'secondary'} className="uppercase mt-2">
+             <Badge variant={userProfile.role.startsWith('pro') || userProfile.role === 'vip' || userProfile.role === 'admin' ? 'default' : 'secondary'} className="uppercase mt-2">
                 {userProfile.role}
             </Badge>
           </DropdownMenuLabel>

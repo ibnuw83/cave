@@ -6,6 +6,7 @@ import { User, onAuthStateChanged } from 'firebase/auth';
 import { UserProfile } from '@/lib/types';
 import { getUserProfileClient, createUserProfile } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { Timestamp } from 'firebase/firestore';
 
 export function useUser() {
     const auth = useAuth();

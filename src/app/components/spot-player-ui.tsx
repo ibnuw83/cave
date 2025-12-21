@@ -140,7 +140,7 @@ async function convertPcmToWavUrl(base64PcmData: string): Promise<string> {
     return URL.createObjectURL(wavBlob);
 }
 
-export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false, onVrModeChange }: { spot: Spot, userRole: 'free' | 'pro' | 'admin', allSpots: Spot[], vrMode?: boolean; onVrModeChange?: (active: boolean) => void }) {
+export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false, onVrModeChange }: { spot: Spot, userRole: string, allSpots: Spot[], vrMode?: boolean; onVrModeChange?: (active: boolean) => void }) {
   const { user } = useUser();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -151,7 +151,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
   const router = useRouter();
   const { toast } = useToast();
 
-  const isProUser = userRole === 'pro' || userRole === 'admin';
+  const isProUser = userRole.startsWith('pro') || userRole === 'vip' || userRole === 'admin';
 
    const toggleFullscreen = () => {
     if (!document.fullscreenElement) {

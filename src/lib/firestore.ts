@@ -15,6 +15,7 @@ import {
   writeBatch,
   orderBy,
   increment,
+  Timestamp,
 } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
 import { initializeFirebase } from '@/firebase'; // Menggunakan inisialisasi terpusat
@@ -32,7 +33,12 @@ export async function getUserProfileClient(uid: string): Promise<UserProfile | n
   try {
     const docSnap = await getDoc(userRef);
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() } as UserProfile;
+      const data = docSnap.data();
+      // Convert Firestore Timestamp to Date for client-side usage
+      if (data.updatedAt instanceof Timestamp) {
+        data.updatedAt = data.updatedAt.toDate();
+      }
+      return { id: docSnap.id, ...data } as UserProfile;
     }
     return null;
   } catch (error: any) {
