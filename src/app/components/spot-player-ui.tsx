@@ -403,6 +403,11 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
         }
         
         const base64Pcm = await response.text();
+        
+        if (!base64Pcm || base64Pcm.length < 100) {
+            throw new Error('Invalid or empty narration payload received from API.');
+        }
+        
         await playAudioFromBase64(base64Pcm, spot.effects?.vibrationPattern);
 
     } catch (error) {
@@ -532,3 +537,4 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
     
 
     
+
