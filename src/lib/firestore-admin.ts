@@ -38,15 +38,7 @@ export async function getLocations(includeInactive = false): Promise<Location[]>
 export async function getLocation(id: string): Promise<Location | null> {
     const { db } = getAdminServices();
     if (!db) {
-        console.warn(`[Firestore Admin] Degraded Mode: Mengembalikan data placeholder untuk getLocation(id: ${id}).`);
-        return {
-            id,
-            name: 'Lokasi Placeholder',
-            category: 'Gua',
-            description: 'Data lokasi ini sedang tidak tersedia karena koneksi ke server gagal. Ini adalah data placeholder untuk pengembangan.',
-            coverImage: `https://picsum.photos/seed/${id}/1200/800`,
-            isActive: true,
-        };
+        return null;
     }
     
     try {
@@ -68,30 +60,7 @@ export async function getLocation(id: string): Promise<Location | null> {
 export async function getSpots(locationId: string): Promise<Spot[]> {
     const { db } = getAdminServices();
     if (!db) {
-         console.warn(`[Firestore Admin] Degraded Mode: Mengembalikan spot placeholder untuk locationId: ${locationId}.`);
-         // Return placeholder spots in degraded mode to allow UI development
-         return [
-            {
-                id: 'spot-placeholder-1',
-                locationId: locationId,
-                order: 1,
-                title: 'Spot Placeholder 1',
-                description: 'Ini adalah deskripsi untuk spot placeholder pertama. Konten nyata akan muncul saat terhubung ke database.',
-                imageUrl: 'https://picsum.photos/seed/spot1/1200/800',
-                isPro: false,
-                viewType: 'flat',
-            },
-            {
-                id: 'spot-placeholder-2',
-                locationId: locationId,
-                order: 2,
-                title: 'Spot Placeholder 2 (PRO)',
-                description: 'Ini adalah deskripsi untuk spot placeholder kedua, yang ditandai sebagai konten PRO.',
-                imageUrl: 'https://picsum.photos/seed/spot2/1200/800',
-                isPro: true,
-                viewType: 'panorama',
-            }
-         ] as Spot[];
+         return [];
     }
 
     try {
@@ -108,17 +77,7 @@ export async function getSpots(locationId: string): Promise<Spot[]> {
 export async function getSpot(id: string): Promise<Spot | null> {
   const { db } = getAdminServices();
   if (!db) {
-    console.warn(`[Firestore Admin] Degraded Mode: Mengembalikan spot placeholder untuk getSpot(id: ${id}).`);
-    return {
-        id,
-        locationId: 'location-placeholder',
-        order: 1,
-        title: 'Spot Placeholder',
-        description: 'Data spot ini sedang tidak tersedia karena koneksi ke server gagal. Ini adalah data placeholder.',
-        imageUrl: `https://picsum.photos/seed/${id}/1200/800`,
-        isPro: false,
-        viewType: 'flat',
-    } as Spot;
+    return null;
   }
 
   try {
@@ -218,4 +177,3 @@ export async function updateUserStatusAdmin(uid: string, disabled: boolean): Pro
 
     await auth.updateUser(uid, { disabled });
 }
-    
