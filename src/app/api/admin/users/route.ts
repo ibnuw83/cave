@@ -6,7 +6,10 @@ import { createUserAdmin } from '@/lib/firestore-admin';
 
 async function verifyAdmin(req: NextRequest): Promise<boolean> {
     const admin = safeGetAdminApp();
-    if (!admin) return false;
+    if (!admin) {
+        console.warn('[ADMIN API] Firebase Admin SDK not initialized. This is expected in local dev without ADC. Admin operations will be denied.');
+        return false;
+    }
 
     const sessionCookie = cookies().get('__session')?.value;
     if (!sessionCookie) return false;
