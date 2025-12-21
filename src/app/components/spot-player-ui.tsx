@@ -435,7 +435,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
       setIsDescriptionExpanded(prev => !prev);
   };
 
-    const canVibrate = () => typeof window !== 'undefined' && 'vibrate' in navigator;
+    const canVibrate = () => typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
     const vibrate = (pattern: number | number[]) => {
         if (canVibrate()) {
             navigator.vibrate(pattern);
