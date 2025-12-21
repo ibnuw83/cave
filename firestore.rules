@@ -33,13 +33,13 @@ service cloud.firestore {
 
     match /users/{userId} {
       /**
-       * @description Controls access to user documents. Users can only manage their own data.
+       * @description Controls access to user documents. Users can only manage their own data. Admins have full access.
        */
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isOwner(userId);
       allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin();
-      allow delete: if false;
+      allow delete: if isAdmin();
     }
 
     match /kioskSettings/{settingId} {
