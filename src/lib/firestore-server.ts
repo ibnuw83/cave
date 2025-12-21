@@ -1,3 +1,4 @@
+
 import { safeGetAdminApp } from '@/firebase/admin';
 import { Location, Spot } from './types';
 
@@ -46,7 +47,14 @@ export async function getLocation(id: string): Promise<Location | null> {
             return null;
         }
 
-        return { id: docSnap.id, ...docSnap.data() } as Location;
+        const location = { id: docSnap.id, ...docSnap.data() } as Location;
+
+        // Ensure we don't return inactive locations
+        if (!location.isActive) {
+            return null;
+        }
+
+        return location;
     } catch (error: any) {
         console.error(`[Firestore Server] Failed to getLocation for id ${id}:`, error.message);
         return null;
