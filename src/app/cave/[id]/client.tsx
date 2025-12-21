@@ -6,13 +6,14 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Lock, ChevronLeft, Download, WifiOff, Loader2, Sparkles } from 'lucide-react';
+import { Lock, ChevronLeft, Download, WifiOff, Loader2, Sparkles, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { saveLocationForOffline, isLocationAvailableOffline } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase';
 import AdBanner from '@/app/components/AdBanner';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 function SpotCard({ spot, isLocked, isOffline, lockedMessage }: { spot: Spot; isLocked: boolean; isOffline: boolean, lockedMessage: string; }) {
   const content = (
@@ -143,13 +144,23 @@ export default function CaveClient({ location, spots }: { location: Location, sp
       </header>
 
       <main>
+        {!location.isActive && (
+            <Alert variant="destructive" className="mb-8 bg-yellow-900/20 border-yellow-700/50 text-yellow-200">
+                <Info className="h-4 w-4 !text-yellow-400" />
+                <AlertTitle>Lokasi Tidak Aktif</AlertTitle>
+                <AlertDescription>
+                    Lokasi ini sedang tidak aktif dan tidak ditampilkan untuk umum. Anda dapat melihatnya karena memiliki akses admin atau tautan langsung.
+                </AlertDescription>
+            </Alert>
+        )}
+
         <div className="mb-6 flex flex-col md:flex-row justify-between md:items-center gap-4">
             <div>
               <h2 className="text-xl font-semibold md:text-2xl">Misi Penjelajahan</h2>
               <p className="text-muted-foreground text-sm">Jelajahi setiap sudut di lokasi ini.</p>
             </div>
             <div className='flex items-center gap-2 flex-wrap'>
-                <Button onClick={handleStartMission} size="lg">
+                <Button onClick={handleStartMission} size="lg" disabled={!location.isActive && role !== 'admin'}>
                   <Sparkles className="mr-2 h-4 w-4" />
                   Mulai Misi
                 </Button>
@@ -173,7 +184,7 @@ export default function CaveClient({ location, spots }: { location: Location, sp
             </div>
         </div>
 
-        {showAds && (
+        {showAds && location.isActive && (
             <div className="my-8">
                 <AdBanner />
                 <p className="text-center text-xs text-muted-foreground mt-2">

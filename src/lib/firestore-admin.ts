@@ -15,13 +15,15 @@ const getAdminServices = () => {
     return app;
 }
 
-export async function getLocations(): Promise<Location[]> {
+export async function getLocations(includeInactive = false): Promise<Location[]> {
     const { db } = getAdminServices();
     if (!db) return []; 
     
-    try {
-        const query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = db.collection('locations').where('isActive', '==', true);
+    const query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = includeInactive 
+        ? db.collection('locations')
+        : db.collection('locations').where('isActive', '==', true);
         
+    try {
         const snapshot = await query.get();
         if (snapshot.empty) {
             return [];
@@ -48,11 +50,7 @@ export async function getLocation(id: string): Promise<Location | null> {
 
         const location = { id: docSnap.id, ...docSnap.data() } as Location;
 
-        // Pemeriksaan penting: hanya kembalikan jika lokasi aktif
-        if (!location.isActive) {
-            return null;
-        }
-
+        // Logic for handling inactive locations is now moved to the client
         return location;
     } catch (error: any) {
         console.error(`[Firestore Admin] Gagal mengambil getLocation untuk id ${id}:`, error.message);
