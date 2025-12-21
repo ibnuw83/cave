@@ -43,7 +43,16 @@ export default async function SpotPage({ params }: Props) {
   const spot = await getSpot(spotId);
   
   if (!spot) {
-     notFound();
+     return (
+      <div className="flex h-screen w-screen items-center justify-center bg-black text-white">
+        <div className="text-center p-8">
+          <h1 className="text-2xl font-bold">Spot tidak tersedia</h1>
+          <p className="opacity-70 mt-2">
+            Data untuk spot ini tidak dapat dimuat. Silakan coba lagi nanti.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   // Fetch all spots in the same location to allow for client-side navigation

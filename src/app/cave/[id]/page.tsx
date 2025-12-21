@@ -36,7 +36,16 @@ export default async function CavePage({ params }: Props) {
   const location = await getLocation(params.id);
 
   if (!location) {
-    notFound(); // ✅ DI SINI BOLEH
+    return (
+      <div className="flex min-h-screen items-center justify-center text-white bg-background">
+        <div className="text-center p-8">
+          <h1 className="text-2xl font-bold">Lokasi tidak tersedia</h1>
+          <p className="opacity-70 mt-2">
+            Data sedang tidak dapat dimuat. Silakan coba lagi nanti.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   const spots = await getSpots(params.id);
