@@ -1,5 +1,3 @@
-'use server';
-
 import { initializeAdminApp } from '@/firebase/admin';
 import { Location, Spot } from './types';
 
