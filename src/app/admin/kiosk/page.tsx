@@ -1,10 +1,11 @@
+
 import { getLocations } from "@/lib/firestore-admin";
 import KioskClient from "./client";
 import { Location } from "@/lib/types";
 
 export default async function KioskSettingsPage() {
   // Fetch initial locations on the server
-  const locations: Location[] = await getLocations(true).catch(() => []);
+  const locations: Location[] = await getLocations().catch(() => []);
 
   return (
     <div className="p-4 md:p-8">
@@ -20,3 +21,4 @@ export default async function KioskSettingsPage() {
     </div>
   );
 }
+

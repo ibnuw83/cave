@@ -1,3 +1,4 @@
+
 import 'server-only';
 import { safeGetAdminApp } from '@/firebase/admin';
 import { Location, Spot } from './types';
@@ -11,16 +12,12 @@ const getDb = () => {
     return app?.db;
 }
 
-export async function getLocations(includeInactive = false): Promise<Location[]> {
+export async function getLocations(): Promise<Location[]> {
     const db = getDb();
     if (!db) return []; 
     
     try {
-        let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = db.collection('locations');
-
-        if (!includeInactive) {
-            query = query.where('isActive', '==', true);
-        }
+        const query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = db.collection('locations').where('isActive', '==', true);
         
         const snapshot = await query.get();
         if (snapshot.empty) {

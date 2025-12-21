@@ -656,7 +656,7 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
                         </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                        {initialLocations.filter(l => l.isActive).map((location) => (
+                        {initialLocations.map((location) => (
                             <SelectItem key={location.id} value={location.id}>
                             {location.name}
                             </SelectItem>
@@ -879,3 +879,4 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
     </>
   );
 }
+
