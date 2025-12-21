@@ -1,5 +1,3 @@
-
-'use server';
 /**
  * @fileoverview Converts text to speech using Google's TTS model.
  * This flow now returns the raw, base64-encoded PCM audio data directly.

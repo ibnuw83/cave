@@ -1,4 +1,3 @@
-'use server';
 /**
  * @fileOverview An AI flow to suggest a high-quality, cinematic image URL based on a description.
  */

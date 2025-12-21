@@ -1,5 +1,3 @@
-
-'use server';
 /**
  * @fileOverview An AI flow to generate a dramatic narrative for a cave spot.
  */
