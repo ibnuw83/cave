@@ -91,7 +91,7 @@ export async function getSpots(locationId: string): Promise<Spot[]> {
                 isPro: true,
                 viewType: 'panorama',
             }
-         ];
+         ] as Spot[];
     }
 
     try {
@@ -118,7 +118,7 @@ export async function getSpot(id: string): Promise<Spot | null> {
         imageUrl: `https://picsum.photos/seed/${id}/1200/800`,
         isPro: false,
         viewType: 'flat',
-    };
+    } as Spot;
   }
 
   try {
