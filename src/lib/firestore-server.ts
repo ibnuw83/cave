@@ -49,7 +49,7 @@ export async function getLocation(id: string): Promise<Location | null> {
 
         const location = { id: docSnap.id, ...docSnap.data() } as Location;
 
-        // Ensure we don't return inactive locations
+        // Ensure we don't return inactive locations on server-side fetching either.
         if (!location.isActive) {
             return null;
         }
