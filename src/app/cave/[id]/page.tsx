@@ -12,6 +12,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const location = await getLocation(params.id);
 
   if (!location) {
+    // This is correct because if metadata fails, the page should be a 404.
     notFound();
   }
 
@@ -25,12 +26,13 @@ export default async function CavePage({ params }: Props) {
   const location = await getLocation(params.id);
   
   if (!location) {
+    // This is the user-facing fallback UI when the backend fails or data is missing.
     return (
         <div className="flex items-center justify-center min-h-screen p-8 text-center text-white">
             <div>
                 <h1 className="text-2xl font-bold">Lokasi tidak tersedia</h1>
                 <p className="opacity-70 mt-2">
-                    Data belum siap atau server sedang bermasalah.
+                    Data untuk lokasi ini tidak dapat dimuat. Mungkin sedang ada masalah pada server atau data telah dihapus.
                 </p>
             </div>
         </div>
