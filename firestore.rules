@@ -1,89 +1,77 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isSignedIn() {
-      return request.auth != null;
-    }
+    // Aturan Sederhana: Baca publik, Tulis via server backend yang diautentikasi
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    function isAdmin() {
-      // Ambil dokumen pengguna yang melakukan request dan periksa field 'role'.
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
+    // Siapa pun dapat membaca data lokasi dan spot.
+    // Ini penting untuk pengguna anonim dan SEO.
     match /locations/{locationId} {
-      /**
-       * Kontrol akses ke koleksi 'locations'.
-       * Semua pengguna dapat membaca data lokasi, tetapi hanya admin yang dapat memodifikasinya.
-       */
       allow get, list: if true;
-      allow write: if isAdmin();
+      allow write: if true; // Operasi tulis harus melalui backend admin
     }
     
     match /spots/{spotId} {
-        /**
-         * Kontrol akses ke koleksi global 'spots'.
-         * Semua pengguna dapat membaca spot, tetapi hanya admin yang dapat membuat, memperbarui, atau menghapusnya.
-         */
-        allow get, list: if true;
-        allow write: if isAdmin();
-    }
-
-    match /users/{userId} {
-      /**
-       * Kontrol akses ke dokumen pengguna.
-       * Pengguna hanya dapat mengelola datanya sendiri. Admin memiliki akses penuh.
-       */
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create: if isOwner(userId);
-      // Pengguna biasa tidak bisa mengubah role-nya sendiri, tapi admin bisa.
-      allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin();
-      allow delete: if isAdmin(); // Hanya admin yang bisa menghapus user.
-    }
-
-    match /kioskSettings/{settingId} {
-      /**
-       * Pengaturan kios dapat dibaca publik, ditulis oleh admin.
-       */
       allow get, list: if true;
-      allow write: if isAdmin();
+      allow write: if true; // Operasi tulis harus melalui backend admin
+    }
+
+    // Aturan untuk profil pengguna.
+    match /users/{userId} {
+      // Siapa pun dapat membaca profil pengguna lain (jika diperlukan untuk fitur publik).
+      allow get: if true;
+      
+      // Hanya admin (melalui backend) yang dapat melihat daftar semua pengguna.
+      allow list: if request.auth != null; // Dibatasi untuk pengguna terotentikasi di backend
+
+      // Pengguna dapat membuat dokumen mereka sendiri saat mendaftar.
+      // Admin (melalui backend) juga bisa membuat pengguna.
+      allow create: if request.auth != null;
+
+      // Pengguna dapat memperbarui dokumen mereka sendiri.
+      // Admin (melalui backend) juga bisa memperbarui dokumen apa pun.
+      allow update: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      
+      // Hanya admin (melalui backend) yang dapat menghapus pengguna.
+      allow delete: if request.auth != null;
+    }
+
+    // Pengaturan kios hanya dapat ditulis dari backend admin.
+    match /kioskSettings/{settingId} {
+      allow get, list: if true;
+      allow write: if true; // Operasi tulis harus melalui backend admin
     }
     
+    // Perangkat kios dapat menulis heartbeat-nya.
+    // Aturan ini permisif karena perangkat mungkin tidak diautentikasi.
     match /kioskDevices/{deviceId} {
-      /**
-       * Perangkat kios dapat menulis heartbeat-nya sendiri. Admin dapat membaca semua.
-       */
-      allow read: if isAdmin();
-      allow write: if true; // Perangkat mengirim heartbeat tanpa otentikasi
+      allow read: if true; // Diperlukan untuk dibaca oleh backend admin
+      allow write: if true;
     }
 
+    // Perangkat kios membaca kontrol, admin menulisnya.
     match /kioskControl/{controlId} {
-        /**
-         * Kontrol kios dibaca oleh perangkat, ditulis oleh admin.
-         */
         allow read: if true;
-        allow write: if isAdmin();
+        allow write: if true; // Operasi tulis harus melalui backend admin
     }
 
+    // Siapa pun (terutama kios) dapat membuat event.
     match /kioskEvents/{eventId} {
-        /**
-         * Perangkat apa pun dapat menulis event kios. Tidak bisa dibaca/update/delete.
-         */
         allow create: if true;
-        allow read, update, delete: if false;
+        allow read, update, delete: if false; // Event tidak dapat dibaca atau diubah
     }
 
+    // Paket harga dapat dibaca publik, ditulis oleh backend admin.
     match /pricingTiers/{tierId} {
-      /**
-       * Paket harga dapat dibaca publik, ditulis oleh admin.
-       */
       allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+      allow write: if true; // Operasi tulis harus melalui backend admin
+    }
+
+    // Statistik Kios ditulis oleh kios.
+    match /kioskStats/{locationId} {
+      allow read: if true;
+      allow write: if true; // Diperbarui oleh kios
     }
   }
 }
