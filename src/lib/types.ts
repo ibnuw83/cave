@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Timestamp } from 'firebase/firestore';
@@ -11,21 +12,6 @@ export interface UserProfile {
   updatedAt: Timestamp | Date;
   disabled?: boolean;
 }
-
-export const ROLE_LEVEL = {
-  free: 0,
-  pro1: 1,
-  pro2: 2,
-  pro3: 3,
-  vip: 4,
-  admin: 99,
-} as const;
-
-export function hasAccess(userRole: string, minRole: keyof typeof ROLE_LEVEL): boolean {
-  const userLevel = ROLE_LEVEL[userRole as keyof typeof ROLE_LEVEL] ?? ROLE_LEVEL['free'];
-  return userLevel >= ROLE_LEVEL[minRole];
-}
-
 
 export interface Location {
   id: string;
