@@ -48,7 +48,6 @@ export async function getLocation(id: string): Promise<Location | null> {
 
         const location = { id: docSnap.id, ...docSnap.data() } as Location;
 
-        // Penting: Hanya kembalikan lokasi jika aktif.
         if (!location.isActive) {
             return null;
         }
