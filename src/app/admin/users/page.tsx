@@ -1,9 +1,9 @@
 import UsersClient from "./client";
-import { getAllUsersAdmin } from "@/lib/firestore-client";
+import { getAllUsersAdmin } from "@/lib/firestore-admin";
 import { UserProfile } from "@/lib/types";
 
 export default async function UsersPage() {
-    const users: UserProfile[] = await getAllUsersAdmin().catch(() => []);
+    const users: UserProfile[] = await getAllUsersAdmin();
 
   return (
     <div className="p-4 md:p-8">

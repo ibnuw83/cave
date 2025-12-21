@@ -1,7 +1,7 @@
 
 import 'server-only';
 import { safeGetAdminApp } from '@/firebase/admin';
-import { Location, Spot } from './types';
+import { Location, Spot, UserProfile } from './types';
 
 // Fungsi ini sekarang menggunakan safeGetAdminApp untuk menghindari crash jika Admin SDK tidak terinisialisasi.
 const getDb = () => {
@@ -91,4 +91,20 @@ export async function getSpot(id: string): Promise<Spot | null> {
   }
 }
 
+export async function getAllUsersAdmin(): Promise<UserProfile[]> {
+  const db = getDb();
+  if (!db) return [];
+  
+  const usersRef = db.collection('users');
+  try {
+    const querySnapshot = await usersRef.get();
+    return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as UserProfile));
+  } catch (error: any) {
+    // We don't use the permission error emitter here since this is a server-only function
+    // and errors should be logged on the server.
+    console.error("[Firestore Admin] Gagal mengambil getAllUsersAdmin:", error.message);
+    // Return empty array on failure
+    return [];
+  }
+}
     
