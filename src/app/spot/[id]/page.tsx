@@ -1,5 +1,6 @@
 
-import { getSpot, getSpots } from '@/lib/firestore-admin';
+import { getSpotClient } from '@/lib/firestore-client';
+import { getSpots } from '@/lib/firestore-admin';
 import { useUser } from '@/firebase/auth/use-user-server'; // Server-side user hook
 import SpotPageClient from './client';
 import { notFound } from 'next/navigation';
@@ -10,7 +11,7 @@ type Props = {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const spot = await getSpot(params.id);
+  const spot = await getSpotClient(params.id);
  
   if (!spot) {
     // Jangan panggil notFound() di sini.
@@ -35,7 +36,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function SpotPage({ params }: Props) {
   const spotId = params.id;
   
-  const spot = await getSpot(spotId);
+  const spot = await getSpotClient(spotId);
   
   if (!spot) {
      // Komponen fallback ini sekarang akan ditampilkan dengan benar.

@@ -161,6 +161,27 @@ export async function getLocations(includeInactive = false): Promise<Location[]>
   }
 }
 
+export async function getLocationClient(id: string): Promise<Location | null> {
+    const docRef = doc(db, 'locations', id);
+    try {
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...docSnap.data() } as Location;
+        }
+        return null;
+    } catch (error: any) {
+         if (error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: `/locations/${id}`,
+                operation: 'get',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        }
+        throw error;
+    }
+}
+
+
 export function addLocation(locationData: Omit<Location, 'id'>): Promise<string> {
     return new Promise((resolve, reject) => {
         addDoc(collection(db, 'locations'), locationData)
