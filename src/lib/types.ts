@@ -64,13 +64,6 @@ export interface OfflineLocationData {
     timestamp: number;
 }
 
-export interface RegisterData {
-  name: string;
-  email: string;
-  password: any;
-  photoURL?: string;
-}
-
 export interface KioskPlaylistItem {
   spotId: string;
   duration: number; // in seconds

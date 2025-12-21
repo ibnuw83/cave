@@ -199,9 +199,8 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
   useEffect(() => {
     const translateContent = async () => {
       const targetLanguage = selectedLanguage;
-      const sourceLanguage = 'id'; 
 
-      if (targetLanguage.startsWith(sourceLanguage)) {
+      if (targetLanguage.startsWith('id')) { // Assuming original is Indonesian
         setTranslatedTitle(spot.title);
         setTranslatedDescription(spot.description);
         return;
@@ -214,12 +213,12 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
           fetch('/api/translate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: spot.title, targetLanguage, sourceLanguage }),
+            body: JSON.stringify({ text: spot.title, targetLanguage }),
           }),
           fetch('/api/translate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: spot.description, targetLanguage, sourceLanguage }),
+            body: JSON.stringify({ text: spot.description, targetLanguage }),
           }),
         ]);
 
@@ -333,18 +332,19 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
     const currentSpotIndex = allSpots.findIndex(s => s.id === spot.id);
     const hasNextSpot = currentSpotIndex !== -1 && currentSpotIndex < allSpots.length - 1;
 
-    if (hasNextSpot && isProUser) {
+    if (hasNextSpot) {
         const nextSpot = allSpots[currentSpotIndex + 1];
-        // PRO users can access any spot
-        router.push(`/spot/${nextSpot.id}`);
-    } else if (hasNextSpot && isFreeUser) {
-        toast({
-            title: "Mode Misi Khusus PRO",
-            description: "Nikmati tur otomatis ke semua spot dengan upgrade ke PRO.",
-            action: (
-                <Button asChild><Link href="/pricing"><Gem className="mr-2 h-4 w-4"/>Upgrade</Link></Button>
-            )
-        });
+        if (isProUser || !nextSpot.isPro) {
+            router.push(`/spot/${nextSpot.id}`);
+        } else {
+            toast({
+                title: "Spot Berikutnya Khusus PRO",
+                description: "Upgrade akun Anda untuk melanjutkan tur otomatis.",
+                action: (
+                    <Button asChild><Link href="/pricing"><Gem className="mr-2 h-4 w-4"/>Upgrade</Link></Button>
+                )
+            });
+        }
     } else {
        toast({
         title: "Misi Selesai!",

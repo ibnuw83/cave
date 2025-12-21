@@ -107,10 +107,10 @@ export function SpotForm({ spot, locations, allSpots, onSave, onCancel }: SpotFo
     try {
       if (spot) {
         await updateSpot(spot.id, spotData);
-        onSave({ id: spot.id, ...spotData });
+        onSave({ id: spot.id, ...spotData } as Spot);
       } else {
         const newSpotId = await addSpot(spotData);
-        onSave({ id: newSpotId, ...spotData });
+        onSave({ id: newSpotId, ...spotData } as Spot);
       }
     } catch (error) {
         // Error is now handled by the permission-error emitter in firestore.ts

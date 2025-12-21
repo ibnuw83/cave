@@ -3,13 +3,11 @@
 import type { Viewport } from 'next';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
-import { FirebaseProvider } from '@/firebase/provider'; // Diubah untuk menggunakan provider tunggal
+import { FirebaseClientProvider } from '@/firebase';
 import { useEffect, useState } from 'react';
 import Script from 'next/script';
 import Footer from '@/app/components/footer';
 import { getKioskSettings } from '@/lib/firestore-client';
-import { KioskSettings } from '@/lib/types';
-
 
 export default function RootLayout({
   children,
@@ -62,13 +60,13 @@ export default function RootLayout({
         )}
       </head>
       <body className="font-body antialiased">
-        <FirebaseProvider>
+        <FirebaseClientProvider>
             <div className="flex flex-col min-h-screen">
               <main className="flex-grow">{children}</main>
               <Footer />
             </div>
             <Toaster />
-        </FirebaseProvider>
+        </FirebaseClientProvider>
       </body>
     </html>
   );

@@ -75,7 +75,7 @@
           "description": "Indicates whether the spot is a PRO spot."
         },
         "effects": {
-          "type": "string",
+          "type": "object",
           "description": "A JSON string of vibration effect configuration."
         },
         "hotspots": {

@@ -12,8 +12,6 @@ import { saveLocationForOffline, isLocationAvailableOffline } from '@/lib/offlin
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase';
-import { getLocationClient, getSpotsClient } from '@/lib/firestore-client';
-import { Skeleton } from '@/components/ui/skeleton';
 import AdBanner from '@/app/components/AdBanner';
 
 function SpotCard({ spot, isLocked, isOffline, lockedMessage }: { spot: Spot; isLocked: boolean; isOffline: boolean, lockedMessage: string; }) {
@@ -73,49 +71,18 @@ function SpotCard({ spot, isLocked, isOffline, lockedMessage }: { spot: Spot; is
   );
 }
 
-export default function CaveClient({ locationId }: { locationId: string }) {
-  const { user, userProfile, isUserLoading, isProfileLoading } = useUser();
+export default function CaveClient({ location, spots }: { location: Location, spots: Spot[] }) {
+  const { user, userProfile } = useUser();
   const router = useRouter();
   const { toast } = useToast();
 
-  const [location, setLocation] = useState<Location | null>(null);
-  const [spots, setSpots] = useState<Spot[]>([]);
-  const [isDataLoading, setIsDataLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
-    async function fetchData() {
-      setIsDataLoading(true);
-      try {
-        const fetchedLocation = await getLocationClient(locationId);
-        if (fetchedLocation && fetchedLocation.isActive) {
-          setLocation(fetchedLocation);
-          const fetchedSpots = await getSpotsClient(locationId);
-          setSpots(fetchedSpots);
-        } else {
-          setLocation(null); // Location not found or not active
-        }
-      } catch (error) {
-        console.error("Failed to fetch location data:", error);
-        setLocation(null);
-        toast({
-          variant: "destructive",
-          title: "Gagal Memuat Lokasi",
-          description: "Terjadi kesalahan saat mengambil data lokasi.",
-        });
-      } finally {
-        setIsDataLoading(false);
-      }
-    }
-    fetchData();
-  }, [locationId, toast]);
-
-
-  useEffect(() => {
     // Check offline status on mount
-    isLocationAvailableOffline(locationId).then(setIsOffline);
-  }, [locationId]);
+    isLocationAvailableOffline(location.id).then(setIsOffline);
+  }, [location.id]);
 
   const handleDownload = async () => {
     if (!location || !spots) return;
@@ -148,54 +115,9 @@ export default function CaveClient({ locationId }: { locationId: string }) {
     }
   };
   
-  const isUserAuthLoading = isUserLoading || isProfileLoading;
   const role = userProfile?.role || 'free';
   const showAds = role === 'free';
   
-  const roleLimits = {
-      free: 3, // Increased from 1
-      pro1: 5,
-      pro2: 10,
-      pro3: 15,
-      vip: Infinity,
-      admin: Infinity,
-  };
-
-  const accessibleSpotsCount = user ? (roleLimits[role] || 3) : 3;
-
-  if (isDataLoading) {
-    return (
-      <div className="container mx-auto min-h-screen max-w-5xl p-4 md:p-8">
-        <Skeleton className="h-10 w-48 mb-4" />
-        <Skeleton className="h-64 w-full mb-8" />
-        <div className="mb-6">
-          <Skeleton className="h-10 w-64 mb-2" />
-          <Skeleton className="h-6 w-80" />
-        </div>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <Skeleton className="h-60 w-full" />
-          <Skeleton className="h-60 w-full" />
-          <Skeleton className="h-60 w-full" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!location) {
-    return (
-       <div className="flex h-screen w-full flex-col items-center justify-center bg-background text-center">
-        <h1 className="text-4xl font-bold font-headline text-destructive">404</h1>
-        <p className="mt-2 text-lg text-muted-foreground">Lokasi tidak ditemukan atau tidak aktif.</p>
-        <Button asChild variant="outline" className="mt-6">
-            <Link href="/">
-                <ChevronLeft className="mr-2 h-4 w-4" />
-                Kembali ke Halaman Utama
-            </Link>
-        </Button>
-      </div>
-    )
-  }
-
   return (
     <div className="container mx-auto min-h-screen max-w-5xl p-4 md:p-8">
       <header className="mb-8">
@@ -273,9 +195,7 @@ export default function CaveClient({ locationId }: { locationId: string }) {
                       lockedMessage={lockedMessage} 
                    />;
           })}
-           {sortedSpots.length === 0 && !isDataLoading && (
-              <p className="text-muted-foreground col-span-full text-center py-8">Belum ada spot yang ditambahkan untuk lokasi ini.</p>
-           )}
+           {sortedSpots.length === 0 && <p className="text-muted-foreground col-span-full text-center py-8">Belum ada spot yang ditambahkan untuk lokasi ini.</p>}
         </div>
       </main>
     </div>

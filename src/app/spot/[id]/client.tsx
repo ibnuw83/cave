@@ -6,99 +6,31 @@ import { Spot } from '@/lib/types';
 import LockedScreen from '@/app/components/locked-screen';
 import SpotPlayerUI from '@/app/components/spot-player-ui';
 import HybridViewer from '@/app/components/hybrid-viewer';
-import { getSpotClient, getSpotsClient } from '@/lib/firestore-client'; 
-import { Skeleton } from '@/components/ui/skeleton';
 import PanoramaViewer from '@/components/viewer-panorama';
-import { getOfflineLocationData } from '@/lib/offline';
-
-
-async function findSpotOffline(spotId: string): Promise<{ spot: Spot | null, spots: Spot[] }> {
-  try {
-    const cache = await caches.open('penjelajah-gua-offline-v1');
-    const indexRes = await cache.match('offline-index');
-    if (!indexRes) return { spot: null, spots: [] };
-
-    const index = await indexRes.json();
-    const locationId = index[spotId];
-    if (!locationId) return { spot: null, spots: [] };
-
-    const dataRes = await cache.match(`location-data-${locationId}`);
-    if (!dataRes) return { spot: null, spots: [] };
-
-    const data = await dataRes.json();
-    const currentSpot = data.spots.find((s: Spot) => s.id === spotId) || null;
-    return { spot: currentSpot, spots: data.spots || [] };
-  } catch {
-    return { spot: null, spots: [] };
-  }
-}
 
 export default function SpotPageClient({
-  spotId,
+  spot,
+  allSpotsInLocation,
   userRole,
 }: {
-  spotId: string;
+  spot: Spot;
+  allSpotsInLocation: Spot[];
   userRole: string;
 }) {
-  const [spot, setSpot] = useState<Spot | null>(null);
-  const [allSpotsInLocation, setAllSpotsInLocation] = useState<Spot[]>([]);
-  const [loading, setLoading] = useState(true);
   const [vrMode, setVrMode] = useState(false);
   const router = useRouter();
 
-
   useEffect(() => {
-    setLoading(true);
-    const fetchSpotAndSiblings = async () => {
-      try {
-        const fetchedSpot = await getSpotClient(spotId);
-
-        if (fetchedSpot) {
-          setSpot(fetchedSpot);
-          const siblingSpots = await getSpotsClient(fetchedSpot.locationId);
-          setAllSpotsInLocation(siblingSpots.sort((a, b) => a.order - b.order));
-        } else {
-          // Attempt to load from offline cache as a fallback
-          const { spot: offlineSpot, spots: offlineSiblings } = await findSpotOffline(spotId);
-          setSpot(offlineSpot);
-          setAllSpotsInLocation(offlineSiblings.sort((a, b) => a.order - b.order));
-        }
-      } catch (error) {
-        console.error("Client-side fetch failed:", error);
-        // If online fetch fails, try offline before giving up
-         const { spot: offlineSpot, spots: offlineSiblings } = await findSpotOffline(spotId);
-         if (offlineSpot) {
-             setSpot(offlineSpot);
-             setAllSpotsInLocation(offlineSiblings.sort((a, b) => a.order - b.order));
-         } else {
-            setSpot(null);
-         }
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchSpotAndSiblings();
-  }, [spotId]);
+    // If a new spot is loaded, potentially exit VR mode
+    setVrMode(false);
+  }, [spot.id]);
 
   const goToSpot = (id: string) => {
     router.push(`/spot/${id}`);
   };
 
-  if (loading) {
-    return (
-      <Skeleton className="h-screen w-screen" />
-    );
-  }
-
-  if (!spot) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-black text-white">
-        <p>Spot tidak ditemukan</p>
-      </div>
-    );
-  }
-
+  // The server has already validated that the spot exists.
+  // We just need to check for access rights on the client.
   if (spot.isPro && userRole === 'free') {
     return <LockedScreen spot={spot} />;
   }
@@ -123,7 +55,6 @@ export default function SpotPageClient({
     );
   }
 
-
   return (
     <HybridViewer
       imageUrl={spot.imageUrl}
@@ -133,5 +64,3 @@ export default function SpotPageClient({
     </HybridViewer>
   );
 }
-
-    
