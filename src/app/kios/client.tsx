@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -8,11 +7,15 @@ import { getSpotClient } from '@/lib/firestore-client';
 import { getOfflineLocationData } from '@/lib/offline';
 import { enterKioskLock, exitKioskLock } from '@/lib/kiosk';
 import KioskPlayer from './player';
+import { doc } from 'firebase/firestore';
+import { useKioskHeartbeat, useKioskControl } from '@/hooks/use-kiosk';
+import { useFirestore } from '@/firebase';
 
 type PlaylistSpot = Spot & { duration: number };
 
 export default function KiosClient({ settings }: { settings: KioskSettings }) {
   const router = useRouter();
+  const firestore = useFirestore();
   const [spots, setSpots] = useState<PlaylistSpot[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -104,6 +107,16 @@ export default function KiosClient({ settings }: { settings: KioskSettings }) {
 
     loadSpots();
   }, [settings]);
+
+    const kioskDeviceRef = useMemo(() => doc(firestore, 'kioskDevices', 'kiosk-001'), [firestore]);
+    const kioskControlRef = useMemo(() => doc(firestore, 'kioskControl', 'global'), [firestore]);
+    const currentSpotId = spots[0]?.id;
+
+    useKioskHeartbeat(kioskDeviceRef, currentSpotId);
+    useKioskControl(kioskControlRef, (ctrl) => {
+        // Handle control commands
+    });
+
 
   if (loading) {
     return (

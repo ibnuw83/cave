@@ -4,7 +4,7 @@ import React, { DependencyList, createContext, useContext, ReactNode, useMemo, u
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth } from 'firebase/auth';
-import { initializeFirebase } from '@/firebase';
+import { initializeFirebase } from '@/firebase/init'; // UPDATED IMPORT
 import { errorEmitter } from './error-emitter';
 import { FirestorePermissionError } from './errors';
 import { useToast } from '@/hooks/use-toast';
@@ -42,26 +42,11 @@ interface FirebaseServices {
 export const FirebaseContext = createContext<FirebaseServices | undefined>(undefined);
 
 export const FirebaseClientProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [services, setServices] = useState<FirebaseServices | null>(null);
-
-  useEffect(() => {
-    try {
-      const firebaseServices = initializeFirebase();
-      setServices(firebaseServices);
-    } catch (e) {
-      console.error("Failed to initialize Firebase in Provider:", e);
-    }
-  }, []);
-
-  const contextValue = useMemo(() => services, [services]);
-
-  if (!contextValue) {
-    // Render a global loader or null while Firebase is initializing
-    return null; 
-  }
+  // The initializeFirebase function is now isomorphic and can be called directly.
+  const services = useMemo(() => initializeFirebase(), []);
 
   return (
-    <FirebaseContext.Provider value={contextValue}>
+    <FirebaseContext.Provider value={services}>
       <FirebaseErrorListener />
       {children}
     </FirebaseContext.Provider>

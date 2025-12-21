@@ -1,19 +1,13 @@
-
 'use client';
 
 import { useEffect } from 'react';
-import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
-import { initializeFirebase } from '@/firebase';
+import { onSnapshot, setDoc, serverTimestamp, DocumentReference } from 'firebase/firestore';
 
-const { firestore: db } = initializeFirebase();
-
-export function useKioskHeartbeat(kioskId: string, currentSpotId?: string) {
+export function useKioskHeartbeat(kioskDeviceRef: DocumentReference, currentSpotId?: string) {
   useEffect(() => {
-    if (!kioskId) return;
-    const ref = doc(db, 'kioskDevices', kioskId);
-
+    if (!kioskDeviceRef) return;
     const t = setInterval(() => {
-      setDoc(ref, {
+      setDoc(kioskDeviceRef, {
         status: 'online',
         currentSpotId: currentSpotId || null,
         updatedAt: serverTimestamp(),
@@ -23,13 +17,13 @@ export function useKioskHeartbeat(kioskId: string, currentSpotId?: string) {
     }, 5000);
 
     return () => clearInterval(t);
-  }, [kioskId, currentSpotId]);
+  }, [kioskDeviceRef, currentSpotId]);
 }
 
-export function useKioskControl(onControl: (c: any) => void) {
+export function useKioskControl(kioskControlRef: DocumentReference, onControl: (c: any) => void) {
   useEffect(() => {
-    const ref = doc(db, 'kioskControl', 'global');
-    const unsub = onSnapshot(ref, (snap) => {
+    if (!kioskControlRef) return;
+    const unsub = onSnapshot(kioskControlRef, (snap) => {
       if (snap.exists()) {
         onControl(snap.data());
       }
@@ -37,5 +31,5 @@ export function useKioskControl(onControl: (c: any) => void) {
         console.warn('Kiosk control listener failed:', error.message);
     });
     return () => unsub();
-  }, [onControl]);
+  }, [kioskControlRef, onControl]);
 }

@@ -1,22 +1,15 @@
-
 'use client';
 
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Spot, KioskSettings } from '@/lib/types';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { initializeFirebase } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { useKioskHeartbeat, useKioskControl } from '@/hooks/use-kiosk';
 import { Progress } from '@/components/ui/progress';
+import { doc } from 'firebase/firestore';
 
-interface Props {
-  spots: (Spot & { duration: number })[];
-  mode: KioskSettings['mode'];
-  kioskId: string;
-}
 
-const { firestore: db } = initializeFirebase();
-
-async function logSpotView(kioskId: string, locationId: string, spotId: string) {
+async function logSpotView(db: any, kioskId: string, locationId: string, spotId: string) {
   try {
     await addDoc(collection(db, 'kioskEvents'), {
       type: 'SPOT_VIEW',
@@ -30,7 +23,7 @@ async function logSpotView(kioskId: string, locationId: string, spotId: string) 
   }
 }
 
-async function logEdge(kioskId: string, locationId: string, fromSpotId: string, toSpotId: string) {
+async function logEdge(db: any, kioskId: string, locationId: string, fromSpotId: string, toSpotId: string) {
   try {
     await addDoc(collection(db, 'kioskEvents'), {
       type: 'SPOT_EDGE',
@@ -45,7 +38,14 @@ async function logEdge(kioskId: string, locationId: string, fromSpotId: string, 
   }
 }
 
+interface Props {
+  spots: (Spot & { duration: number })[];
+  mode: KioskSettings['mode'];
+  kioskId: string;
+}
+
 export default function KioskPlayer({ spots, mode, kioskId }: Props) {
+  const db = useFirestore();
   const [index, setIndex] = useState(0);
   const [progress, setProgress] = useState(100);
   const timerRef = useRef<number | null>(null);
@@ -64,8 +64,11 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
 
   const current = playlist[index];
   
-  useKioskHeartbeat('kiosk-001', current?.id);
-  useKioskControl((ctrl) => { 
+  const kioskDeviceRef = useMemo(() => doc(db, 'kioskDevices', 'kiosk-001'), [db]);
+  const kioskControlRef = useMemo(() => doc(db, 'kioskControl', 'global'), [db]);
+
+  useKioskHeartbeat(kioskDeviceRef, current?.id);
+  useKioskControl(kioskControlRef, (ctrl) => { 
     if (typeof ctrl.enabled === 'boolean') setKioskEnabled(ctrl.enabled);
     if (typeof ctrl.message === 'string') setKioskMsg(ctrl.message);
     if (ctrl.action === 'RESTART' || ctrl.forceReload === true) {
@@ -92,9 +95,9 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
     if (!kioskEnabled || !playlist || playlist.length === 0 || !current) return;
     
     if (current.id) {
-        logSpotView(kioskId, current.locationId, current.id);
+        logSpotView(db, kioskId, current.locationId, current.id);
         if (prevSpotIdRef.current) {
-            logEdge(kioskId, current.locationId, prevSpotIdRef.current, current.id);
+            logEdge(db, kioskId, current.locationId, prevSpotIdRef.current, current.id);
         }
         prevSpotIdRef.current = current.id;
     }
@@ -115,7 +118,7 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
     }, 100);
 
     return clearTimers;
-  }, [index, playlist, current, kioskId, kioskEnabled, changeSpot]);
+  }, [index, playlist, current, kioskId, kioskEnabled, changeSpot, db]);
 
   if (!kioskEnabled) {
     return (

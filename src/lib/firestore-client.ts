@@ -1,5 +1,3 @@
-
-
 import {
   doc,
   getDoc,
@@ -18,7 +16,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
-import { initializeFirebase } from '@/firebase'; // Menggunakan inisialisasi terpusat
+import { initializeFirebase } from '@/firebase/init'; // UPDATED IMPORT
 import type { UserProfile, Location, Spot, KioskSettings, PricingTier } from './types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -455,5 +453,3 @@ export async function trackKioskSpotView(locationId: string, spotId: string): Pr
         console.warn(`Failed to track kiosk view for spot ${spotId}:`, error.message);
     }
 }
-
-    
