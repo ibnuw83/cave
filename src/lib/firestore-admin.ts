@@ -20,9 +20,11 @@ export async function getLocations(includeInactive = false): Promise<Location[]>
     if (!db) return []; 
     
     try {
-        const locationsRef = db.collection('locations');
-        const q = includeInactive ? locationsRef : locationsRef.where('isActive', '==', true);
-        const snapshot = await q.get();
+        let locationsRef: firestore.Query<firestore.DocumentData> = db.collection('locations');
+        if (!includeInactive) {
+            locationsRef = locationsRef.where('isActive', '==', true);
+        }
+        const snapshot = await locationsRef.get();
         if (snapshot.empty) {
             return [];
         }
@@ -36,8 +38,15 @@ export async function getLocations(includeInactive = false): Promise<Location[]>
 export async function getLocation(id: string): Promise<Location | null> {
     const { db } = getAdminServices();
     if (!db) {
-        console.warn(`[Firestore Admin] Degraded Mode: Tidak dapat mengambil getLocation(id: ${id}) karena SDK tidak aktif.`);
-        return null; // Return null in degraded mode
+        console.warn(`[Firestore Admin] Degraded Mode: Mengembalikan data placeholder untuk getLocation(id: ${id}).`);
+        return {
+            id,
+            name: 'Lokasi Placeholder',
+            category: 'Gua',
+            description: 'Data lokasi ini sedang tidak tersedia karena koneksi ke server gagal. Ini adalah data placeholder untuk pengembangan.',
+            coverImage: `https://picsum.photos/seed/${id}/1200/800`,
+            isActive: true,
+        };
     }
     
     try {
@@ -48,7 +57,13 @@ export async function getLocation(id: string): Promise<Location | null> {
             return null;
         }
 
-        return { id: docSnap.id, ...docSnap.data() } as Location;
+        const data = docSnap.data() as Location;
+        if (!data.isActive) {
+           // Admin dapat melihat lokasi non-aktif
+           // Di sisi klien, kita akan menampilkan banner peringatan
+        }
+        return { id: docSnap.id, ...data };
+
     } catch (error: any) {
         console.error(`[Firestore Admin] Gagal mengambil getLocation untuk id ${id}:`, error.message);
         return null;
@@ -57,7 +72,32 @@ export async function getLocation(id: string): Promise<Location | null> {
 
 export async function getSpots(locationId: string): Promise<Spot[]> {
     const { db } = getAdminServices();
-    if (!db) return []; 
+    if (!db) {
+         console.warn(`[Firestore Admin] Degraded Mode: Mengembalikan spot placeholder untuk locationId: ${locationId}.`);
+         // Return placeholder spots in degraded mode to allow UI development
+         return [
+            {
+                id: 'spot-placeholder-1',
+                locationId: locationId,
+                order: 1,
+                title: 'Spot Placeholder 1',
+                description: 'Ini adalah deskripsi untuk spot placeholder pertama. Konten nyata akan muncul saat terhubung ke database.',
+                imageUrl: 'https://picsum.photos/seed/spot1/1200/800',
+                isPro: false,
+                viewType: 'flat',
+            },
+            {
+                id: 'spot-placeholder-2',
+                locationId: locationId,
+                order: 2,
+                title: 'Spot Placeholder 2 (PRO)',
+                description: 'Ini adalah deskripsi untuk spot placeholder kedua, yang ditandai sebagai konten PRO.',
+                imageUrl: 'https://picsum.photos/seed/spot2/1200/800',
+                isPro: true,
+                viewType: 'panorama',
+            }
+         ];
+    }
 
     try {
         const spotsRef = db.collection('spots');
@@ -73,8 +113,17 @@ export async function getSpots(locationId: string): Promise<Spot[]> {
 export async function getSpot(id: string): Promise<Spot | null> {
   const { db } = getAdminServices();
   if (!db) {
-    console.warn(`[Firestore Admin] Degraded Mode: Tidak dapat mengambil getSpot(id: ${id}) karena SDK tidak aktif.`);
-    return null; // Return null in degraded mode
+    console.warn(`[Firestore Admin] Degraded Mode: Mengembalikan spot placeholder untuk getSpot(id: ${id}).`);
+    return {
+        id,
+        locationId: 'location-placeholder',
+        order: 1,
+        title: 'Spot Placeholder',
+        description: 'Data spot ini sedang tidak tersedia karena koneksi ke server gagal. Ini adalah data placeholder.',
+        imageUrl: `https://picsum.photos/seed/${id}/1200/800`,
+        isPro: false,
+        viewType: 'flat',
+    };
   }
 
   try {
