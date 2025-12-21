@@ -1,3 +1,4 @@
+
 import 'server-only';
 import * as admin from 'firebase-admin';
 
@@ -5,59 +6,56 @@ let adminApp: admin.app.App | null = null;
 let initError: Error | null = null;
 
 function initialize() {
-  // Hindari inisialisasi ulang jika sudah ada
   if (admin.apps.length > 0) {
     adminApp = admin.apps[0];
     return;
   }
   
   try {
-    // Ini akan berhasil di lingkungan server (App Hosting, Cloud Functions)
-    // atau jika Application Default Credentials (ADC) sudah di-setup secara lokal.
-     adminApp = admin.initializeApp({
-        credential: admin.credential.applicationDefault(),
-     });
+    // This will work in production environments (App Hosting, Cloud Functions)
+    adminApp = admin.initializeApp({
+      credential: admin.credential.applicationDefault(),
+    });
+    console.log('[Firebase Admin] Initialized with Application Default Credentials.');
   } catch (e: any) {
-    // Tangkap error jika inisialisasi gagal (misalnya, tidak ada kredensial)
-    initError = e;
-    console.warn(`[Firebase Admin] Inisialisasi gagal. Ini wajar dalam pengembangan lokal jika ADC tidak di-setup. Aplikasi akan berjalan dalam mode terdegradasi (data sisi server dinonaktifkan). Error: ${e.message}`);
+    // This block will run in local development if ADC is not set up.
+    console.warn(`[Firebase Admin] Failed to initialize with ADC: ${e.message}.`);
+    console.log('[Firebase Admin] Attempting to connect to Firestore Emulator...');
+    
+    // Set a dummy project ID for the emulator
+    process.env.GCLOUD_PROJECT = 'cave-57567';
+    process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
+
+    try {
+      adminApp = admin.initializeApp({
+        projectId: 'cave-57567',
+      });
+      console.log('[Firebase Admin] Successfully connected to Firestore Emulator.');
+    } catch (emulatorError: any) {
+      initError = emulatorError;
+      console.error(`[Firebase Admin] Failed to connect to emulator: ${emulatorError.message}`);
+    }
   }
 }
 
-// Lakukan inisialisasi saat modul dimuat
+// Initialize on module load
 initialize();
 
 /**
- * Mengembalikan instance Firebase Admin SDK yang telah diinisialisasi.
- * Ini akan melempar error jika inisialisasi gagal.
- * Sebaiknya gunakan safeGetAdminApp untuk menghindari crash.
- */
-export function getAdminApp() {
-  if (initError) {
-    throw new Error(`Firebase Admin SDK tidak terinisialisasi. Pastikan lingkungan server memiliki kredensial yang benar. Original error: ${initError.message}`);
-  }
-  if (!adminApp) {
-      throw new Error('Firebase Admin SDK tidak tersedia. Aplikasi mungkin tidak terinisialisasi dengan benar.');
-  }
-
-  return {
-    auth: admin.auth(adminApp),
-    db: admin.firestore(adminApp),
-  };
-}
-
-
-/**
- * Mencoba mendapatkan service Firebase Admin SDK dengan aman.
- * Mengembalikan null jika SDK gagal diinisialisasi, memungkinkan aplikasi
- * untuk berjalan dalam mode terdegradasi daripada crash.
+ * Attempts to safely get the Firebase Admin SDK services.
+ * Returns null if the SDK failed to initialize, allowing the app
+ * to run in a degraded mode rather than crashing.
  */
 export function safeGetAdminApp() {
     if (initError || !adminApp) {
+        if (initError) {
+          // Log the initialization error only once if it exists
+          console.warn(`[Firebase Admin] SDK not available due to initialization error: ${initError.message}`);
+        }
         return null;
     }
     return {
         auth: admin.auth(adminApp),
         db: admin.firestore(adminApp),
-    }
+    };
 }
