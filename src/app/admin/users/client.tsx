@@ -14,6 +14,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { UserForm } from './user-form';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 
 export default function UsersClient() {
@@ -68,7 +70,9 @@ export default function UsersClient() {
     if (newRole === 'admin') {
         const ok = confirm('Yakin ingin menjadikan pengguna ini sebagai ADMIN? Tindakan ini memberikan akses penuh ke panel admin.');
         if (!ok) {
-             return;
+             // To revert the select dropdown visually if the user cancels `confirm`
+            setUsers([...users]); 
+            return;
         }
     }
 
@@ -85,6 +89,38 @@ export default function UsersClient() {
         // Error will be shown by the global error handler
     } finally {
         setLoadingStates((prev) => ({ ...prev, [uid]: false }));
+    }
+  };
+  
+  const handleStatusChange = async (uid: string, isDisabled: boolean) => {
+    if (currentUser?.uid === uid) {
+      toast({ variant: 'destructive', title: 'Aksi Ditolak', description: 'Anda tidak dapat menonaktifkan akun sendiri.' });
+      return;
+    }
+
+    setLoadingStates(prev => ({ ...prev, [uid]: true }));
+    try {
+      const response = await fetch(`/api/admin/users/${uid}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ disabled: isDisabled }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Gagal mengubah status pengguna.');
+      }
+      
+      setUsers(currentUsers =>
+        currentUsers.map(u => u.id === uid ? { ...u, disabled: isDisabled } : u)
+      );
+      toast({ title: 'Berhasil', description: `Pengguna telah ${isDisabled ? 'dinonaktifkan' : 'diaktifkan'}.` });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Gagal', description: error.message });
+      // Revert the switch state on failure by re-rendering
+      setUsers([...users]);
+    } finally {
+      setLoadingStates(prev => ({ ...prev, [uid]: false }));
     }
   };
 
@@ -160,25 +196,38 @@ export default function UsersClient() {
             </div>
           </CardHeader>
           <CardContent className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-             <div className="flex items-center gap-2 w-full md:w-auto max-w-[140px] flex-shrink-0">
-               {loadingStates[user.id] && <Loader2 className="h-5 w-5 animate-spin" />}
-              <Select
-                value={user.role}
-                onValueChange={(value: UserProfile['role']) => handleRoleChange(user.id, value)}
-                disabled={loadingStates[user.id] || currentUser?.uid === user.id}
-              >
-                <SelectTrigger className="w-full" data-uid={user.id}>
-                  <SelectValue placeholder="Pilih peran" />
-                </SelectTrigger>
-                <SelectContent data-uid-select={user.id}>
-                  <SelectItem value="free">Free</SelectItem>
-                  <SelectItem value="pro1">PRO 1</SelectItem>
-                  <SelectItem value="pro2">PRO 2</SelectItem>
-                  <SelectItem value="pro3">PRO 3</SelectItem>
-                  <SelectItem value="vip">VIP</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
+             <div className="flex items-center gap-4 flex-wrap">
+                 <div className="flex items-center gap-2 w-[140px] flex-shrink-0">
+                   {loadingStates[user.id] && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
+                   <Select
+                     value={user.role}
+                     onValueChange={(value: UserProfile['role']) => handleRoleChange(user.id, value)}
+                     disabled={loadingStates[user.id] || currentUser?.uid === user.id}
+                   >
+                     <SelectTrigger className="w-full" data-uid={user.id}>
+                       <SelectValue placeholder="Pilih peran" />
+                     </SelectTrigger>
+                     <SelectContent data-uid-select={user.id}>
+                       <SelectItem value="free">Free</SelectItem>
+                       <SelectItem value="pro1">PRO 1</SelectItem>
+                       <SelectItem value="pro2">PRO 2</SelectItem>
+                       <SelectItem value="pro3">PRO 3</SelectItem>
+                       <SelectItem value="vip">VIP</SelectItem>
+                       <SelectItem value="admin">Admin</SelectItem>
+                     </SelectContent>
+                   </Select>
+                </div>
+                 <div className="flex items-center space-x-2">
+                    <Switch
+                        id={`status-${user.id}`}
+                        checked={!user.disabled}
+                        onCheckedChange={(isChecked) => handleStatusChange(user.id, !isChecked)}
+                        disabled={loadingStates[user.id] || currentUser?.uid === user.id}
+                    />
+                    <Label htmlFor={`status-${user.id}`} className={user.disabled ? 'text-muted-foreground' : ''}>
+                        {user.disabled ? 'Nonaktif' : 'Aktif'}
+                    </Label>
+                </div>
             </div>
              <div className="flex gap-2 self-end md:self-center">
                   <AlertDialog>

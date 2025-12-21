@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Timestamp } from 'firebase/firestore';
@@ -9,6 +10,7 @@ export interface UserProfile {
   photoURL?: string | null;
   role: 'free' | 'pro1' | 'pro2' | 'pro3' | 'vip' | 'admin';
   updatedAt: Timestamp | Date;
+  disabled?: boolean;
 }
 
 export interface Location {

@@ -95,18 +95,37 @@ export async function getSpot(id: string): Promise<Spot | null> {
 }
 
 export async function getAllUsersAdmin(): Promise<UserProfile[]> {
-  const { db } = getAdminServices();
-  if (!db) return [];
+  const { db, auth } = getAdminServices();
+  if (!db || !auth) return [];
   
-  const usersRef = db.collection('users');
   try {
-    const querySnapshot = await usersRef.get();
-    return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as UserProfile));
+    const listUsersResult = await auth.listUsers();
+    const uids = listUsersResult.users.map(u => u.uid);
+    if (uids.length === 0) return [];
+    
+    const usersRef = db.collection('users');
+    const querySnapshot = await usersRef.where(firestore.FieldPath.documentId(), 'in', uids).get();
+    const profilesByUid = querySnapshot.docs.reduce((acc, doc) => {
+        acc[doc.id] = { id: doc.id, ...doc.data() } as UserProfile;
+        return acc;
+    }, {} as Record<string, UserProfile>);
+
+    return listUsersResult.users.map(userRecord => {
+        const profile = profilesByUid[userRecord.uid];
+        return {
+            ...profile,
+            id: userRecord.uid,
+            displayName: userRecord.displayName || profile?.displayName,
+            email: userRecord.email || profile?.email,
+            photoURL: userRecord.photoURL || profile?.photoURL,
+            disabled: userRecord.disabled,
+            role: profile?.role || 'free',
+            updatedAt: profile?.updatedAt || userRecord.metadata.lastSignInTime,
+        };
+    });
+
   } catch (error: any) {
-    // We don't use the permission error emitter here since this is a server-only function
-    // and errors should be logged on the server.
     console.error("[Firestore Admin] Gagal mengambil getAllUsersAdmin:", error.message);
-    // Return empty array on failure
     return [];
   }
 }
@@ -149,5 +168,12 @@ export async function deleteUserAdmin(uid: string): Promise<void> {
 
   // Delete from Firestore
   await db.collection('users').doc(uid).delete();
+}
+
+export async function updateUserStatusAdmin(uid: string, disabled: boolean): Promise<void> {
+    const { auth } = getAdminServices();
+    if (!auth) throw new Error("Admin SDK tidak terinisialisasi.");
+
+    await auth.updateUser(uid, { disabled });
 }
     
