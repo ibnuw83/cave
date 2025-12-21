@@ -162,26 +162,42 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
   useEffect(() => {
     const translateContent = async () => {
       const targetLanguage = navigator.language;
-      // Let's assume the source language is Indonesian ('id')
-      // We don't translate if the browser is already in the source language
-      if (targetLanguage.startsWith('id')) {
+      const sourceLanguage = 'id'; // Asumsi bahasa asli adalah Indonesia
+
+      // Jangan terjemahkan jika bahasa browser sudah sama dengan bahasa sumber
+      if (targetLanguage.startsWith(sourceLanguage)) {
         setTranslatedTitle(spot.title);
         setTranslatedDescription(spot.description);
         return;
       }
-
+      
       setIsTranslating(true);
+      
       try {
+        // Coba API terjemahan browser terlebih dahulu (jika tersedia)
+        // @ts-ignore - translation v2 is not in standard yet
+        if (navigator.translation && typeof navigator.translation.translate === 'function') {
+            // @ts-ignore
+          const titleResult = await navigator.translation.translate(spot.title, { target: targetLanguage, source: sourceLanguage });
+          // @ts-ignore
+          const descResult = await navigator.translation.translate(spot.description, { target: targetLanguage, source: sourceLanguage });
+          setTranslatedTitle(titleResult.targetText);
+          setTranslatedDescription(descResult.targetText);
+          setIsTranslating(false);
+          return;
+        }
+
+        // Jika API browser tidak ada, gunakan fallback ke API Genkit kita
         const [titleRes, descriptionRes] = await Promise.all([
           fetch('/api/translate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: spot.title, targetLanguage, sourceLanguage: 'id' }),
+            body: JSON.stringify({ text: spot.title, targetLanguage, sourceLanguage }),
           }),
           fetch('/api/translate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: spot.description, targetLanguage, sourceLanguage: 'id' }),
+            body: JSON.stringify({ text: spot.description, targetLanguage, sourceLanguage }),
           }),
         ]);
 
@@ -189,13 +205,14 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
           const { translatedText } = await titleRes.json();
           setTranslatedTitle(translatedText);
         }
-        if (descriptionRes.ok) {
+         if (descriptionRes.ok) {
           const { translatedText } = await descriptionRes.json();
           setTranslatedDescription(translatedText);
         }
+
       } catch (error) {
-        console.error('Text translation failed:', error);
-        // Fallback to original text if translation fails
+        console.error('Text translation failed, using original text:', error);
+        // Fallback ke teks asli jika semua metode terjemahan gagal
         setTranslatedTitle(spot.title);
         setTranslatedDescription(spot.description);
       } finally {
