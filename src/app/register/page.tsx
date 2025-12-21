@@ -16,6 +16,7 @@ import { KioskSettings } from '@/lib/types';
 import Image from 'next/image';
 import { 
   createUserWithEmailAndPassword,
+  sendEmailVerification,
   updateProfile,
 } from 'firebase/auth';
 import { useAuth, useUser } from '@/firebase';
@@ -54,14 +55,19 @@ export default function RegisterPage() {
   const signUpWithEmail = async (data: RegisterFormValues) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      
       // After creating the user, update their profile with the display name
       await updateProfile(userCredential.user, {
         displayName: data.displayName,
       });
+
+      // Send email verification
+      await sendEmailVerification(userCredential.user);
+      
       // The onAuthStateChanged listener in FirebaseProvider will handle profile creation in Firestore and redirect.
       toast({
         title: 'Pendaftaran Berhasil',
-        description: 'Selamat datang! Anda akan diarahkan ke halaman utama.',
+        description: 'Silakan periksa email Anda untuk verifikasi.',
       });
     } catch (error: any) {
        if (error.code === 'auth/email-already-in-use') {
