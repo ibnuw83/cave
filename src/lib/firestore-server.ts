@@ -64,3 +64,18 @@ export async function getSpots(locationId: string): Promise<Spot[]> {
         return [];
     }
 }
+
+export async function getSpotClient(id: string): Promise<Spot | null> {
+  try {
+    const { db } = await initializeAdminApp();
+    const docRef = db.collection('spots').doc(id);
+    const docSnap = await docRef.get();
+    if (docSnap.exists) {
+        return { id: docSnap.id, ...docSnap.data() } as Spot;
+    }
+    return null;
+  } catch(error: any) {
+      handleAuthError(error, `getSpotClient(id: ${id})`);
+      return null;
+  }
+}
