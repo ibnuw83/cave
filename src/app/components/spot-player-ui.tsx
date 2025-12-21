@@ -64,7 +64,9 @@ function SpotNavigation({ currentSpotId, allSpots, isUIVisible }: { currentSpotI
                                         sizes="(max-width: 768px) 20vw, 10vw"
                                     />
                                     {spot.isPro && (
-                                         <div className="absolute inset-0 bg-black/30"></div>
+                                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                            <Gem className="h-4 w-4 text-primary" />
+                                         </div>
                                     )}
                                 </div>
                             </Link>
@@ -184,9 +186,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
   const isFreeUser = !isProUser;
 
   const stopSpeaking = useCallback(() => {
-    // Stop browser TTS
     stopSpeechSynthesis();
-    // Stop and cleanup the Audio element
     if (audioRef.current) {
         audioRef.current.pause();
         if (audioRef.current.src && audioRef.current.src.startsWith('blob:')) {
@@ -199,11 +199,8 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
   useEffect(() => {
     const translateContent = async () => {
       const targetLanguage = selectedLanguage;
-      // Assuming the original content is in Indonesian or a neutral language.
-      // For a robust system, the source language should ideally be stored with the content.
       const sourceLanguage = 'id'; 
 
-      // Do not translate if the target is the same as the source
       if (targetLanguage.startsWith(sourceLanguage)) {
         setTranslatedTitle(spot.title);
         setTranslatedDescription(spot.description);
@@ -230,13 +227,13 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
           const { translatedText } = await titleRes.json();
           setTranslatedTitle(translatedText);
         } else {
-          setTranslatedTitle(spot.title); // fallback to original
+          setTranslatedTitle(spot.title);
         }
          if (descriptionRes.ok) {
           const { translatedText } = await descriptionRes.json();
           setTranslatedDescription(translatedText);
         } else {
-          setTranslatedDescription(spot.description); // fallback to original
+          setTranslatedDescription(spot.description);
         }
 
       } catch (error) {
@@ -270,7 +267,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
     }
     uiTimeoutRef.current = setTimeout(() => {
         setIsUIVisible(false);
-    }, 5000); // 5 seconds of inactivity
+    }, 5000);
   }, []);
 
   const showUI = useCallback((e: Event) => {
@@ -320,7 +317,6 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
 
   
   useEffect(() => {
-    // Cleanup function when spot.id changes or component unmounts
     return () => {
       stopSpeaking();
       if (canVibrate()) {
@@ -337,19 +333,18 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
     const currentSpotIndex = allSpots.findIndex(s => s.id === spot.id);
     const hasNextSpot = currentSpotIndex !== -1 && currentSpotIndex < allSpots.length - 1;
 
-    if (hasNextSpot) {
+    if (hasNextSpot && isProUser) {
         const nextSpot = allSpots[currentSpotIndex + 1];
-        if (isProUser || !nextSpot.isPro) { 
-            router.push(`/spot/${nextSpot.id}`);
-        } else {
-            toast({
-                title: "Mode Misi Khusus PRO",
-                description: "Upgrade ke PRO untuk melanjutkan tur otomatis ke semua spot.",
-                action: (
-                    <Button asChild><Link href="/pricing"><Gem className="mr-2"/>Upgrade</Link></Button>
-                )
-            });
-        }
+        // PRO users can access any spot
+        router.push(`/spot/${nextSpot.id}`);
+    } else if (hasNextSpot && isFreeUser) {
+        toast({
+            title: "Mode Misi Khusus PRO",
+            description: "Nikmati tur otomatis ke semua spot dengan upgrade ke PRO.",
+            action: (
+                <Button asChild><Link href="/pricing"><Gem className="mr-2 h-4 w-4"/>Upgrade</Link></Button>
+            )
+        });
     } else {
        toast({
         title: "Misi Selesai!",
@@ -387,6 +382,22 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
       if (canVibrate()) vibrate(0);
       return;
     }
+
+    if (isFreeUser && spot.isPro) {
+        toast({
+            title: 'Mode PRO Diperlukan',
+            description: 'Nikmati narasi penuh, tur otomatis & bebas iklan dengan upgrade.',
+            action: (
+            <Button asChild>
+                <Link href="/pricing">
+                    <Gem className="mr-2 h-4 w-4" /> Upgrade
+                </Link>
+            </Button>
+            )
+        });
+        return;
+    }
+
 
     setIsLoading(true);
     try {
@@ -503,7 +514,10 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
                         {isTranslating ? (
                             <Skeleton className="h-9 w-64 mb-1" />
                         ) : (
-                            <h1 className="text-3xl font-bold font-headline mb-1">{translatedTitle}</h1>
+                            <h1 className="text-3xl font-bold font-headline mb-1 flex items-center gap-2">
+                                {translatedTitle}
+                                {spot.isPro && <Gem className="h-5 w-5 text-primary" />}
+                            </h1>
                         )}
                         {isTranslating ? (
                             <Skeleton className="h-5 w-full max-w-lg mt-2" />
