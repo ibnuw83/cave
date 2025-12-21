@@ -13,8 +13,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const spot = await getSpot(params.id);
  
   if (!spot) {
-    // This is correct because if metadata fails, the page should be a 404.
-    notFound();
+    // Jangan panggil notFound() di sini.
+    // Cukup kembalikan metadata default.
+    return {
+      title: 'Spot Tidak Ditemukan',
+      description: 'Data untuk spot ini tidak dapat dimuat.',
+    };
   }
 
   return {
@@ -34,7 +38,7 @@ export default async function SpotPage({ params }: Props) {
   const spot = await getSpot(spotId);
   
   if (!spot) {
-     // This is the user-facing fallback UI when the backend fails or data is missing.
+     // Komponen fallback ini sekarang akan ditampilkan dengan benar.
      return (
         <div className="flex items-center justify-center min-h-screen p-8 text-center text-white">
             <div>
