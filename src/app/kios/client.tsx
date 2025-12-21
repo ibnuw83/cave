@@ -4,7 +4,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Spot, KioskSettings } from '@/lib/types';
-import { getSpotClient } from '@/lib/firestore';
+import { getSpotClient } from '@/lib/firestore-client';
 import { getOfflineLocationData } from '@/lib/offline';
 import { enterKioskLock, exitKioskLock } from '@/lib/kiosk';
 import KioskPlayer from './player';

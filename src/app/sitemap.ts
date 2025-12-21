@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next'
-import { getLocations } from '@/lib/firestore';
+import { getLocations } from '@/lib/firestore-client';
  
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const locations = await getLocations(true); // Get all locations

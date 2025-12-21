@@ -17,7 +17,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { deletePricingTier, getPricingTiers } from '@/lib/firestore';
+import { deletePricingTier, getPricingTiers } from '@/lib/firestore-client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PricingTierForm } from './tier-form';
 import { Badge } from '@/components/ui/badge';

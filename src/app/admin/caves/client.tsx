@@ -19,7 +19,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { deleteLocation, getLocations } from "@/lib/firestore";
+import { deleteLocation, getLocations } from "@/lib/firestore-client";
 import { CaveForm } from "./cave-form";
 import { Skeleton } from "@/components/ui/skeleton";
 

@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getLocations, getAllSpotsForAdmin, getAllUsersAdmin } from '@/lib/firestore';
+import { getLocations, getAllSpotsForAdmin, getAllUsersAdmin } from '@/lib/firestore-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mountain, MapPin, Users, ArrowRight } from 'lucide-react';
 import Link from 'next/link';

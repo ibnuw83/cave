@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth, useFirestore } from '@/firebase/provider';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { UserProfile } from '@/lib/types';
-import { getUserProfileClient, createUserProfile } from '@/lib/firestore';
+import { getUserProfileClient, createUserProfile } from '@/lib/firestore-client';
 import { useToast } from '@/hooks/use-toast';
 import { Timestamp } from 'firebase/firestore';
 

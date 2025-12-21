@@ -1,4 +1,4 @@
-import { getLocations } from "@/lib/firestore-server";
+import { getLocations } from "@/lib/firestore-admin";
 import KioskClient from "./client";
 import { Location } from "@/lib/types";
 

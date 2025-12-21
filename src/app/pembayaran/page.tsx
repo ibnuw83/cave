@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, CheckCircle, ArrowLeft } from 'lucide-react';
 import { useUser } from '@/firebase';
-import { getPricingTiers, updateUserRole } from '@/lib/firestore';
+import { getPricingTiers, updateUserRole } from '@/lib/firestore-client';
 import { PricingTier, UserProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';

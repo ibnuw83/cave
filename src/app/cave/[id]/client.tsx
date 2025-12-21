@@ -12,7 +12,7 @@ import { saveLocationForOffline, isLocationAvailableOffline } from '@/lib/offlin
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase';
-import { getLocationClient, getSpots } from '@/lib/firestore';
+import { getLocationClient, getSpots } from '@/lib/firestore-client';
 import { Skeleton } from '@/components/ui/skeleton';
 
 function SpotCard({ spot, isLocked, isOffline, lockedMessage }: { spot: Spot; isLocked: boolean; isOffline: boolean, lockedMessage: string; }) {

@@ -7,7 +7,7 @@ import { Check, Star, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/firebase';
-import { getPricingTiers } from '@/lib/firestore';
+import { getPricingTiers } from '@/lib/firestore-client';
 import { PricingTier } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 

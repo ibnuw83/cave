@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getKioskSettings } from "@/lib/firestore";
+import { getKioskSettings } from "@/lib/firestore-client";
 import KiosClient from "./client";
 import { KioskSettings } from "@/lib/types";
 import { Loader2 } from 'lucide-react';

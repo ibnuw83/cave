@@ -6,7 +6,7 @@ import { Spot } from '@/lib/types';
 import LockedScreen from '@/app/components/locked-screen';
 import SpotPlayerUI from '@/app/components/spot-player-ui';
 import HybridViewer from '@/app/components/hybrid-viewer';
-import { getSpotClient, getSpots } from '@/lib/firestore'; // Using client-side firestore functions
+import { getSpotClient, getSpots } from '@/lib/firestore-client'; // Using client-side firestore functions
 import { Skeleton } from '@/components/ui/skeleton';
 import PanoramaViewer from '@/components/viewer-panorama';
 

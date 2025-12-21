@@ -1,5 +1,5 @@
 import UsersClient from "./client";
-import { getAllUsersAdmin } from "@/lib/firestore";
+import { getAllUsersAdmin } from "@/lib/firestore-client";
 import { UserProfile } from "@/lib/types";
 
 export default async function UsersPage() {

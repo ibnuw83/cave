@@ -1,5 +1,5 @@
 
-import { getSpotClient } from '@/lib/firestore';
+import { getSpotClient } from '@/lib/firestore-client';
 import { narrateSpot } from '@/ai/flows/narrate-spot-flow';
 import { textToSpeech } from '@/ai/flows/tts-flow';
 import {NextRequest} from 'next/server';

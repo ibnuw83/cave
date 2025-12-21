@@ -10,7 +10,7 @@ import { Loader2, Mountain, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
-import { getKioskSettings } from '@/lib/firestore';
+import { getKioskSettings } from '@/lib/firestore-client';
 import { KioskSettings } from '@/lib/types';
 import Image from 'next/image';
 import { 

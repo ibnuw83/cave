@@ -7,7 +7,7 @@ import { FirebaseProvider } from '@/firebase/provider'; // Diubah untuk mengguna
 import { useEffect, useState } from 'react';
 import Script from 'next/script';
 import Footer from '@/app/components/footer';
-import { getKioskSettings } from '@/lib/firestore';
+import { getKioskSettings } from '@/lib/firestore-client';
 import { KioskSettings } from '@/lib/types';
 
 

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Facebook, Instagram, Twitter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getKioskSettings } from '@/lib/firestore';
+import { getKioskSettings } from '@/lib/firestore-client';
 import { KioskSettings } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { UserProfile } from '@/lib/types';
-import { updateUserRole } from '@/lib/firestore';
+import { updateUserRole } from '@/lib/firestore-client';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';

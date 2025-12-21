@@ -1,4 +1,4 @@
-import { getSpotClient } from '@/lib/firestore-server';
+import { getSpot } from '@/lib/firestore-admin';
 import { useUser } from '@/firebase/auth/use-user-server'; // Server-side user hook
 import SpotPageClient from './client';
 import { notFound } from 'next/navigation';
@@ -10,7 +10,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // Metadata fetching must remain on the server.
-  const spot = await getSpotClient(params.id);
+  const spot = await getSpot(params.id);
  
   if (!spot) {
     return {
@@ -39,7 +39,7 @@ export default async function SpotPage({ params }: Props) {
   // We no longer pre-fetch data here to avoid server-side data fetching for a public page.
   
   // We can do a quick check here to see if the spot exists at all, to show a 404 if the URL is completely invalid.
-  const spotExists = await getSpotClient(spotId);
+  const spotExists = await getSpot(spotId);
   if (!spotExists) {
     notFound();
   }

@@ -5,7 +5,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Location, Spot } from '@/lib/types';
-import { addSpot, updateSpot } from '@/lib/firestore';
+import { addSpot, updateSpot } from '@/lib/firestore-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
