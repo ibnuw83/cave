@@ -3,40 +3,52 @@ import { NextRequest, NextResponse } from 'next/server';
 import { safeGetAdminApp } from '@/firebase/admin';
 import { cookies } from 'next/headers';
 import { deleteUserAdmin, updateUserStatusAdmin } from '@/lib/firestore-admin';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 
-async function verifyAdmin(req: NextRequest): Promise<boolean> {
+async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
     const admin = safeGetAdminApp();
     if (!admin) {
       console.warn('[ADMIN API] Admin SDK tidak tersedia');
-      return false;
+      return null;
     }
   
     const sessionCookie = cookies().get('__session')?.value;
-    if (!sessionCookie) return false;
+    if (!sessionCookie) return null;
   
     try {
       const decoded = await admin.auth.verifySessionCookie(sessionCookie, true);
       const userDoc = await admin.db.collection('users').doc(decoded.uid).get();
-      return userDoc.exists && userDoc.data()?.role === 'admin';
+      if (userDoc.exists && userDoc.data()?.role === 'admin') {
+        return decoded;
+      }
+      return null;
     } catch (err) {
       console.warn('[ADMIN API] Gagal verifikasi admin');
-      return false;
+      return null;
     }
-  }
+}
 
 // Handler for PUT /api/admin/users/[id] to update user status
 export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-    const isAdmin = await verifyAdmin(req);
-    if (!isAdmin) {
+    const adminUser = await verifyAdmin(req);
+    if (!adminUser) {
         return NextResponse.json({ error: 'Akses ditolak: Hanya admin yang diizinkan.' }, { status: 403 });
     }
 
     const userId = params.id;
     if (!userId) {
         return NextResponse.json({ error: 'User ID diperlukan.' }, { status: 400 });
+    }
+    
+    // Guard to prevent admin from disabling their own account
+    if (userId === adminUser.uid) {
+      return NextResponse.json(
+        { error: 'Admin tidak dapat menonaktifkan dirinya sendiri.' },
+        { status: 400 }
+      );
     }
 
     try {
@@ -62,14 +74,22 @@ export async function DELETE(
     req: NextRequest,
     { params }: { params: { id: string } }
 ) {
-    const isAdmin = await verifyAdmin(req);
-    if (!isAdmin) {
+    const adminUser = await verifyAdmin(req);
+    if (!adminUser) {
         return NextResponse.json({ error: 'Akses ditolak: Hanya admin yang diizinkan.' }, { status: 403 });
     }
 
     const userId = params.id;
     if (!userId) {
         return NextResponse.json({ error: 'User ID diperlukan.' }, { status: 400 });
+    }
+
+    // Guard to prevent admin from deleting their own account
+    if (userId === adminUser.uid) {
+      return NextResponse.json(
+        { error: 'Admin tidak dapat menghapus dirinya sendiri.' },
+        { status: 400 }
+      );
     }
 
     try {
