@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import { getLocation, getSpots } from '@/lib/firestore-admin';
 import CaveClient from './client';

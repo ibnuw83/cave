@@ -1,3 +1,4 @@
+
 import { getSpot, getSpots } from '@/lib/firestore-admin';
 import { useUser } from '@/firebase/auth/use-user-server'; // Server-side user hook
 import SpotPageClient from './client';
