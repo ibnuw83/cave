@@ -22,7 +22,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function CavePage({ params }: Props) {
   const location = await getLocation(params.id);
-  if (!location || !location.isActive) {
+  // Cek sederhana `!location` sudah cukup karena `getLocation` akan mengembalikan
+  // null jika lokasi tidak ada ATAU tidak aktif.
+  if (!location) {
     notFound();
   }
 
