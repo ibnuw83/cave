@@ -1,7 +1,7 @@
 
 import type { Metadata } from 'next';
 import { getLocationClient } from '@/lib/firestore-client';
-import { getSpots } from '@/lib/firestore-admin';
+import { getLocation, getSpots } from '@/lib/firestore-admin';
 import CaveClient from './client';
 import { notFound } from 'next/navigation';
 
@@ -10,6 +10,8 @@ type Props = {
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  // We use getLocationClient here because it's safe to use in both server/client
+  // and doesn't depend on the Admin SDK, preventing build/dev errors.
   const location = await getLocationClient(params.id);
 
   if (!location) {
@@ -28,7 +30,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function CavePage({ params }: Props) {
-  const location = await getLocationClient(params.id);
+  // For the actual page render, we use the server-side admin function.
+  const location = await getLocation(params.id);
   
   if (!location) {
     // Komponen fallback ini sekarang akan ditampilkan dengan benar.

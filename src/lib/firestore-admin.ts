@@ -57,12 +57,7 @@ export async function getLocation(id: string): Promise<Location | null> {
             return null;
         }
 
-        const data = docSnap.data() as Location;
-        if (!data.isActive) {
-           // Admin dapat melihat lokasi non-aktif
-           // Di sisi klien, kita akan menampilkan banner peringatan
-        }
-        return { id: docSnap.id, ...data };
+        return { id: docSnap.id, ...docSnap.data() } as Location;
 
     } catch (error: any) {
         console.error(`[Firestore Admin] Gagal mengambil getLocation untuk id ${id}:`, error.message);
