@@ -11,12 +11,14 @@ service cloud.firestore {
     }
 
     function isAdmin() {
+      // Ambil dokumen pengguna yang melakukan request dan periksa field 'role'.
       return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     match /locations/{locationId} {
       /**
-       * @description Controls access to the 'locations' collection. All users can read location data, but only admins can modify it.
+       * Kontrol akses ke koleksi 'locations'.
+       * Semua pengguna dapat membaca data lokasi, tetapi hanya admin yang dapat memodifikasinya.
        */
       allow get, list: if true;
       allow write: if isAdmin();
@@ -24,8 +26,8 @@ service cloud.firestore {
     
     match /spots/{spotId} {
         /**
-         * @description Controls access to the global 'spots' collection.
-         * All users can read spots, but only admins can create, update, or delete them.
+         * Kontrol akses ke koleksi global 'spots'.
+         * Semua pengguna dapat membaca spot, tetapi hanya admin yang dapat membuat, memperbarui, atau menghapusnya.
          */
         allow get, list: if true;
         allow write: if isAdmin();
@@ -33,18 +35,20 @@ service cloud.firestore {
 
     match /users/{userId} {
       /**
-       * @description Controls access to user documents. Users can only manage their own data. Admins have full access.
+       * Kontrol akses ke dokumen pengguna.
+       * Pengguna hanya dapat mengelola datanya sendiri. Admin memiliki akses penuh.
        */
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isOwner(userId);
+      // Pengguna biasa tidak bisa mengubah role-nya sendiri, tapi admin bisa.
       allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin();
-      allow delete: if isAdmin();
+      allow delete: if isAdmin(); // Hanya admin yang bisa menghapus user.
     }
 
     match /kioskSettings/{settingId} {
       /**
-       * @description Public read for kiosk settings, admin write.
+       * Pengaturan kios dapat dibaca publik, ditulis oleh admin.
        */
       allow get, list: if true;
       allow write: if isAdmin();
@@ -52,15 +56,15 @@ service cloud.firestore {
     
     match /kioskDevices/{deviceId} {
       /**
-       * @description Kiosk devices can write their own heartbeat. Admin can read all.
+       * Perangkat kios dapat menulis heartbeat-nya sendiri. Admin dapat membaca semua.
        */
       allow read: if isAdmin();
-      allow write: if true;
+      allow write: if true; // Perangkat mengirim heartbeat tanpa otentikasi
     }
 
     match /kioskControl/{controlId} {
         /**
-         * @description Kiosk control is read by devices, written by admin.
+         * Kontrol kios dibaca oleh perangkat, ditulis oleh admin.
          */
         allow read: if true;
         allow write: if isAdmin();
@@ -68,7 +72,7 @@ service cloud.firestore {
 
     match /kioskEvents/{eventId} {
         /**
-         * @description Any device can write kiosk events.
+         * Perangkat apa pun dapat menulis event kios. Tidak bisa dibaca/update/delete.
          */
         allow create: if true;
         allow read, update, delete: if false;
@@ -76,7 +80,7 @@ service cloud.firestore {
 
     match /pricingTiers/{tierId} {
       /**
-       * @description Public read for pricing tiers, admin write.
+       * Paket harga dapat dibaca publik, ditulis oleh admin.
        */
       allow get, list: if true;
       allow create, update, delete: if isAdmin();
