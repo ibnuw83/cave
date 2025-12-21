@@ -26,6 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
 import { stopSpeechSynthesis } from '@/lib/tts';
 import { Skeleton } from '@/components/ui/skeleton';
+import AdBanner from '../AdBanner';
 
 
 function SpotNavigation({ currentSpotId, allSpots, isUIVisible }: { currentSpotId: string, allSpots: Spot[], isUIVisible: boolean }) {
@@ -475,6 +476,16 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
 
         <SpotNavigation currentSpotId={spot.id} allSpots={allSpots} isUIVisible={isUIVisible} />
 
+        {isFreeUser && !vrMode && (
+          <div 
+              className={cn("absolute bottom-40 md:bottom-32 left-1/2 -translate-x-1/2 z-30 transition-opacity duration-300 w-full max-w-lg px-4",
+              isUIVisible ? "opacity-100" : "opacity-0 pointer-events-none")}
+              onClick={(e) => e.stopPropagation()}
+          >
+              <AdBanner />
+          </div>
+        )}
+
         <div 
             className={cn(
                 "absolute bottom-0 left-0 right-0 p-6 z-20 text-white bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-300",
@@ -533,8 +544,3 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
     </>
   );
 }
-
-    
-
-    
-
