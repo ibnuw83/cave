@@ -2,18 +2,21 @@
 import 'server-only';
 import { safeGetAdminApp } from '@/firebase/admin';
 import { Location, Spot, UserProfile } from './types';
+import { UserRecord } from 'firebase-admin/auth';
+import { firestore } from 'firebase-admin';
 
 // Fungsi ini sekarang menggunakan safeGetAdminApp untuk menghindari crash jika Admin SDK tidak terinisialisasi.
-const getDb = () => {
+const getAdminServices = () => {
     const app = safeGetAdminApp();
     if (!app) {
         console.warn(`[Firestore Admin] Firebase Admin SDK tidak tersedia. Pengambilan data sisi server dinonaktifkan.`);
+        return { db: null, auth: null };
     }
-    return app?.db;
+    return app;
 }
 
 export async function getLocations(): Promise<Location[]> {
-    const db = getDb();
+    const { db } = getAdminServices();
     if (!db) return []; 
     
     try {
@@ -32,7 +35,7 @@ export async function getLocations(): Promise<Location[]> {
 }
 
 export async function getLocation(id: string): Promise<Location | null> {
-    const db = getDb();
+    const { db } = getAdminServices();
     if (!db) return null; 
     
     try {
@@ -58,7 +61,7 @@ export async function getLocation(id: string): Promise<Location | null> {
 }
 
 export async function getSpots(locationId: string): Promise<Spot[]> {
-    const db = getDb();
+    const { db } = getAdminServices();
     if (!db) return []; 
 
     try {
@@ -73,7 +76,7 @@ export async function getSpots(locationId: string): Promise<Spot[]> {
 }
 
 export async function getSpot(id: string): Promise<Spot | null> {
-  const db = getDb();
+  const { db } = getAdminServices();
   if (!db) return null;
 
   try {
@@ -92,7 +95,7 @@ export async function getSpot(id: string): Promise<Spot | null> {
 }
 
 export async function getAllUsersAdmin(): Promise<UserProfile[]> {
-  const db = getDb();
+  const { db } = getAdminServices();
   if (!db) return [];
   
   const usersRef = db.collection('users');
@@ -106,5 +109,45 @@ export async function getAllUsersAdmin(): Promise<UserProfile[]> {
     // Return empty array on failure
     return [];
   }
+}
+
+export async function createUserAdmin(data: { email: string, password?: string, displayName: string, role: UserProfile['role'] }): Promise<UserRecord> {
+  const { auth, db } = getAdminServices();
+  if (!auth || !db) throw new Error("Admin SDK tidak terinisialisasi.");
+
+  // Create user in Auth
+  const userRecord = await auth.createUser({
+    email: data.email,
+    emailVerified: true,
+    password: data.password,
+    displayName: data.displayName,
+    disabled: false,
+  });
+
+  // Create user profile in Firestore
+  const userProfile: Omit<UserProfile, 'id' | 'updatedAt'> = {
+    displayName: userRecord.displayName || data.displayName,
+    email: userRecord.email || data.email,
+    photoURL: userRecord.photoURL || null,
+    role: data.role,
+  };
+  await db.collection('users').doc(userRecord.uid).set({
+    ...userProfile,
+    updatedAt: firestore.FieldValue.serverTimestamp(),
+  });
+
+  return userRecord;
+}
+
+
+export async function deleteUserAdmin(uid: string): Promise<void> {
+  const { auth, db } = getAdminServices();
+  if (!auth || !db) throw new Error("Admin SDK tidak terinisialisasi.");
+
+  // Delete from Auth
+  await auth.deleteUser(uid);
+
+  // Delete from Firestore
+  await db.collection('users').doc(uid).delete();
 }
     
