@@ -13,9 +13,10 @@ import { Switch } from '@/components/ui/switch';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Trash2, PlusCircle, Sparkles } from 'lucide-react';
+import { Loader2, Trash2, PlusCircle, Sparkles, CheckCircle, AlertTriangle, MessageSquare } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useMemo, useState } from 'react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const hotspotSchema = z.object({
   id: z.string().min(1),
@@ -55,6 +56,9 @@ interface SpotFormProps {
 export function SpotForm({ spot, locations, allSpots, onSave, onCancel }: SpotFormProps) {
   const { toast } = useToast();
   const [isSuggestingImage, setIsSuggestingImage] = useState(false);
+  const [uniquenessResult, setUniquenessResult] = useState<{ isUnique: boolean; feedback: string } | null>(null);
+  const [isCheckingUniqueness, setIsCheckingUniqueness] = useState(false);
+
 
   const form = useForm<SpotFormValues>({
     resolver: zodResolver(spotSchema),
@@ -79,6 +83,10 @@ export function SpotForm({ spot, locations, allSpots, onSave, onCancel }: SpotFo
   const isSubmitting = form.formState.isSubmitting;
   const watchLocationId = form.watch('locationId');
   const watchDescription = form.watch('description');
+
+  const wordCount = useMemo(() => {
+    return watchDescription?.trim().split(/\s+/).filter(Boolean).length || 0;
+  }, [watchDescription]);
 
   const spotsInSameLocation = useMemo(() => {
     return allSpots.filter(s => s.locationId === watchLocationId && s.id !== spot?.id);
@@ -143,6 +151,39 @@ export function SpotForm({ spot, locations, allSpots, onSave, onCancel }: SpotFo
       });
     } finally {
       setIsSuggestingImage(false);
+    }
+  };
+
+  const handleCheckUniqueness = async () => {
+    if (!watchDescription) {
+      toast({
+        variant: 'destructive',
+        title: 'Deskripsi Kosong',
+        description: 'Tulis deskripsi terlebih dahulu untuk diperiksa.',
+      });
+      return;
+    }
+    setIsCheckingUniqueness(true);
+    setUniquenessResult(null);
+    try {
+      const response = await fetch('/api/check-uniqueness', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: watchDescription }),
+      });
+      if (!response.ok) {
+        throw new Error('Gagal memeriksa keunikan teks.');
+      }
+      const result = await response.json();
+      setUniquenessResult(result);
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Gagal',
+        description: error.message || 'Tidak dapat memeriksa keunikan saat ini.',
+      });
+    } finally {
+      setIsCheckingUniqueness(false);
     }
   };
 
@@ -214,11 +255,29 @@ export function SpotForm({ spot, locations, allSpots, onSave, onCancel }: SpotFo
             name="description"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Deskripsi</FormLabel>
+                <div className="flex justify-between items-center mb-2">
+                    <FormLabel>Deskripsi</FormLabel>
+                    <Button type="button" variant="outline" size="sm" onClick={handleCheckUniqueness} disabled={isCheckingUniqueness}>
+                         {isCheckingUniqueness ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
+                        <span className="ml-2 hidden md:inline">Cek Keunikan</span>
+                    </Button>
+                </div>
                 <FormControl>
-                  <Textarea placeholder="Deskripsi singkat tentang spot ini..." {...field} />
+                  <Textarea placeholder="Deskripsi singkat tentang spot ini..." {...field} rows={5} />
                 </FormControl>
+                 <FormDescription>
+                    Jumlah Kata: {wordCount} (Disarankan 150-300 kata untuk performa SEO & AdSense yang lebih baik)
+                </FormDescription>
                 <FormMessage />
+                {uniquenessResult && (
+                    <Alert variant={uniquenessResult.isUnique ? 'default' : 'destructive'} className="mt-4 bg-card">
+                        {uniquenessResult.isUnique ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                        <AlertTitle>{uniquenessResult.isUnique ? 'Deskripsi Baik!' : 'Perlu Revisi'}</AlertTitle>
+                        <AlertDescription>
+                            {uniquenessResult.feedback}
+                        </AlertDescription>
+                    </Alert>
+                )}
               </FormItem>
             )}
           />
