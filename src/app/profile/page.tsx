@@ -130,6 +130,7 @@ export default function ProfilePage() {
   }
 
   const roleInfo = getRoleInfo(userProfile.role);
+  const showAds = userProfile.role === 'free';
 
   return (
     <>
@@ -170,7 +171,14 @@ export default function ProfilePage() {
         </header>
 
         <main>
-           <AdBanner />
+           {showAds && (
+            <div className="mb-8">
+                <AdBanner />
+                <p className="text-center text-xs text-muted-foreground mt-2">
+                    Nikmati pengalaman bebas iklan dengan <Link href="/pricing" className="underline text-primary">upgrade ke PRO</Link>.
+                </p>
+            </div>
+           )}
            <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-3">
@@ -185,6 +193,11 @@ export default function ProfilePage() {
                     <p className="text-muted-foreground">
                         Di sini Anda dapat melihat ringkasan akun Anda. Untuk saat ini, belum ada detail lebih lanjut.
                     </p>
+                    {userProfile.role !== 'free' && (
+                        <Button asChild variant="default" className="mt-4">
+                            <Link href="/pricing">Kelola Langganan</Link>
+                        </Button>
+                    )}
                 </CardContent>
            </Card>
         </main>
