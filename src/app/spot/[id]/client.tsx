@@ -6,10 +6,11 @@ import { Spot } from '@/lib/types';
 import LockedScreen from '@/app/components/locked-screen';
 import SpotPlayerUI from '@/app/components/spot-player-ui';
 import HybridViewer from '@/app/components/hybrid-viewer';
-import { getSpotClient } from '@/lib/firestore';
+import { getSpotClient, getSpots } from '@/lib/firestore'; // Using client-side firestore functions
 import { Skeleton } from '@/components/ui/skeleton';
 import PanoramaViewer from '@/components/viewer-panorama';
 
+// This offline-first function is no longer needed as the main fetch logic, but can be a fallback.
 async function findSpotOffline(spotId: string): Promise<{ spot: Spot | null, spots: Spot[] }> {
   try {
     const cache = await caches.open('penjelajah-gua-offline-v1');
@@ -33,46 +34,44 @@ async function findSpotOffline(spotId: string): Promise<{ spot: Spot | null, spo
 
 export default function SpotPageClient({
   spotId,
-  initialSpot,
-  initialAllSpots,
   userRole,
 }: {
   spotId: string;
-  initialSpot: Spot | null;
-  initialAllSpots: Spot[];
   userRole: string;
 }) {
-  const [spot, setSpot] = useState<Spot | null>(initialSpot);
-  const [allSpotsInLocation, setAllSpotsInLocation] = useState<Spot[]>(initialAllSpots.sort((a, b) => a.order - b.order));
-  const [loading, setLoading] = useState(!initialSpot);
+  const [spot, setSpot] = useState<Spot | null>(null);
+  const [allSpotsInLocation, setAllSpotsInLocation] = useState<Spot[]>([]);
+  const [loading, setLoading] = useState(true);
   const [vrMode, setVrMode] = useState(false);
   const router = useRouter();
 
 
   useEffect(() => {
-    if (!initialSpot) {
-      setLoading(true);
-      const fetchSpotAndSiblings = async () => {
-        try {
-          const onlineSpot = await getSpotClient(spotId);
-          if (onlineSpot) {
-            setSpot(onlineSpot);
-          } else {
-            const { spot: offlineSpot, spots: offlineSiblings } = await findSpotOffline(spotId);
-            setSpot(offlineSpot);
-            setAllSpotsInLocation(offlineSiblings.sort((a, b) => a.order - b.order));
-          }
-        } catch (error) {
-          console.error("Client-side fallback failed:", error);
-          setSpot(null);
-        } finally {
-          setLoading(false);
+    setLoading(true);
+    const fetchSpotAndSiblings = async () => {
+      try {
+        const fetchedSpot = await getSpotClient(spotId);
+        setSpot(fetchedSpot);
+
+        if (fetchedSpot) {
+          const siblingSpots = await getSpots(fetchedSpot.locationId);
+          setAllSpotsInLocation(siblingSpots.sort((a, b) => a.order - b.order));
+        } else {
+          // Attempt to load from offline cache as a fallback
+          const { spot: offlineSpot, spots: offlineSiblings } = await findSpotOffline(spotId);
+          setSpot(offlineSpot);
+          setAllSpotsInLocation(offlineSiblings.sort((a, b) => a.order - b.order));
         }
-      };
-      
-      fetchSpotAndSiblings();
-    }
-  }, [spotId, initialSpot]);
+      } catch (error) {
+        console.error("Client-side fetch failed:", error);
+        setSpot(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchSpotAndSiblings();
+  }, [spotId]);
 
   const goToSpot = (id: string) => {
     router.push(`/spot/${id}`);
