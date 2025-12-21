@@ -1,3 +1,4 @@
+
 import 'server-only';
 
 import { cookies } from 'next/headers';
@@ -16,7 +17,7 @@ export const useUser = async () => {
   }
   const { auth, db } = admin;
   
-  const sessionCookie = cookies().get('session')?.value;
+  const sessionCookie = cookies().get('__session')?.value;
 
   if (!sessionCookie) {
     return { user: null, userProfile: null };

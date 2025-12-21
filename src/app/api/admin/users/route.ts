@@ -8,7 +8,7 @@ async function verifyAdmin(req: NextRequest): Promise<boolean> {
     const admin = safeGetAdminApp();
     if (!admin) return false;
 
-    const sessionCookie = cookies().get('session')?.value;
+    const sessionCookie = cookies().get('__session')?.value;
     if (!sessionCookie) return false;
 
     try {
