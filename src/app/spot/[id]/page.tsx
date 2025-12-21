@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   return {
-    title: `${spot.title} - Penjelajahan 4D`,
+    title: `${spot.title} - Cave Explorer 4D`,
     description: spot.description,
     openGraph: {
       title: spot.title,
@@ -34,16 +34,15 @@ export default async function SpotPage({ params }: Props) {
   const { userProfile } = await useUser();
   const role = userProfile?.role || 'free';
 
-  // The page component now only passes the ID and user role to the client.
-  // The client component is responsible for fetching its own data.
-  // We no longer pre-fetch data here to avoid server-side data fetching for a public page.
-  
-  // We can do a quick check here to see if the spot exists at all, to show a 404 if the URL is completely invalid.
+  // We can do a quick check here to see if the spot exists at all, 
+  // to show a 404 if the URL is completely invalid.
   const spotExists = await getSpot(spotId);
   if (!spotExists) {
     notFound();
   }
-
+  
+  // The page component now only passes the ID and user role to the client.
+  // The client component is responsible for fetching its own data.
   return (
     <SpotPageClient
       spotId={spotId}
@@ -51,3 +50,5 @@ export default async function SpotPage({ params }: Props) {
     />
   );
 }
+
+    

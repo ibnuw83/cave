@@ -6,11 +6,12 @@ import { Spot } from '@/lib/types';
 import LockedScreen from '@/app/components/locked-screen';
 import SpotPlayerUI from '@/app/components/spot-player-ui';
 import HybridViewer from '@/app/components/hybrid-viewer';
-import { getSpotClient, getSpots } from '@/lib/firestore-client'; // Using client-side firestore functions
+import { getSpotClient, getSpotsClient } from '@/lib/firestore-client'; 
 import { Skeleton } from '@/components/ui/skeleton';
 import PanoramaViewer from '@/components/viewer-panorama';
+import { getOfflineLocationData } from '@/lib/offline';
 
-// This offline-first function is no longer needed as the main fetch logic, but can be a fallback.
+
 async function findSpotOffline(spotId: string): Promise<{ spot: Spot | null, spots: Spot[] }> {
   try {
     const cache = await caches.open('penjelajah-gua-offline-v1');
@@ -51,10 +52,10 @@ export default function SpotPageClient({
     const fetchSpotAndSiblings = async () => {
       try {
         const fetchedSpot = await getSpotClient(spotId);
-        setSpot(fetchedSpot);
 
         if (fetchedSpot) {
-          const siblingSpots = await getSpots(fetchedSpot.locationId);
+          setSpot(fetchedSpot);
+          const siblingSpots = await getSpotsClient(fetchedSpot.locationId);
           setAllSpotsInLocation(siblingSpots.sort((a, b) => a.order - b.order));
         } else {
           // Attempt to load from offline cache as a fallback
@@ -64,7 +65,14 @@ export default function SpotPageClient({
         }
       } catch (error) {
         console.error("Client-side fetch failed:", error);
-        setSpot(null);
+        // If online fetch fails, try offline before giving up
+         const { spot: offlineSpot, spots: offlineSiblings } = await findSpotOffline(spotId);
+         if (offlineSpot) {
+             setSpot(offlineSpot);
+             setAllSpotsInLocation(offlineSiblings.sort((a, b) => a.order - b.order));
+         } else {
+            setSpot(null);
+         }
       } finally {
         setLoading(false);
       }
@@ -125,3 +133,5 @@ export default function SpotPageClient({
     </HybridViewer>
   );
 }
+
+    

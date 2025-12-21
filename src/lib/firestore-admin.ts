@@ -6,7 +6,7 @@ import { Location, Spot } from './types';
 const getDb = () => {
     const app = safeGetAdminApp();
     if (!app) {
-        console.warn(`[Firestore Server] Firebase Admin SDK tidak tersedia. Pengambilan data sisi server dinonaktifkan.`);
+        console.warn(`[Firestore Admin] Firebase Admin SDK tidak tersedia. Pengambilan data sisi server dinonaktifkan.`);
     }
     return app?.db;
 }
@@ -29,7 +29,7 @@ export async function getLocations(includeInactive = false): Promise<Location[]>
         
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Location));
     } catch (error: any) {
-        console.error("[Firestore Server] Gagal mengambil getLocations:", error.message);
+        console.error("[Firestore Admin] Gagal mengambil getLocations:", error.message);
         return [];
     }
 }
@@ -48,13 +48,14 @@ export async function getLocation(id: string): Promise<Location | null> {
 
         const location = { id: docSnap.id, ...docSnap.data() } as Location;
 
+        // Pemeriksaan penting: hanya kembalikan jika lokasi aktif
         if (!location.isActive) {
             return null;
         }
 
         return location;
     } catch (error: any) {
-        console.error(`[Firestore Server] Gagal mengambil getLocation untuk id ${id}:`, error.message);
+        console.error(`[Firestore Admin] Gagal mengambil getLocation untuk id ${id}:`, error.message);
         return null;
     }
 }
@@ -69,7 +70,7 @@ export async function getSpots(locationId: string): Promise<Spot[]> {
         const querySnapshot = await q.get();
         return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Spot));
     } catch (error: any) {
-        console.error(`[Firestore Server] Gagal mengambil getSpots untuk locationId ${locationId}:`, error.message);
+        console.error(`[Firestore Admin] Gagal mengambil getSpots untuk locationId ${locationId}:`, error.message);
         return [];
     }
 }
@@ -88,7 +89,9 @@ export async function getSpot(id: string): Promise<Spot | null> {
     
     return { id: docSnap.id, ...docSnap.data() } as Spot;
   } catch (error: any) {
-    console.error(`[Firestore Server] Gagal mengambil getSpot untuk id ${id}:`, error.message);
+    console.error(`[Firestore Admin] Gagal mengambil getSpot untuk id ${id}:`, error.message);
     return null;
   }
 }
+
+    

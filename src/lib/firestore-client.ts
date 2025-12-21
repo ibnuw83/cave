@@ -262,7 +262,7 @@ export async function getAllSpotsForAdmin(): Promise<Spot[]> {
 }
 
 
-export async function getSpots(locationId: string): Promise<Spot[]> {
+export async function getSpotsClient(locationId: string): Promise<Spot[]> {
   const spotsRef = collection(db, 'spots');
   const q = query(
     spotsRef,
@@ -476,3 +476,5 @@ export async function trackKioskSpotView(locationId: string, spotId: string): Pr
         console.warn(`Failed to track kiosk view for spot ${spotId}:`, error.message);
     }
 }
+
+    

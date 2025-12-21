@@ -12,7 +12,7 @@ import { saveLocationForOffline, isLocationAvailableOffline } from '@/lib/offlin
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase';
-import { getLocationClient, getSpots } from '@/lib/firestore-client';
+import { getLocationClient, getSpotsClient } from '@/lib/firestore-client';
 import { Skeleton } from '@/components/ui/skeleton';
 
 function SpotCard({ spot, isLocked, isOffline, lockedMessage }: { spot: Spot; isLocked: boolean; isOffline: boolean, lockedMessage: string; }) {
@@ -90,7 +90,7 @@ export default function CaveClient({ locationId }: { locationId: string }) {
         const fetchedLocation = await getLocationClient(locationId);
         if (fetchedLocation && fetchedLocation.isActive) {
           setLocation(fetchedLocation);
-          const fetchedSpots = await getSpots(locationId);
+          const fetchedSpots = await getSpotsClient(locationId);
           setSpots(fetchedSpots);
         } else {
           setLocation(null); // Location not found or not active
@@ -270,3 +270,5 @@ export default function CaveClient({ locationId }: { locationId: string }) {
     </div>
   );
 }
+
+    
