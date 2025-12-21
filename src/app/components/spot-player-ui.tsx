@@ -6,8 +6,7 @@ import { Spot } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Play, Pause, Loader2, Maximize, Minimize, Orbit, SkipForward, Gem } from 'lucide-react';
-import { canVibrate, vibrate } from '@/lib/haptics';
+import { ChevronLeft, Play, Pause, Loader2, Maximize, Minimize, Orbit, SkipForward, Gem, Languages } from 'lucide-react';
 import {
   Carousel,
   CarouselContent,
@@ -15,6 +14,12 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -142,6 +147,18 @@ async function convertPcmToWavUrl(base64PcmData: string): Promise<string> {
     return URL.createObjectURL(wavBlob);
 }
 
+// A list of some common languages for the selector
+const supportedLanguages = [
+    { code: 'en-US', name: 'English' },
+    { code: 'id-ID', name: 'Bahasa Indonesia' },
+    { code: 'es-ES', name: 'Español' },
+    { code: 'fr-FR', name: 'Français' },
+    { code: 'de-DE', name: 'Deutsch' },
+    { code: 'ja-JP', name: '日本語' },
+    { code: 'ko-KR', name: '한국어' },
+    { code: 'zh-CN', name: '中文 (简体)' },
+];
+
 export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false, onVrModeChange }: { spot: Spot, userRole: string, allSpots: Spot[], vrMode?: boolean; onVrModeChange?: (active: boolean) => void }) {
   const { user } = useUser();
   const [isPlaying, setIsPlaying] = useState(false);
@@ -150,6 +167,11 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  
+  const [selectedLanguage, setSelectedLanguage] = useState(() => 
+    typeof navigator !== 'undefined' ? navigator.language : 'id-ID'
+  );
+  
   const [translatedTitle, setTranslatedTitle] = useState(spot.title);
   const [translatedDescription, setTranslatedDescription] = useState(spot.description);
   const uiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -161,10 +183,9 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
 
   useEffect(() => {
     const translateContent = async () => {
-      const targetLanguage = navigator.language;
-      const sourceLanguage = 'id'; // Asumsi bahasa asli adalah Indonesia
+      const targetLanguage = selectedLanguage;
+      const sourceLanguage = 'id'; // Assuming the original content is in Indonesian
 
-      // Jangan terjemahkan jika bahasa browser sudah sama dengan bahasa sumber
       if (targetLanguage.startsWith(sourceLanguage)) {
         setTranslatedTitle(spot.title);
         setTranslatedDescription(spot.description);
@@ -174,20 +195,6 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
       setIsTranslating(true);
       
       try {
-        // Coba API terjemahan browser terlebih dahulu (jika tersedia)
-        // @ts-ignore - translation v2 is not in standard yet
-        if (navigator.translation && typeof navigator.translation.translate === 'function') {
-            // @ts-ignore
-          const titleResult = await navigator.translation.translate(spot.title, { target: targetLanguage, source: sourceLanguage });
-          // @ts-ignore
-          const descResult = await navigator.translation.translate(spot.description, { target: targetLanguage, source: sourceLanguage });
-          setTranslatedTitle(titleResult.targetText);
-          setTranslatedDescription(descResult.targetText);
-          setIsTranslating(false);
-          return;
-        }
-
-        // Jika API browser tidak ada, gunakan fallback ke API Genkit kita
         const [titleRes, descriptionRes] = await Promise.all([
           fetch('/api/translate', {
             method: 'POST',
@@ -212,7 +219,6 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
 
       } catch (error) {
         console.error('Text translation failed, using original text:', error);
-        // Fallback ke teks asli jika semua metode terjemahan gagal
         setTranslatedTitle(spot.title);
         setTranslatedDescription(spot.description);
       } finally {
@@ -221,7 +227,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
     };
 
     translateContent();
-  }, [spot.id, spot.title, spot.description]);
+  }, [spot.id, spot.title, spot.description, selectedLanguage]);
 
 
    const toggleFullscreen = () => {
@@ -246,7 +252,6 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
   }, []);
 
   const showUI = useCallback((e: Event) => {
-    // If the click is on a carousel control, don't hide the UI
     if (e.target instanceof Element && e.target.closest('[class*="carousel"]')) {
        resetUiTimeout();
        return;
@@ -255,7 +260,6 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
     resetUiTimeout();
   }, [resetUiTimeout]);
 
-  // Handle various events to show UI
   useEffect(() => {
     const handleActivity = (e: Event) => showUI(e);
     const handleFullscreenChange = () => {
@@ -294,9 +298,8 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
 
   
   useEffect(() => {
-    // Cleanup function when the spot ID changes
     return () => {
-      stopSpeaking(); // This now handles both audio element and speech synthesis
+      stopSpeaking(); 
       if (canVibrate()) {
         vibrate(0);
       }
@@ -308,16 +311,14 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
     if (canVibrate()) {
         vibrate(0);
     }
-    // "Mode Misi" logic starts here
     const currentSpotIndex = allSpots.findIndex(s => s.id === spot.id);
     const hasNextSpot = currentSpotIndex !== -1 && currentSpotIndex < allSpots.length - 1;
 
     if (hasNextSpot) {
         const nextSpot = allSpots[currentSpotIndex + 1];
-        if (isProUser || !nextSpot.isPro) { // PRO users can always continue, free users can if next is not pro
+        if (isProUser || !nextSpot.isPro) { 
             router.push(`/spot/${nextSpot.id}`);
         } else {
-            // Free user trying to access a PRO spot next
             toast({
                 title: "Mode Misi Khusus PRO",
                 description: "Upgrade ke PRO untuk melanjutkan tur otomatis ke semua spot.",
@@ -327,7 +328,6 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
             });
         }
     } else {
-      // Reached the end of the tour
        toast({
         title: "Misi Selesai!",
         description: "Anda telah mencapai akhir dari penjelajahan di lokasi ini.",
@@ -336,7 +336,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
   };
 
   const playAudioFromBase64 = async (base64Pcm: string, vibrationPattern?: number[]) => {
-      stopSpeaking(); // Stop any currently playing audio
+      stopSpeaking(); 
       
       const audioUrl = await convertPcmToWavUrl(base64Pcm);
       const audio = new Audio(audioUrl);
@@ -373,7 +373,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 spotId: spot.id,
-                language: navigator.language 
+                language: selectedLanguage 
             }),
         });
 
@@ -393,7 +393,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
         });
         
         const u = new SpeechSynthesisUtterance(translatedDescription);
-        u.lang = navigator.language;
+        u.lang = selectedLanguage;
         u.onend = handlePlaybackEnd;
         (window as any).currentUtterance = u;
         window.speechSynthesis.speak(u);
@@ -423,6 +423,21 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
                     Kembali
                 </Link>
             </Button>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                     <Button variant="ghost" className="text-white hover:bg-white/20 hover:text-white pointer-events-auto">
+                        <Languages className="mr-2 h-5 w-5" />
+                        <span>{supportedLanguages.find(l => l.code === selectedLanguage)?.name || selectedLanguage}</span>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-black/70 border-white/20 text-white backdrop-blur-md">
+                    {supportedLanguages.map(lang => (
+                         <DropdownMenuItem key={lang.code} onSelect={() => setSelectedLanguage(lang.code)}>
+                            {lang.name}
+                        </DropdownMenuItem>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
         </div>
 
         <SpotNavigation currentSpotId={spot.id} allSpots={allSpots} isUIVisible={isUIVisible} />
