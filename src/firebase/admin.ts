@@ -1,5 +1,4 @@
 
-import 'server-only';
 import * as admin from 'firebase-admin';
 
 let adminApp: admin.app.App | null = null;
@@ -11,29 +10,32 @@ function initialize() {
     return;
   }
   
-  try {
-    // This will work in production environments (App Hosting, Cloud Functions)
-    adminApp = admin.initializeApp({
-      credential: admin.credential.applicationDefault(),
-    });
-    console.log('[Firebase Admin] Initialized with Application Default Credentials.');
-  } catch (e: any) {
-    // This block will run in local development if ADC is not set up.
-    console.warn(`[Firebase Admin] Failed to initialize with ADC: ${e.message}.`);
-    console.log('[Firebase Admin] Attempting to connect to Firestore Emulator...');
-    
-    // Set a dummy project ID for the emulator
-    process.env.GCLOUD_PROJECT = 'cave-57567';
-    process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
-
+  // Explicitly use emulator for development, and application default for production.
+  // This is a more robust way to handle different environments.
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Firebase Admin] Development mode detected, connecting to emulator...');
     try {
-      adminApp = admin.initializeApp({
-        projectId: 'cave-57567',
-      });
-      console.log('[Firebase Admin] Successfully connected to Firestore Emulator.');
-    } catch (emulatorError: any) {
-      initError = emulatorError;
-      console.error(`[Firebase Admin] Failed to connect to emulator: ${emulatorError.message}`);
+        process.env.GCLOUD_PROJECT = 'cave-57567';
+        process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
+        adminApp = admin.initializeApp({
+            projectId: 'cave-57567',
+        });
+        console.log('[Firebase Admin] Successfully connected to Firestore Emulator.');
+    } catch(e: any) {
+        initError = e;
+        console.error(`[Firebase Admin] CRITICAL: Failed to connect to emulator: ${e.message}`);
+    }
+  } else {
+    // Production environment (App Hosting, etc.)
+     console.log('[Firebase Admin] Production mode detected, initializing with Application Default Credentials...');
+    try {
+        adminApp = admin.initializeApp({
+            credential: admin.credential.applicationDefault(),
+        });
+        console.log('[Firebase Admin] Initialized with Application Default Credentials.');
+    } catch (e: any) {
+        initError = e;
+        console.error(`[Firebase Admin] CRITICAL: Failed to initialize with ADC: ${e.message}.`);
     }
   }
 }
