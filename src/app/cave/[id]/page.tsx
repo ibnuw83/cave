@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { getLocation, getSpots } from '@/lib/firestore';
+import { getLocation, getSpots } from '@/lib/firestore-server';
 import CaveClient from './client';
 import { notFound } from 'next/navigation';
 

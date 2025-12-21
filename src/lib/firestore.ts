@@ -14,6 +14,7 @@ import {
   serverTimestamp,
   writeBatch,
   orderBy,
+  increment,
 } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
 import { initializeFirebase } from '@/firebase'; // Menggunakan inisialisasi terpusat
@@ -154,7 +155,7 @@ export async function getLocations(includeInactive = false): Promise<Location[]>
   }
 }
 
-export async function getLocation(id: string): Promise<Location | null> {
+export async function getLocationClient(id: string): Promise<Location | null> {
     const docRef = doc(db, 'locations', id);
     try {
         const docSnap = await getDoc(docRef);
@@ -443,5 +444,29 @@ export async function deletePricingTier(tierId: string): Promise<void> {
             }));
         }
         throw error;
+    }
+}
+
+// --- Kiosk Analytics Functions ---
+export async function trackKioskSpotView(locationId: string, spotId: string): Promise<void> {
+    const statRef = doc(db, 'kioskStats', locationId);
+    const data = {
+        spots: {
+            [spotId]: increment(1)
+        },
+        updatedAt: serverTimestamp()
+    };
+    try {
+        await setDoc(statRef, data, { merge: true });
+    } catch (error: any) {
+        if (error.code === 'permission-denied') {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: `/kioskStats/${locationId}`,
+                operation: 'update',
+                requestResourceData: data,
+            }));
+        }
+        // Don't re-throw, as this is a background task
+        console.warn(`Failed to track kiosk view for spot ${spotId}:`, error.message);
     }
 }
