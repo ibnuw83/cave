@@ -7,21 +7,22 @@ import { deleteUserAdmin, updateUserStatusAdmin } from '@/lib/firestore-admin';
 async function verifyAdmin(req: NextRequest): Promise<boolean> {
     const admin = safeGetAdminApp();
     if (!admin) {
-        console.warn('[ADMIN API] Firebase Admin SDK not initialized. This is expected in local dev without ADC. Admin operations will be denied.');
-        return false;
+      console.warn('[ADMIN API] Admin SDK tidak tersedia');
+      return false;
     }
-
+  
     const sessionCookie = cookies().get('__session')?.value;
     if (!sessionCookie) return false;
-
+  
     try {
-        const decodedIdToken = await admin.auth.verifySessionCookie(sessionCookie, true);
-        const userDoc = await admin.db.collection('users').doc(decodedIdToken.uid).get();
-        return userDoc.exists && userDoc.data()?.role === 'admin';
-    } catch (error) {
-        return false;
+      const decoded = await admin.auth.verifySessionCookie(sessionCookie, true);
+      const userDoc = await admin.db.collection('users').doc(decoded.uid).get();
+      return userDoc.exists && userDoc.data()?.role === 'admin';
+    } catch (err) {
+      console.warn('[ADMIN API] Gagal verifikasi admin');
+      return false;
     }
-}
+  }
 
 // Handler for PUT /api/admin/users/[id] to update user status
 export async function PUT(
