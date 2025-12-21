@@ -20,6 +20,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
 import { stopSpeaking } from '@/lib/tts';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 function SpotNavigation({ currentSpotId, allSpots, isUIVisible }: { currentSpotId: string, allSpots: Spot[], isUIVisible: boolean }) {
@@ -148,12 +149,63 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
   const [isUIVisible, setIsUIVisible] = useState(true);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translatedTitle, setTranslatedTitle] = useState(spot.title);
+  const [translatedDescription, setTranslatedDescription] = useState(spot.description);
   const uiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
   const isProUser = userRole.startsWith('pro') || userRole === 'vip' || userRole === 'admin';
   const isFreeUser = !isProUser;
+
+  useEffect(() => {
+    const translateContent = async () => {
+      const targetLanguage = navigator.language;
+      // Let's assume the source language is Indonesian ('id')
+      // We don't translate if the browser is already in the source language
+      if (targetLanguage.startsWith('id')) {
+        setTranslatedTitle(spot.title);
+        setTranslatedDescription(spot.description);
+        return;
+      }
+
+      setIsTranslating(true);
+      try {
+        const [titleRes, descriptionRes] = await Promise.all([
+          fetch('/api/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: spot.title, targetLanguage, sourceLanguage: 'id' }),
+          }),
+          fetch('/api/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: spot.description, targetLanguage, sourceLanguage: 'id' }),
+          }),
+        ]);
+
+        if (titleRes.ok) {
+          const { translatedText } = await titleRes.json();
+          setTranslatedTitle(translatedText);
+        }
+        if (descriptionRes.ok) {
+          const { translatedText } = await descriptionRes.json();
+          setTranslatedDescription(translatedText);
+        }
+      } catch (error) {
+        console.error('Text translation failed:', error);
+        // Fallback to original text if translation fails
+        setTranslatedTitle(spot.title);
+        setTranslatedDescription(spot.description);
+      } finally {
+        setIsTranslating(false);
+      }
+    };
+
+    translateContent();
+  }, [spot.id, spot.title, spot.description]);
+
 
    const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -323,7 +375,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
             description: 'Menggunakan suara browser karena narasi AI tidak tersedia.'
         });
         
-        const u = new SpeechSynthesisUtterance(spot.description);
+        const u = new SpeechSynthesisUtterance(translatedDescription);
         u.lang = navigator.language;
         u.onend = handlePlaybackEnd;
         (window as any).currentUtterance = u;
@@ -372,17 +424,27 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
                     </Button>
                     
                     <div>
-                        <h1 className="text-3xl font-bold font-headline mb-1">{spot.title}</h1>
-                         <p className={cn("text-base text-white/80 max-w-prose", !isDescriptionExpanded && "line-clamp-1")}>
-                            {spot.description}
-                        </p>
-                        <Button 
-                            variant="link" 
-                            onClick={handleToggleDescription}
-                            className="text-accent hover:text-accent/80 p-0 h-auto text-sm mt-1"
-                        >
-                            {isDescriptionExpanded ? "Sembunyikan" : "Selanjutnya"}
-                        </Button>
+                        {isTranslating ? (
+                            <Skeleton className="h-9 w-64 mb-1" />
+                        ) : (
+                            <h1 className="text-3xl font-bold font-headline mb-1">{translatedTitle}</h1>
+                        )}
+                        {isTranslating ? (
+                            <Skeleton className="h-5 w-full max-w-lg mt-2" />
+                        ) : (
+                            <>
+                                <p className={cn("text-base text-white/80 max-w-prose", !isDescriptionExpanded && "line-clamp-1")}>
+                                    {translatedDescription}
+                                </p>
+                                <Button 
+                                    variant="link" 
+                                    onClick={handleToggleDescription}
+                                    className="text-accent hover:text-accent/80 p-0 h-auto text-sm mt-1"
+                                >
+                                    {isDescriptionExpanded ? "Sembunyikan" : "Selanjutnya"}
+                                </Button>
+                            </>
+                        )}
                     </div>
                 </div>
                 <div className='flex items-center gap-2'>
