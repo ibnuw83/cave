@@ -1,9 +1,9 @@
 import { MetadataRoute } from 'next'
-import { getLocations } from '@/lib/firestore-client';
+import { getLocations } from '@/lib/firestore-admin';
  
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const locations = await getLocations(true); // Get all locations
-  const siteUrl = 'https://your-domain.com'; // TODO: Ganti dengan domain Anda yang sebenarnya
+  const locations = await getLocations(); // Get only active locations
+  const siteUrl = ''; // Gunakan string kosong untuk URL relatif
 
   const locationEntries: MetadataRoute.Sitemap = locations.map(({ id }) => ({
     url: `${siteUrl}/cave/${id}`,

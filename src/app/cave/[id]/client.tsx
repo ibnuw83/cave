@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase';
 import { getLocationClient, getSpotsClient } from '@/lib/firestore-client';
 import { Skeleton } from '@/components/ui/skeleton';
+import AdBanner from '@/app/components/AdBanner';
 
 function SpotCard({ spot, isLocked, isOffline, lockedMessage }: { spot: Spot; isLocked: boolean; isOffline: boolean, lockedMessage: string; }) {
   const content = (
@@ -149,6 +150,7 @@ export default function CaveClient({ locationId }: { locationId: string }) {
   
   const isUserAuthLoading = isUserLoading || isProfileLoading;
   const role = userProfile?.role || 'free';
+  const showAds = role === 'free';
   
   const roleLimits = {
       free: 3, // Increased from 1
@@ -249,6 +251,15 @@ export default function CaveClient({ locationId }: { locationId: string }) {
             </div>
         </div>
 
+        {showAds && (
+            <div className="my-8">
+                <AdBanner />
+                <p className="text-center text-xs text-muted-foreground mt-2">
+                    Nikmati pengalaman bebas iklan dengan <Link href="/pricing" className="underline text-primary">upgrade ke PRO</Link>.
+                </p>
+            </div>
+        )}
+
         <h3 className="text-lg font-semibold md:text-xl mb-4 mt-8">Daftar Spot</h3>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {sortedSpots.map((spot, index) => {
@@ -270,5 +281,3 @@ export default function CaveClient({ locationId }: { locationId: string }) {
     </div>
   );
 }
-
-    
