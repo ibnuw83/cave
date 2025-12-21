@@ -1,10 +1,6 @@
 import UsersClient from "./client";
-import { getAllUsersAdmin } from "@/lib/firestore-admin";
-import { UserProfile } from "@/lib/types";
 
-export default async function UsersPage() {
-    const users: UserProfile[] = await getAllUsersAdmin();
-
+export default function UsersPage() {
   return (
     <div className="p-4 md:p-8">
       <header className="mb-8">
@@ -15,14 +11,8 @@ export default async function UsersPage() {
           Kelola peran (role) pengguna.
         </p>
       </header>
-
-      {users.length === 0 ? (
-        <div className="text-muted-foreground text-sm">
-          Data pengguna belum tersedia atau Admin SDK belum aktif.
-        </div>
-      ) : (
-        <UsersClient initialUsers={users} />
-      )}
+      {/* The client component will now handle its own data fetching */}
+      <UsersClient />
     </div>
   );
 }

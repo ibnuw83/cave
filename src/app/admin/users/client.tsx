@@ -2,24 +2,32 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { UserProfile } from '@/lib/types';
-import { updateUserRole } from '@/lib/firestore-client';
+import { updateUserRole, getAllUsersAdmin } from '@/lib/firestore-client';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useUser } from '@/firebase';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export default function UsersClient({ initialUsers }: { initialUsers: UserProfile[] }) {
-  const [users, setUsers] = useState(initialUsers);
+export default function UsersClient() {
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const { user: currentUser } = useUser();
 
-  // Effect to update local state if the initialUsers prop changes.
   useEffect(() => {
-    setUsers(initialUsers);
-  }, [initialUsers]);
+    setLoading(true);
+    getAllUsersAdmin()
+      .then(setUsers)
+      .catch(() => {
+        // Error is handled by the global error handler
+        setUsers([]); // Set to empty array on error
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleRoleChange = async (uid: string, newRole: UserProfile['role']) => {
     const userToChange = users.find(u => u.id === uid);
@@ -64,6 +72,23 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserProfil
     return [...users].sort((a, b) => (a.displayName || a.email || '').localeCompare(b.displayName || b.email || ''));
   }, [users]);
 
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-20 w-full" />
+      </div>
+    );
+  }
+
+  if (sortedUsers.length === 0) {
+      return (
+        <div className="text-muted-foreground text-sm">
+          Data pengguna belum tersedia atau Anda tidak memiliki izin untuk melihatnya.
+        </div>
+      );
+  }
 
   return (
     <div className="space-y-4">
@@ -103,7 +128,6 @@ export default function UsersClient({ initialUsers }: { initialUsers: UserProfil
           </CardHeader>
         </Card>
       ))}
-       {sortedUsers.length === 0 && <p className="text-center text-muted-foreground">Tidak ada pengguna yang terdaftar.</p>}
     </div>
   );
 }
