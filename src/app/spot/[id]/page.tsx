@@ -33,16 +33,11 @@ export default async function SpotPage({ params }: Props) {
   const spotId = params.id;
   const { userProfile } = await useUser();
   const role = userProfile?.role || 'free';
-
-  // We can do a quick check here to see if the spot exists at all, 
-  // to show a 404 if the URL is completely invalid.
-  const spotExists = await getSpot(spotId);
-  if (!spotExists) {
-    notFound();
-  }
   
-  // The page component now only passes the ID and user role to the client.
-  // The client component is responsible for fetching its own data.
+  // We no longer check for spot existence here.
+  // The client component will fetch its own data and handle the not found case.
+  // This prevents calling admin-sdk functions in a public page component.
+  
   return (
     <SpotPageClient
       spotId={spotId}

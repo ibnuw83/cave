@@ -25,15 +25,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function CavePage({ params }: Props) {
-  // We can do a quick check here to see if the location exists at all,
-  // to show a 404 if the URL is completely invalid or the location is not active.
-  const locationExists = await getLocation(params.id);
-  if (!locationExists) {
-    notFound();
-  }
-
   // The Server Component now only passes the ID to the Client Component.
   // All data fetching for the UI will happen on the client.
+  // We no longer check for existence here to prevent using admin-sdk on public pages.
+  // The client will handle the "not found" state.
   return <CaveClient locationId={params.id} />;
 }
 
