@@ -30,6 +30,7 @@ export async function getLocations(includeInactive = false): Promise<Location[]>
         }
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Location));
     } catch (error: any) {
+        // Log the error but return an empty array to prevent crashing the page
         console.error("[Firestore Admin] Gagal mengambil getLocations:", error.message);
         return [];
     }
