@@ -13,6 +13,7 @@ import { getDoc } from 'firebase-admin/firestore';
 export const useUser = async () => {
   const admin = safeGetAdminApp();
   if (!admin) {
+      console.warn('[useUser Server] Admin SDK not available.');
       return { user: null, userProfile: null };
   }
   const { auth, db } = admin;
@@ -28,9 +29,10 @@ export const useUser = async () => {
     const user = await auth.getUser(decodedIdToken.uid);
 
     const profileRef = db.collection('users').doc(user.uid);
-    const profileSnap = await getDoc(profileRef);
+    const profileSnap = await profileRef.get();
 
     if (!profileSnap.exists) {
+      console.warn(`[useUser Server] User profile not found for UID: ${user.uid}`);
       return { user, userProfile: null };
     }
 
@@ -39,6 +41,7 @@ export const useUser = async () => {
     return { user, userProfile };
   } catch (error) {
     // Session cookie is invalid or expired.
+    console.warn('[useUser Server] Error verifying session cookie:', error);
     return { user: null, userProfile: null };
   }
 };
