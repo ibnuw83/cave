@@ -27,7 +27,8 @@ export default function SpotsClient({ locations }: SpotsClientProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
 
-  const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(collection(firestore, 'spots'));
+  const spotsRef = collection(firestore, 'spots');
+  const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(spotsRef);
 
   const handleFormSuccess = () => {
     if (selectedSpot) {
