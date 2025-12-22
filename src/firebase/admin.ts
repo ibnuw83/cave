@@ -2,31 +2,32 @@
 import * as admin from 'firebase-admin';
 import { firebaseConfig } from './config';
 
-let adminApp: admin.app.App;
+let adminApp: admin.app.App | null = null;
 
-// This logic ensures that the admin app is initialized only once.
-if (!admin.apps.length) {
-  // In a Google Cloud environment (like App Hosting), the SDK automatically
-  // finds the service account credentials.
-  adminApp = admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
-    projectId: firebaseConfig.projectId,
-  });
-} else {
-  // If already initialized, get the default app.
-  adminApp = admin.app();
+try {
+  if (!admin.apps.length) {
+    adminApp = admin.initializeApp({
+      credential: admin.credential.applicationDefault(),
+      projectId: firebaseConfig.projectId,
+    });
+    console.log('[Firebase Admin] Initialized');
+  } else {
+    adminApp = admin.app();
+  }
+} catch (err) {
+  console.warn('[Firebase Admin] Not initialized (no credentials)');
+  adminApp = null;
 }
 
-const adminAuth = admin.auth(adminApp);
-const adminDb = admin.firestore(adminApp);
-
 /**
- * Provides a safe way to get the initialized Firebase Admin SDK instances.
- * This prevents re-initialization and ensures services are ready.
+ * Safe getter
+ * ❗ auth & db BARU dibuat saat fungsi dipanggil
  */
 export function safeGetAdminApp() {
+  if (!adminApp) return null;
+
   return {
-    auth: adminAuth,
-    db: adminDb,
+    auth: admin.auth(adminApp),
+    db: admin.firestore(adminApp),
   };
 }
