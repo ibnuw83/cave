@@ -18,7 +18,9 @@ export function AdminMiniMapEditor({
 }) {
   const db = useFirestore();
   const { toast } = useToast();
-  const [map, setMap] = useState(initialMap);
+  const [map, setMap] = useState<Location['miniMap']>(
+    initialMap ?? { nodes: [], edges: [] }
+  );
   const [dragId, setDragId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
