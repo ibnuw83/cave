@@ -5,9 +5,13 @@ let adminApp: admin.app.App | null = null;
 
 // Sederhanakan inisialisasi. Jika belum ada aplikasi, buat.
 if (!admin.apps.length) {
-  adminApp = admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
-  });
+  try {
+    adminApp = admin.initializeApp({
+      credential: admin.credential.applicationDefault(),
+    });
+  } catch (e) {
+    console.error('Firebase Admin SDK initialization error:', e);
+  }
 } else {
   // Jika sudah ada, gunakan yang sudah ada.
   adminApp = admin.apps[0];
@@ -20,7 +24,8 @@ if (!admin.apps.length) {
 export function safeGetAdminApp() {
     if (!adminApp) {
         // Ini seharusnya tidak terjadi lagi dengan logika inisialisasi yang baru.
-        throw new Error("Firebase Admin SDK belum diinisialisasi.");
+        console.error("Firebase Admin SDK belum diinisialisasi dengan benar.");
+        return null;
     }
     return {
         auth: admin.auth(adminApp),

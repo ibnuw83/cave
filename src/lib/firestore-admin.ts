@@ -39,6 +39,7 @@ export async function getLocations(includeInactive = false): Promise<Location[]>
 export async function getLocation(id: string): Promise<Location | null> {
     const { db } = getAdminServices();
     if (!db) {
+        console.error("[Firestore Admin] Gagal mendapatkan koneksi DB di getLocation.");
         return null;
     }
     
@@ -47,6 +48,7 @@ export async function getLocation(id: string): Promise<Location | null> {
         const docSnap = await docRef.get();
 
         if (!docSnap.exists) {
+            console.warn(`[Firestore Admin] Dokumen tidak ditemukan di path: locations/${id}`);
             return null;
         }
 
