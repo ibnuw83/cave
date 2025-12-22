@@ -35,7 +35,7 @@ export function AdminMiniMapEditor({
     return () => {
       clearTimeout(handler);
     };
-  }, [map]);
+  }, [map, initialMap]);
 
 
   function updateNode(id: string, x: number, y: number) {
