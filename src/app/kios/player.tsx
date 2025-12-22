@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
@@ -62,7 +63,7 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
     [spots, mode]
   );
 
-  const current = playlist[index];
+  const current = playlist.length > 0 ? playlist[index] : null;
   
   const kioskDeviceRef = useMemo(() => doc(db, 'kioskDevices', 'kiosk-001'), [db]);
   const kioskControlRef = useMemo(() => doc(db, 'kioskControl', 'global'), [db]);

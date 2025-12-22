@@ -161,7 +161,7 @@ export default function CaveClient({ location, spots }: { location: Location, sp
               <p className="text-muted-foreground text-sm">Jelajahi setiap sudut di lokasi ini.</p>
             </div>
             <div className='flex items-center gap-2 flex-wrap'>
-                <Button onClick={handleStartMission} size="lg" disabled={!location.isActive && role !== 'admin'}>
+                <Button onClick={handleStartMission} size="lg" disabled={(!location.isActive && role !== 'admin') || sortedSpots.length === 0}>
                   <Sparkles className="mr-2 h-4 w-4" />
                   Mulai Misi
                 </Button>
@@ -203,7 +203,7 @@ export default function CaveClient({ location, spots }: { location: Location, sp
                       key={spot.id} 
                       spot={spot} 
                       isLocked={isLocked} 
-                      isOffline={isOffline}
+                      isOffline={isOffline && !isLocked}
                       lockedMessage={lockedMessage} 
                    />;
           })}
