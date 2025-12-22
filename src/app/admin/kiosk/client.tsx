@@ -18,7 +18,7 @@ import { saveKioskSettings, setKioskControl } from '@/lib/firestore-client';
 import Link from 'next/link';
 import { isLocationAvailableOffline, saveLocationForOffline } from '@/lib/offline';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useCollection, useDoc, useFirestore } from '@/firebase';
+import { useCollection, useDoc, useFirestore, useUser } from '@/firebase';
 import { collection, doc, Timestamp } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
@@ -96,9 +96,13 @@ interface KioskClientProps {
 function KioskRemoteControl({ allSpots }: { allSpots: Spot[] }) {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { userProfile } = useUser();
 
-  const { data: devices, isLoading: devicesLoading } = useCollection<KioskDevice>(collection(firestore, 'kioskDevices'));
-  const { data: controlState, isLoading: controlLoading } = useDoc<{enabled: boolean, message?: string, forceReload?: boolean}>(doc(firestore, 'kioskControl', 'global'));
+  const devicesRef = userProfile?.role === 'admin' ? collection(firestore, 'kioskDevices') : null;
+  const controlRef = userProfile?.role === 'admin' ? doc(firestore, 'kioskControl', 'global') : null;
+
+  const { data: devices, isLoading: devicesLoading } = useCollection<KioskDevice>(devicesRef);
+  const { data: controlState, isLoading: controlLoading } = useDoc<{enabled: boolean, message?: string, forceReload?: boolean}>(controlRef);
 
   const controlForm = useForm<RemoteControlFormValues>({
     resolver: zodResolver(remoteControlSchema),
@@ -205,11 +209,15 @@ function KioskRemoteControl({ allSpots }: { allSpots: Spot[] }) {
 export default function KioskClient({ initialLocations }: KioskClientProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { userProfile } = useUser();
   const [isOffline, setIsOffline] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(collection(firestore, 'spots'));
-  const { data: kioskSettings, isLoading: settingsLoading } = useDoc<KioskSettings>(doc(firestore, 'kioskSettings', 'main'));
+  const spotsRef = userProfile?.role === 'admin' ? collection(firestore, 'spots') : null;
+  const settingsRef = userProfile?.role === 'admin' ? doc(firestore, 'kioskSettings', 'main') : null;
+
+  const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(spotsRef);
+  const { data: kioskSettings, isLoading: settingsLoading } = useDoc<KioskSettings>(settingsRef);
   
   const globalForm = useForm<GlobalSettingsFormValues>({
     resolver: zodResolver(globalSettingsSchema),
@@ -360,6 +368,14 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
   const onAdSenseSubmit = async (values: AdSenseFormValues) => {
       await saveKioskSettings(values);
       toast({ title: 'Berhasil', description: 'Pengaturan AdSense telah disimpan.' });
+  }
+
+  if (userProfile?.role !== 'admin') {
+    return (
+      <p className="text-center text-muted-foreground py-12">
+        Anda tidak memiliki akses ke halaman ini.
+      </p>
+    );
   }
 
   if (settingsLoading || spotsLoading) {
@@ -875,5 +891,3 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
     </>
   );
 }
-
-    

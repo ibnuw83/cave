@@ -23,7 +23,7 @@ export default function UsersClient() {
   const [loading, setLoading] = useState(true);
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
-  const { user: currentUser } = useUser();
+  const { user: currentUser, userProfile } = useUser();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
@@ -51,10 +51,20 @@ export default function UsersClient() {
   };
   
   useEffect(() => {
-    if (!isFormOpen) {
+    if (!isFormOpen && userProfile?.role === 'admin') {
       fetchUsers();
+    } else if (userProfile?.role !== 'admin') {
+      setLoading(false);
     }
-  }, [isFormOpen]);
+  }, [isFormOpen, userProfile]);
+
+  if (userProfile?.role !== 'admin') {
+    return (
+      <p className="text-center text-muted-foreground py-12">
+        Anda tidak memiliki akses ke halaman ini.
+      </p>
+    );
+  }
 
   const handleRoleChange = async (uid: string, newRole: UserProfile['role']) => {
     const userToChange = users.find(u => u.id === uid);
@@ -278,4 +288,3 @@ export default function UsersClient() {
     </>
   );
 }
-

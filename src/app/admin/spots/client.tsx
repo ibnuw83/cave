@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { collection } from 'firebase/firestore';
 import { Location, Spot } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { deleteSpot } from "@/lib/firestore-client";
 import { SpotForm } from "./spot-form";
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface SpotsClientProps {
@@ -21,13 +21,15 @@ interface SpotsClientProps {
 }
 
 export default function SpotsClient({ locations }: SpotsClientProps) {
+  const { userProfile } = useUser();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState<Spot | null>(null);
   const [filterLocationId, setFilterLocationId] = useState<string>('all');
   const { toast } = useToast();
   const firestore = useFirestore();
 
-  const spotsRef = collection(firestore, 'spots');
+  // Only run the query if the user is an admin
+  const spotsRef = userProfile?.role === 'admin' ? collection(firestore, 'spots') : null;
   const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(spotsRef);
 
   const handleFormSuccess = () => {
@@ -70,6 +72,14 @@ export default function SpotsClient({ locations }: SpotsClientProps) {
   const getLocationName = (locationId: string) => {
     return locations.find(l => l.id === locationId)?.name || 'Lokasi tidak ditemukan';
   };
+
+  if (userProfile?.role !== 'admin') {
+    return (
+      <p className="text-center text-muted-foreground py-12">
+        Anda tidak memiliki akses ke halaman ini.
+      </p>
+    );
+  }
 
   if (isFormOpen) {
     return <SpotForm spot={selectedSpot} locations={locations} allSpots={spots || []} onSave={handleFormSuccess} onCancel={() => { setIsFormOpen(false); setSelectedSpot(null); }} />;

@@ -22,8 +22,10 @@ import { useToast } from "@/hooks/use-toast";
 import { deleteLocation, getLocations } from "@/lib/firestore-client";
 import { LocationForm } from "./location-form";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useUser } from "@/firebase";
 
 export default function LocationsClient() {
+  const { userProfile } = useUser();
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -43,11 +45,20 @@ export default function LocationsClient() {
         }).catch(() => setLoading(false));
     }
     // Fetch locations when the component mounts or when returning from the form
-    if (!isFormOpen) {
+    if (!isFormOpen && userProfile?.role === 'admin') {
         fetchLocations();
+    } else if (userProfile?.role !== 'admin') {
+      setLoading(false);
     }
-  }, [isFormOpen]);
+  }, [isFormOpen, userProfile]);
 
+  if (userProfile?.role !== 'admin') {
+    return (
+      <p className="text-center text-muted-foreground py-12">
+        Anda tidak memiliki akses ke halaman ini.
+      </p>
+    );
+  }
 
   const handleFormSuccess = () => {
     if (selectedLocation) {

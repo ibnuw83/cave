@@ -21,8 +21,10 @@ import { deletePricingTier, getPricingTiers } from '@/lib/firestore-client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PricingTierForm } from './tier-form';
 import { Badge } from '@/components/ui/badge';
+import { useUser } from '@/firebase';
 
 export default function AdminPricingPage() {
+  const { userProfile } = useUser();
   const [tiers, setTiers] = useState<PricingTier[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -40,10 +42,22 @@ export default function AdminPricingPage() {
         .catch(() => setLoading(false));
     };
 
-    if (!isFormOpen) {
+    if (!isFormOpen && userProfile?.role === 'admin') {
       fetchTiers();
+    } else if (userProfile?.role !== 'admin') {
+      setLoading(false);
     }
-  }, [isFormOpen]);
+  }, [isFormOpen, userProfile]);
+
+  if (userProfile?.role !== 'admin') {
+    return (
+      <div className="p-4 md:p-8">
+        <p className="text-center text-muted-foreground py-12">
+          Anda tidak memiliki akses ke halaman ini.
+        </p>
+      </div>
+    );
+  }
 
   const handleFormSuccess = () => {
     toast({ title: 'Berhasil', description: `Paket harga telah ${selectedTier ? 'diperbarui' : 'ditambahkan'}.` });

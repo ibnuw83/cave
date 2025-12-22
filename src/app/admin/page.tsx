@@ -21,14 +21,14 @@ interface Stat {
 }
 
 export default function AdminDashboard() {
-  const { user } = useUser();
+  const { userProfile } = useUser();
   const [stats, setStats] = useState<Stat[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
     async function fetchData() {
-      if (user) {
+      if (userProfile?.role === 'admin') {
         setLoading(true);
         try {
           const [locationsRes, spotsRes, usersRes] = await Promise.all([
@@ -58,12 +58,22 @@ export default function AdminDashboard() {
         } finally {
           setLoading(false);
         }
+      } else {
+        setLoading(false);
       }
     }
-    if (user) {
-      fetchData();
-    }
-  }, [user, toast]);
+    fetchData();
+  }, [userProfile, toast]);
+
+  if (userProfile?.role !== 'admin') {
+    return (
+      <div className="p-4 md:p-8">
+        <p className="text-center text-muted-foreground py-12">
+          Anda tidak memiliki akses ke halaman ini.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-8">
