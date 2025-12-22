@@ -103,22 +103,23 @@ export default function CaveClient({ location, spots }: { location: Location, sp
   };
   
   const sortedSpots = spots ? [...spots].sort((a, b) => a.order - b.order) : [];
-
+  const role = userProfile?.role || 'free';
+  const showAds = role === 'free';
+  
   const handleStartMission = () => {
-    // No longer forces login. Directly navigates to the first spot.
-    if (sortedSpots.length > 0) {
-      router.push(`/spot/${sortedSpots[0].id}`);
+    // Find the first spot that is either not a PRO spot, or the user is not 'free'
+    const firstAccessibleSpot = sortedSpots.find(s => !s.isPro || (user && role !== 'free'));
+
+    if (firstAccessibleSpot) {
+      router.push(`/spot/${firstAccessibleSpot.id}`);
     } else {
       toast({
         variant: 'destructive',
         title: 'Misi Tidak Tersedia',
-        description: 'Tidak ada spot yang ditemukan di lokasi ini untuk memulai misi.',
+        description: 'Tidak ada spot yang dapat diakses di lokasi ini untuk memulai misi.',
       });
     }
   };
-  
-  const role = userProfile?.role || 'free';
-  const showAds = role === 'free';
   
   return (
     <div className="container mx-auto min-h-screen max-w-5xl p-4 md:p-8">
