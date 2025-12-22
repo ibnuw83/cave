@@ -206,8 +206,8 @@ export function addLocation(locationData: Omit<Location, 'id' | 'miniMap'>): Pro
 }
 
 export function updateLocation(id: string, locationData: Partial<Omit<Location, 'id'>>) {
-    const docRef = doc(db, 'locations', id);
-    updateDoc(docRef, locationData).catch((error) => {
+  const docRef = doc(db, 'locations', id);
+  updateDoc(docRef, locationData).catch((error) => {
         if (error.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
                 path: `/locations/${id}`,
