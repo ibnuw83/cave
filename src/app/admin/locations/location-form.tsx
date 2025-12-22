@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -14,6 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/firebase';
+import { AdminMiniMapEditor } from './admin-mini-map-editor';
 
 const locationSchema = z.object({
   name: z.string().min(1, { message: 'Nama lokasi tidak boleh kosong.' }),
@@ -166,6 +166,13 @@ export function LocationForm({ location, onSave, onCancel }: LocationFormProps) 
           </div>
         </form>
       </Form>
+
+       {location?.miniMap && (
+        <AdminMiniMapEditor
+          locationId={location.id}
+          initialMap={location.miniMap}
+        />
+      )}
     </div>
   );
 }
