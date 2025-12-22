@@ -79,10 +79,9 @@ export default function LocationsClient() {
   const handleDelete = async (id: string) => {
     try {
         await deleteLocation(id);
-        setLocations(locations.filter((l) => l.id !== id));
         toast({ title: "Berhasil", description: "Lokasi dan semua spot di dalamnya berhasil dihapus." });
     } catch (error) {
-        // The error is handled by the permission-error emitter in firestore.ts
+        // Error is now handled by the global errorEmitter. No need for a toast here.
     }
   };
 

@@ -52,7 +52,7 @@ export default function SpotsClient({ locations }: SpotsClientProps) {
       await deleteSpot(id);
       toast({ title: "Berhasil", description: "Spot berhasil dihapus." });
     } catch (error) {
-      // Error is handled by the permission-error emitter
+      // Error is now handled by the global errorEmitter. No need for a toast here.
     }
   };
 
