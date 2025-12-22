@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { safeGetAdminApp } from '@/firebase/admin';
 import { createUserAdmin, getAllUsersAdmin } from '@/lib/firestore-admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
+import { UserProfile } from '@/lib/types';
 
 /**
  * Verifies if the request comes from an authenticated admin user.
@@ -13,7 +14,6 @@ import type { DecodedIdToken } from 'firebase-admin/auth';
 async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
     const admin = safeGetAdminApp();
     if (!admin) {
-      console.warn('[ADMIN API] Admin SDK not available.');
       return null;
     }
   
@@ -30,7 +30,7 @@ async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
       }
       return null;
     } catch (err) {
-      console.warn('[ADMIN API] Failed to verify admin cookie:', err);
+      // This catches expired cookies or other verification errors
       return null;
     }
 }
@@ -67,13 +67,8 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Field email, password, displayName, dan role diperlukan.' }, { status: 400 });
         }
         
-        // Allow an admin to create another admin
-        if (role === 'admin' && adminUser.email !== 'superadmin@example.com') { // Example of a superadmin check
-            // console.log(`Admin creation attempt by: ${adminUser.email}`);
-            // return NextResponse.json({ error: 'Anda tidak memiliki izin untuk membuat admin baru.' }, { status: 403 });
-        }
-
-        if (!['free', 'pro1', 'pro2', 'pro3', 'vip', 'admin'].includes(role)) {
+        const validRoles: UserProfile['role'][] = ['free', 'pro1', 'pro2', 'pro3', 'vip', 'admin'];
+        if (!validRoles.includes(role)) {
             return NextResponse.json({ error: 'Role tidak valid.' }, { status: 400 });
         }
 

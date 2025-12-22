@@ -13,7 +13,6 @@ import type { DecodedIdToken } from 'firebase-admin/auth';
 async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
     const admin = safeGetAdminApp();
     if (!admin) {
-      console.warn('[ADMIN API] Admin SDK not available.');
       return null;
     }
   
@@ -30,7 +29,6 @@ async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
       }
       return null;
     } catch (err) {
-      console.warn('[ADMIN API] Failed to verify admin cookie:', err);
       return null;
     }
 }
@@ -50,10 +48,9 @@ export async function PUT(
         return NextResponse.json({ error: 'User ID diperlukan.' }, { status: 400 });
     }
     
-    // Guard to prevent admin from disabling their own account
     if (userId === adminUser.uid) {
       return NextResponse.json(
-        { error: 'Admin tidak dapat menonaktifkan dirinya sendiri.' },
+        { error: 'Admin tidak dapat mengubah status dirinya sendiri.' },
         { status: 400 }
       );
     }
@@ -91,7 +88,6 @@ export async function DELETE(
         return NextResponse.json({ error: 'User ID diperlukan.' }, { status: 400 });
     }
 
-    // Guard to prevent admin from deleting their own account
     if (userId === adminUser.uid) {
       return NextResponse.json(
         { error: 'Admin tidak dapat menghapus dirinya sendiri.' },

@@ -22,57 +22,61 @@ interface Stat {
 }
 
 export default function AdminDashboard() {
-  const { userProfile } = useUser();
+  const { userProfile, isProfileLoading } = useUser();
   const [stats, setStats] = useState<Stat[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
     async function fetchData() {
-      if (userProfile?.role === 'admin') {
-        setLoading(true);
-        try {
-          // Fetch locations and spots directly
-          const locationsPromise = getLocations(true);
-          const spotsPromise = getAllSpotsForAdmin();
-          
-          // Fetch users via the secure API route
-          const usersPromise = fetch('/api/admin/users').then(async (res) => {
-            if (!res.ok) {
-              const errorData = await res.json();
-              throw new Error(errorData.error || 'Gagal mengambil data pengguna.');
-            }
+      if (userProfile?.role !== 'admin') return;
+
+      setLoading(true);
+      try {
+        // Fetch data that doesn't require a separate API call first
+        const locationsPromise = getLocations(true);
+        const spotsPromise = getAllSpotsForAdmin();
+        const usersPromise = fetch('/api/admin/users').then(res => {
+            if (!res.ok) throw new Error('Gagal mengambil data pengguna');
             return res.json();
-          });
+        });
 
-          const [locationsRes, spotsRes, users] = await Promise.all([
-            locationsPromise,
-            spotsPromise,
-            usersPromise,
-          ]);
+        const [locationsRes, spotsRes, usersRes] = await Promise.all([locationsPromise, spotsPromise, usersPromise]);
 
-          setStats([
-            { title: 'Total Lokasi', value: (locationsRes as Location[]).length, icon: <Mountain className="h-6 w-6" />, href: '/admin/locations', color: 'bg-blue-900/50 text-blue-100' },
-            { title: 'Total Spot', value: (spotsRes as Spot[]).length, icon: <MapPin className="h-6 w-6" />, href: '/admin/spots', color: 'bg-green-900/50 text-green-100' },
-            { title: 'Total Pengguna', value: (users as UserProfile[]).length, icon: <Users className="h-6 w-6" />, href: '/admin/users', color: 'bg-yellow-900/50 text-yellow-100' },
-          ]);
+        setStats([
+          { title: 'Total Lokasi', value: locationsRes.length, icon: <Mountain className="h-6 w-6" />, href: '/admin/locations', color: 'bg-blue-900/50 text-blue-100' },
+          { title: 'Total Spot', value: spotsRes.length, icon: <MapPin className="h-6 w-6" />, href: '/admin/spots', color: 'bg-green-900/50 text-green-100' },
+          { title: 'Total Pengguna', value: usersRes.length, icon: <Users className="h-6 w-6" />, href: '/admin/users', color: 'bg-yellow-900/50 text-yellow-100' },
+        ]);
 
-        } catch (error: any) {
-          console.error("Failed to fetch admin dashboard data:", error);
-          toast({
-            variant: 'destructive',
-            title: 'Gagal Memuat Dashboard',
-            description: error.message || 'Tidak dapat mengambil data admin.',
-          });
-        } finally {
-          setLoading(false);
-        }
-      } else {
+      } catch (error: any) {
+        console.error("Failed to fetch admin dashboard data:", error);
+        toast({
+          variant: 'destructive',
+          title: 'Gagal Memuat Dashboard',
+          description: error.message || 'Tidak dapat mengambil data statistik.',
+        });
+      } finally {
         setLoading(false);
       }
     }
-    fetchData();
-  }, [userProfile, toast]);
+    
+    if (!isProfileLoading && userProfile) {
+        fetchData();
+    }
+  }, [userProfile, isProfileLoading, toast]);
+  
+  if (isProfileLoading) {
+      return (
+        <div className="p-4 md:p-8">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-32 w-full" />
+            </div>
+        </div>
+      );
+  }
 
   if (userProfile?.role !== 'admin') {
     return (

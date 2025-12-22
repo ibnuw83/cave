@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { UserProfile } from '@/lib/types';
 import { updateUserRole } from '@/lib/firestore-client';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
@@ -23,13 +23,13 @@ export default function UsersClient() {
   const [loading, setLoading] = useState(true);
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
-  const { user: currentUser, userProfile } = useUser();
+  const { user: currentUser, userProfile, isProfileLoading } = useUser();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
 
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch('/api/admin/users');
@@ -48,15 +48,25 @@ export default function UsersClient() {
     } finally {
         setLoading(false);
     }
-  };
+  }, [toast]);
   
   useEffect(() => {
-    if (!isFormOpen && userProfile?.role === 'admin') {
-      fetchUsers();
-    } else if (userProfile?.role !== 'admin') {
-      setLoading(false);
+    if (!isProfileLoading && userProfile?.role === 'admin') {
+      if (!isFormOpen) {
+        fetchUsers();
+      }
     }
-  }, [isFormOpen, userProfile]);
+  }, [isFormOpen, userProfile, isProfileLoading, fetchUsers]);
+
+  if (isProfileLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-20 w-full" />
+      </div>
+    );
+  }
 
   if (userProfile?.role !== 'admin') {
     return (
@@ -75,11 +85,7 @@ export default function UsersClient() {
         title: 'Ditolak',
         description: 'Anda tidak dapat mengubah peran akun sendiri.',
       });
-      // Revert the UI change
-      setTimeout(() => {
-        const select = document.querySelector(`[data-uid="${uid}"]`) as HTMLElement;
-        if (select) select.click(); // This is a bit of a hack to close and reopen, reverting visual state
-      }, 100);
+      setTimeout(() => setUsers([...users]), 100);
       return;
     }
     
@@ -90,7 +96,6 @@ export default function UsersClient() {
     if (newRole === 'admin') {
         const ok = confirm('Yakin ingin menjadikan pengguna ini sebagai ADMIN? Tindakan ini memberikan akses penuh ke panel admin.');
         if (!ok) {
-             // To revert the select dropdown visually if the user cancels `confirm`
             setUsers([...users]); 
             return;
         }
@@ -100,13 +105,12 @@ export default function UsersClient() {
     
     try {
         await updateUserRole(uid, newRole);
-        // Optimistically update the UI
         setUsers(currentUsers => 
             currentUsers.map(u => u.id === uid ? { ...u, role: newRole } : u)
         );
         toast({ title: "Berhasil", description: `Peran untuk ${userToChange.displayName || userToChange.email} telah diubah.` });
     } catch (error) {
-        // Error will be shown by the global error handler
+       // Error is handled by global emitter
     } finally {
         setLoadingStates((prev) => ({ ...prev, [uid]: false }));
     }
@@ -137,7 +141,6 @@ export default function UsersClient() {
       toast({ title: 'Berhasil', description: `Pengguna telah ${isDisabled ? 'dinonaktifkan' : 'diaktifkan'}.` });
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Gagal', description: error.message });
-      // Revert the switch state on failure by re-rendering
       setUsers([...users]);
     } finally {
       setLoadingStates(prev => ({ ...prev, [uid]: false }));
@@ -158,7 +161,7 @@ export default function UsersClient() {
         throw new Error(errorData.error || 'Gagal menghapus pengguna.');
       }
       toast({ title: 'Berhasil', description: `Pengguna ${userToDelete.displayName} telah dihapus.` });
-      fetchUsers(); // Refresh list
+      fetchUsers();
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Gagal', description: error.message });
     }
@@ -167,14 +170,13 @@ export default function UsersClient() {
   const handleFormSave = () => {
     setIsFormOpen(false);
     setSelectedUser(null);
-    fetchUsers(); // Refresh user list after saving
+    fetchUsers();
   };
   
   const sortedUsers = useMemo(() => {
     return [...users].sort((a, b) => (a.displayName || a.email || '').localeCompare(b.displayName || b.email || ''));
   }, [users]);
   
-
   if (loading) {
     return (
       <div className="space-y-4">
@@ -184,6 +186,7 @@ export default function UsersClient() {
       </div>
     );
   }
+
 
   return (
     <>
