@@ -86,7 +86,13 @@ const nextConfig = {
         hostname: 'salsawisata.com',
         port: '',
         pathname: '/**',
-      }
+      },
+      {
+        protocol: 'https',
+        hostname: 'cave-57567.appspot.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
 };
