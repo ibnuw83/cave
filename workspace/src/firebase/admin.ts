@@ -16,6 +16,5 @@ export function safeGetAdminApp() {
   return {
     auth: admin.auth(adminApp),
     db: admin.firestore(adminApp),
-    adminApp: adminApp, // Ekspor adminApp untuk debugging
   };
 }
