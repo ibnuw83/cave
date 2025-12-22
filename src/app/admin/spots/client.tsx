@@ -11,32 +11,24 @@ import { Plus, Edit, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { deleteSpot, getLocations } from "@/lib/firestore-client";
+import { deleteSpot } from "@/lib/firestore-client";
 import { SpotForm } from "./spot-form";
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export default function SpotsClient() {
+interface SpotsClientProps {
+  locations: Location[];
+}
+
+export default function SpotsClient({ locations }: SpotsClientProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState<Spot | null>(null);
   const [filterLocationId, setFilterLocationId] = useState<string>('all');
   const { toast } = useToast();
   const firestore = useFirestore();
 
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [loadingLocations, setLoadingLocations] = useState(true);
-
   const spotsQuery = useMemoFirebase(() => collection(firestore, 'spots'), [firestore]);
   const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(spotsQuery);
-
-  useEffect(() => {
-    setLoadingLocations(true);
-    getLocations(true).then(l => {
-      setLocations(l);
-      setLoadingLocations(false);
-    });
-  }, []);
-
 
   const handleFormSuccess = () => {
     if (selectedSpot) {
@@ -74,16 +66,6 @@ export default function SpotsClient() {
   const getLocationName = (locationId: string) => {
     return locations.find(l => l.id === locationId)?.name || 'Lokasi tidak ditemukan';
   };
-
-  if (loadingLocations) {
-     return (
-        <div className="space-y-4">
-          <Skeleton className="h-12 w-full mb-4" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-        </div>
-      );
-  }
 
   if (isFormOpen) {
     return <SpotForm spot={selectedSpot} locations={locations} allSpots={spots || []} onSave={handleFormSuccess} onCancel={() => { setIsFormOpen(false); setSelectedSpot(null); }} />;
