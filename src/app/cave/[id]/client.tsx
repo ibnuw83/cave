@@ -49,26 +49,21 @@ function SpotCard({ spot, isLocked, isOffline, lockedMessage }: { spot: Spot; is
     </Card>
   );
 
-  if (isLocked) {
-    return (
-       <Link href="/pricing" className="group">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              {content}
-            </TooltipTrigger>
+  // Perubahan di sini: Arahkan ke halaman spot, bukan pricing, untuk menampilkan soft-paywall (LockedScreen)
+  return (
+    <Link href={`/spot/${spot.id}`} className="group">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {content}
+          </TooltipTrigger>
+          {isLocked && (
             <TooltipContent>
               <p>{lockedMessage}</p>
             </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </Link>
-    );
-  }
-
-  return (
-    <Link href={`/spot/${spot.id}`} className="group">
-      {content}
+          )}
+        </Tooltip>
+      </TooltipProvider>
     </Link>
   );
 }
@@ -185,6 +180,9 @@ export default function CaveClient({ location, spots }: { location: Location, sp
                 )}
             </div>
         </div>
+         {(user && (role.startsWith('pro') || role === 'vip' || role === 'admin')) && (
+          <p className="text-xs text-muted-foreground -mt-4 mb-8">Mode offline hanya tersedia untuk pengguna PRO & VIP.</p>
+        )}
 
         {showAds && location.isActive && (
             <div className="my-8">
@@ -199,7 +197,7 @@ export default function CaveClient({ location, spots }: { location: Location, sp
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {sortedSpots.map((spot, index) => {
             const isLocked = spot.isPro && !(user && (role.startsWith('pro') || role === 'vip' || role === 'admin'));
-            const lockedMessage = user ? "Upgrade level PRO atau VIP Anda untuk mengakses spot ini." : "Login atau daftar untuk mengakses konten PRO.";
+            const lockedMessage = user ? "Upgrade untuk mengakses spot PRO ini" : "Login untuk akses konten PRO";
             return <SpotCard 
                       key={spot.id} 
                       spot={spot} 
