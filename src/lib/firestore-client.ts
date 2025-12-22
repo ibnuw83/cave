@@ -327,17 +327,20 @@ export async function updateSpot(id: string, spotData: Partial<Omit<Spot, 'id'>>
   }
 }
 
-export function deleteSpot(id: string) {
+export async function deleteSpot(id: string) {
   const docRef = doc(db, 'spots', id);
-  deleteDoc(docRef).catch((error) => {
-        if (error.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: `/spots/${id}`,
-                operation: 'delete',
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        }
-    });
+  try {
+    await deleteDoc(docRef);
+  } catch (error: any) {
+    if (error.code === 'permission-denied') {
+        const permissionError = new FirestorePermissionError({
+            path: `/spots/${id}`,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    }
+    throw error;
+  }
 }
 
 // --- Kiosk Settings Functions ---
@@ -364,9 +367,11 @@ export async function getKioskSettings(): Promise<KioskSettings | null> {
   }
 }
 
-export function saveKioskSettings(settings: Partial<KioskSettings>) {
+export async function saveKioskSettings(settings: Partial<KioskSettings>) {
     const docRef = doc(db, 'kioskSettings', KIOSK_SETTINGS_ID);
-    setDoc(docRef, settings, { merge: true }).catch((error) => {
+    try {
+        await setDoc(docRef, settings, { merge: true });
+    } catch (error: any) {
         if (error.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
                 path: '/kioskSettings/main',
@@ -375,13 +380,16 @@ export function saveKioskSettings(settings: Partial<KioskSettings>) {
             });
             errorEmitter.emit('permission-error', permissionError);
         }
-    });
+        throw error;
+    }
 }
 
 // --- Kiosk Control Functions (Admin only) ---
-export function setKioskControl(control: any) {
+export async function setKioskControl(control: any) {
     const docRef = doc(db, 'kioskControl', 'global');
-    setDoc(docRef, control, { merge: true }).catch((error) => {
+    try {
+        await setDoc(docRef, control, { merge: true });
+    } catch (error: any) {
         if (error.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
                 path: '/kioskControl/global',
@@ -390,7 +398,8 @@ export function setKioskControl(control: any) {
             });
             errorEmitter.emit('permission-error', permissionError);
         }
-    });
+        throw error;
+    }
 }
 
 // --- Pricing Tier Functions ---
