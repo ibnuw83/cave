@@ -51,25 +51,44 @@ export function LocationForm({ location, onSave, onCancel }: LocationFormProps) 
 
   const onSubmit = async (values: LocationFormValues) => {
     if (!auth.currentUser) {
-        toast({
-            variant: 'destructive',
-            title: 'Belum login',
-            description: 'Silakan login sebagai admin.',
-        });
-        return;
+      toast({
+        variant: 'destructive',
+        title: 'Belum login',
+        description: 'Silakan login sebagai admin.',
+      });
+      return;
     }
+  
     try {
       if (location) {
-        const updatedLocationData = { ...location, ...values };
+        const updatedLocationData = {
+          ...location,
+          ...values,
+        };
+  
         await updateLocation(location.id, values);
+  
         onSave(updatedLocationData);
+  
       } else {
-        const newLocationData: Omit<Location, 'id' | 'miniMap'> = values;
+        const newLocationData: Omit<Location, 'id'> = {
+          ...values,
+          miniMap: { nodes: [], edges: [] },
+        };
+  
         const newLocationId = await addLocation(newLocationData);
-        onSave({ id: newLocationId, ...newLocationData, miniMap: {nodes: [], edges: []} });
+  
+        onSave({
+          id: newLocationId,
+          ...newLocationData,
+        });
       }
     } catch (error) {
-        // Error is now handled by the permission-error emitter in firestore.ts
+      toast({
+        variant: 'destructive',
+        title: 'Gagal',
+        description: 'Gagal menyimpan lokasi.',
+      });
     }
   };
 
@@ -168,7 +187,7 @@ export function LocationForm({ location, onSave, onCancel }: LocationFormProps) 
         </form>
       </Form>
 
-       {location?.miniMap && (
+       {location?.id && (
         <AdminMiniMapEditor
           locationId={location.id}
           initialMap={location.miniMap}
