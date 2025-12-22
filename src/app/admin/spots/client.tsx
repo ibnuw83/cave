@@ -44,9 +44,13 @@ export default function SpotsClient({ locations }: SpotsClientProps) {
     setIsFormOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    deleteSpot(id);
-    toast({ title: "Berhasil", description: "Spot berhasil dihapus." });
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteSpot(id);
+      toast({ title: "Berhasil", description: "Spot berhasil dihapus." });
+    } catch (error) {
+      // Error is handled by the permission-error emitter
+    }
   };
 
   const filteredSpots = useMemo(() => {
@@ -143,5 +147,3 @@ export default function SpotsClient({ locations }: SpotsClientProps) {
     </div>
   );
 }
-
-    
