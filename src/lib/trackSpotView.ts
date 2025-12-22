@@ -10,16 +10,34 @@ import { initializeFirebase } from '@/firebase';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
-// Menggunakan satu instance db dari inisialisasi pusat
 const { firestore: db } = initializeFirebase();
+
+const THROTTLE_INTERVAL_MS = 5 * 60 * 1000; // 5 menit
 
 /**
  * Melacak penayangan spot di mode kios dengan menambah (increment)
- * jumlah penayangan di koleksi kioskStats.
+ * jumlah penayangan di koleksi kioskStats, dengan throttling.
  * @param locationId ID dari lokasi.
  * @param spotId ID dari spot yang dilihat.
  */
 export function trackSpotView(locationId: string, spotId: string) {
+  // Hanya berjalan di browser
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
+
+  const lastTrackedKey = `lastTracked_${spotId}`;
+  const lastTrackedTime = parseInt(window.localStorage.getItem(lastTrackedKey) || '0', 10);
+  const now = Date.now();
+
+  if (now - lastTrackedTime < THROTTLE_INTERVAL_MS) {
+    // Masih dalam periode throttle, jangan lakukan apa-apa
+    return;
+  }
+  
+  // Perbarui waktu pelacakan di localStorage
+  window.localStorage.setItem(lastTrackedKey, now.toString());
+
   const statRef = doc(db, 'kioskStats', locationId);
   const data = {
     spots: {
@@ -28,7 +46,6 @@ export function trackSpotView(locationId: string, spotId: string) {
     updatedAt: serverTimestamp(),
   };
   
-  // Non-blocking write operation with error handling
   setDoc(statRef, data, { merge: true }).catch((error) => {
     if (error.code === 'permission-denied') {
       const permissionError = new FirestorePermissionError({
@@ -38,7 +55,6 @@ export function trackSpotView(locationId: string, spotId: string) {
       });
       errorEmitter.emit('permission-error', permissionError);
     }
-    // Tidak melempar error lebih lanjut agar tidak mengganggu pemutaran kios
     console.warn(`Failed to track spot view for ${spotId}:`, error.message);
   });
 }
