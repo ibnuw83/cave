@@ -63,6 +63,8 @@ export function useCollection<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
+    let isCancelled = false;
+    
     if (!targetRefOrQuery) {
       setData(null);
       setIsLoading(false);
@@ -77,6 +79,7 @@ export function useCollection<T = any>(
     const unsubscribe = onSnapshot(
       targetRefOrQuery,
       (snapshot: QuerySnapshot<DocumentData>) => {
+        if (isCancelled) return;
         const results: ResultItemType[] = [];
         for (const doc of snapshot.docs) {
           results.push({ ...(doc.data() as T), id: doc.id });
@@ -86,6 +89,7 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (err: FirestoreError) => {
+        if (isCancelled) return;
         // This logic extracts the path from either a ref or a query
         const path: string =
           targetRefOrQuery.type === 'collection'
@@ -110,7 +114,10 @@ export function useCollection<T = any>(
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      isCancelled = true;
+      unsubscribe();
+    };
   }, [targetRefOrQuery]); // Re-run if the target query/reference changes.
   
   return { data, isLoading, error };
