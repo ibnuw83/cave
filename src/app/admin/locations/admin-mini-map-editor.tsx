@@ -34,6 +34,7 @@ export function AdminMiniMapEditor({
   async function saveMap() {
     setIsSaving(true);
     try {
+        // Menggunakan 'locations' secara eksplisit
         await updateDoc(doc(db, 'locations', locationId), {
             miniMap: {
                 nodes: map.nodes,
