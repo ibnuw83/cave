@@ -86,7 +86,7 @@ export function LocationForm({ location, onSave, onCancel }: LocationFormProps) 
         onSave({
           id: newLocationId,
           ...newLocationData,
-        });
+        } as Location);
       }
     } catch (error) {
       toast({
@@ -195,7 +195,7 @@ export function LocationForm({ location, onSave, onCancel }: LocationFormProps) 
        {location?.id && (
         <AdminMiniMapEditor
           locationId={location.id}
-          initialMap={location.miniMap}
+          initialMap={location.miniMap ?? { nodes: [], edges: [] }}
         />
       )}
     </div>
