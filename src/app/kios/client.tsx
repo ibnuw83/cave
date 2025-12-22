@@ -111,7 +111,7 @@ export default function KiosClient({ settings }: { settings: KioskSettings }) {
 
     const kioskDeviceRef = doc(firestore, 'kioskDevices', 'kiosk-001');
     const kioskControlRef = doc(firestore, 'kioskControl', 'global');
-    const currentSpotId = spots[0]?.id;
+    const currentSpotId = spots.length > 0 ? spots[0]?.id : undefined;
 
     useKioskHeartbeat(kioskDeviceRef, currentSpotId);
     useKioskControl(kioskControlRef, (ctrl) => {
