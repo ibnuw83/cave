@@ -4,7 +4,14 @@ import SpotsClient from "./client";
 import { Location } from "@/lib/types";
 
 export default async function SpotsPage() {
-  const locations: Location[] = await getLocations(true).catch(() => []);
+  let locations: Location[] = [];
+
+  try {
+    locations = await getLocations(true);
+  } catch (error) {
+    console.error("[SpotsPage] Failed to load locations:", error);
+    // locations will remain an empty array, which is a safe value for SpotsClient
+  }
 
   return (
     <div className="p-4 md:p-8">
