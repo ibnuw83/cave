@@ -88,7 +88,9 @@ export async function createUserProfile(user: User): Promise<UserProfile> {
 export async function updateUserProfile(uid: string, data: Partial<Pick<UserProfile, 'displayName' | 'photoURL'>>) {
     const userRef = doc(db, 'users', uid);
     const dataToUpdate = { ...data, updatedAt: serverTimestamp() };
-    return updateDoc(userRef, dataToUpdate).catch(error => {
+    try {
+        await updateDoc(userRef, dataToUpdate);
+    } catch (error: any) {
       if (error.code === 'permission-denied') {
         const permissionError = new FirestorePermissionError({
             path: `/users/${uid}`,
@@ -98,7 +100,7 @@ export async function updateUserProfile(uid: string, data: Partial<Pick<UserProf
         errorEmitter.emit('permission-error', permissionError);
       }
       throw error;
-    });
+    }
 }
 
 // Admin-only function, assumes admin privileges are checked by the caller (API route)
@@ -205,18 +207,21 @@ export function addLocation(locationData: Omit<Location, 'id' | 'miniMap'>): Pro
     });
 }
 
-export function updateLocation(id: string, locationData: Partial<Omit<Location, 'id'>>) {
+export async function updateLocation(id: string, locationData: Partial<Omit<Location, 'id'>>) {
   const docRef = doc(db, 'locations', id);
-  updateDoc(docRef, locationData).catch((error) => {
-        if (error.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: `/locations/${id}`,
-                operation: 'update',
-                requestResourceData: locationData,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        }
-    });
+  try {
+    await updateDoc(docRef, locationData);
+  } catch (error: any) {
+    if (error.code === 'permission-denied') {
+        const permissionError = new FirestorePermissionError({
+            path: `/locations/${id}`,
+            operation: 'update',
+            requestResourceData: locationData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    }
+    throw error;
+  }
 }
 
 
@@ -305,18 +310,21 @@ export function addSpot(spotData: Omit<Spot, 'id'>): Promise<string> {
     });
 }
 
-export function updateSpot(id: string, spotData: Partial<Omit<Spot, 'id'>>) {
+export async function updateSpot(id: string, spotData: Partial<Omit<Spot, 'id'>>) {
   const docRef = doc(db, 'spots', id);
-  updateDoc(docRef, spotData).catch((error) => {
-        if (error.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: `/spots/${id}`,
-                operation: 'update',
-                requestResourceData: spotData,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        }
-    });
+  try {
+    await updateDoc(docRef, spotData);
+  } catch (error: any) {
+    if (error.code === 'permission-denied') {
+        const permissionError = new FirestorePermissionError({
+            path: `/spots/${id}`,
+            operation: 'update',
+            requestResourceData: spotData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    }
+    throw error;
+  }
 }
 
 export function deleteSpot(id: string) {
