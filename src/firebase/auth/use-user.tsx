@@ -1,12 +1,28 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth, useFirestore } from '@/firebase/provider';
-import { User, onAuthStateChanged } from 'firebase/auth';
+import { useAuth } from '@/firebase/provider';
+import { User, onIdTokenChanged } from 'firebase/auth';
 import { UserProfile } from '@/lib/types';
 import { getUserProfileClient, createUserProfile } from '@/lib/firestore-client';
 import { useToast } from '@/hooks/use-toast';
 import { Timestamp } from 'firebase/firestore';
+
+async function handleTokenChange(user: User | null) {
+  if (user) {
+    const token = await user.getIdToken();
+    await fetch('/api/login', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } else {
+    await fetch('/api/logout', {
+      method: 'POST',
+    });
+  }
+}
 
 export function useUser() {
     const auth = useAuth();
@@ -37,9 +53,11 @@ export function useUser() {
 
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
             setUser(firebaseUser);
             setIsUserLoading(false);
+
+            await handleTokenChange(firebaseUser);
             
             if (firebaseUser) {
                 setIsProfileLoading(true);
