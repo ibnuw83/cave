@@ -303,9 +303,9 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
       return;
     }
 
-    if (isFreeUser && spot.isPro) {
+    if (isFreeUser) {
         toast({
-            title: 'Mode PRO Diperlukan',
+            title: 'Fitur Narasi Khusus PRO',
             description: 'Nikmati narasi penuh, tur otomatis & bebas iklan dengan upgrade.',
             action: (
             <Button asChild>
