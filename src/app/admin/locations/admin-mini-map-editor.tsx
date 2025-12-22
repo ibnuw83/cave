@@ -1,11 +1,10 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Location } from '@/lib/types';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
-import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -24,6 +23,21 @@ export function AdminMiniMapEditor({
   const [dragId, setDragId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  useEffect(() => {
+    // Debounced auto-save effect
+    const handler = setTimeout(() => {
+      // Don't save on initial render
+      if (JSON.stringify(map) !== JSON.stringify(initialMap ?? { nodes: [], edges: [] })) {
+        saveMap();
+      }
+    }, 1500);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [map]);
+
+
   function updateNode(id: string, x: number, y: number) {
     setMap(prev => ({
       ...prev,
@@ -37,16 +51,14 @@ export function AdminMiniMapEditor({
     setIsSaving(true);
     try {
         await updateDoc(doc(db, 'locations', locationId), {
-            miniMap: {
-                nodes: map.nodes,
-                edges: map.edges,
-            },
+            'miniMap.nodes': map.nodes,
+            'miniMap.edges': map.edges,
             updatedAt: serverTimestamp(),
         });
-        toast({ title: "Berhasil", description: "Tata letak peta mini telah disimpan." });
+        toast({ title: "Tersimpan Otomatis", description: "Tata letak peta mini telah diperbarui." });
     } catch(e) {
-        console.error("Failed to save minimap", e);
-        toast({ variant: "destructive", title: "Gagal", description: "Gagal menyimpan peta mini." });
+        console.error("Failed to auto-save minimap", e);
+        toast({ variant: "destructive", title: "Gagal Menyimpan", description: "Gagal menyimpan peta mini." });
     } finally {
         setIsSaving(false);
     }
@@ -54,7 +66,15 @@ export function AdminMiniMapEditor({
 
   return (
     <div className="bg-card rounded-xl p-4 border mt-6">
-      <h3 className="font-bold mb-2">🗺️ Editor Mini-Map</h3>
+       <div className="flex justify-between items-center mb-2">
+            <h3 className="font-bold">🗺️ Editor Mini-Map</h3>
+            {isSaving && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Menyimpan...
+                </div>
+            )}
+       </div>
 
       <div className='relative'>
         <svg
@@ -116,15 +136,6 @@ export function AdminMiniMapEditor({
             ))}
         </svg>
       </div>
-
-      <Button
-        onClick={saveMap}
-        className="mt-3"
-        disabled={isSaving}
-      >
-        {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        💾 Simpan Mini-Map
-      </Button>
     </div>
   );
 }
