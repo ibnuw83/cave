@@ -18,7 +18,7 @@ import { saveKioskSettings, setKioskControl } from '@/lib/firestore-client';
 import Link from 'next/link';
 import { isLocationAvailableOffline, saveLocationForOffline } from '@/lib/offline';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useCollection, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useDoc, useFirestore } from '@/firebase';
 import { collection, doc, Timestamp } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
@@ -97,10 +97,8 @@ function KioskRemoteControl({ allSpots }: { allSpots: Spot[] }) {
   const { toast } = useToast();
   const firestore = useFirestore();
 
-  const devicesQuery = useMemoFirebase(() => collection(firestore, 'kioskDevices'), [firestore]);
-  const { data: devices, isLoading: devicesLoading } = useCollection<KioskDevice>(devicesQuery);
-  const controlRef = useMemoFirebase(() => doc(firestore, 'kioskControl', 'global'), [firestore]);
-  const { data: controlState, isLoading: controlLoading } = useDoc<{enabled: boolean, message?: string, forceReload?: boolean}>(controlRef);
+  const { data: devices, isLoading: devicesLoading } = useCollection<KioskDevice>(collection(firestore, 'kioskDevices'));
+  const { data: controlState, isLoading: controlLoading } = useDoc<{enabled: boolean, message?: string, forceReload?: boolean}>(doc(firestore, 'kioskControl', 'global'));
 
   const controlForm = useForm<RemoteControlFormValues>({
     resolver: zodResolver(remoteControlSchema),
@@ -210,10 +208,8 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
   const [isOffline, setIsOffline] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const spotsQuery = useMemoFirebase(() => collection(firestore, 'spots'), [firestore]);
-  const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(spotsQuery);
-  const settingsRef = useMemoFirebase(() => doc(firestore, 'kioskSettings', 'main'), [firestore]);
-  const { data: kioskSettings, isLoading: settingsLoading } = useDoc<KioskSettings>(settingsRef);
+  const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(collection(firestore, 'spots'));
+  const { data: kioskSettings, isLoading: settingsLoading } = useDoc<KioskSettings>(doc(firestore, 'kioskSettings', 'main'));
   
   const globalForm = useForm<GlobalSettingsFormValues>({
     resolver: zodResolver(globalSettingsSchema),
@@ -336,33 +332,33 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
     }
   };
 
-  const onGlobalSubmit = (values: GlobalSettingsFormValues) => {
-    saveKioskSettings(values);
+  const onGlobalSubmit = async (values: GlobalSettingsFormValues) => {
+    await saveKioskSettings(values);
     toast({ title: 'Berhasil', description: 'Pengaturan global telah disimpan.' });
   };
   
-  const onHeroSubmit = (values: HeroSettingsFormValues) => {
-    saveKioskSettings(values);
+  const onHeroSubmit = async (values: HeroSettingsFormValues) => {
+    await saveKioskSettings(values);
     toast({ title: 'Berhasil', description: 'Pengaturan halaman utama telah disimpan.' });
   };
 
-  const onFooterSubmit = (values: FooterSettingsFormValues) => {
-    saveKioskSettings(values);
+  const onFooterSubmit = async (values: FooterSettingsFormValues) => {
+    await saveKioskSettings(values);
     toast({ title: 'Berhasil', description: 'Pengaturan footer & media sosial telah disimpan.' });
   };
 
-  const onPlaylistSubmit = (values: PlaylistSettingsFormValues) => {
-    saveKioskSettings(values);
+  const onPlaylistSubmit = async (values: PlaylistSettingsFormValues) => {
+    await saveKioskSettings(values);
     toast({ title: 'Berhasil', description: 'Pengaturan daftar putar kios telah disimpan.' });
   };
 
-  const onPaymentSubmit = (values: PaymentGatewayFormValues) => {
-      saveKioskSettings(values);
+  const onPaymentSubmit = async (values: PaymentGatewayFormValues) => {
+      await saveKioskSettings(values);
       toast({ title: 'Berhasil', description: 'Pengaturan pembayaran telah disimpan.'});
   }
 
-  const onAdSenseSubmit = (values: AdSenseFormValues) => {
-      saveKioskSettings(values);
+  const onAdSenseSubmit = async (values: AdSenseFormValues) => {
+      await saveKioskSettings(values);
       toast({ title: 'Berhasil', description: 'Pengaturan AdSense telah disimpan.' });
   }
 
@@ -880,3 +876,4 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
   );
 }
 
+    

@@ -65,8 +65,8 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
 
   const current = playlist.length > 0 ? playlist[index] : null;
   
-  const kioskDeviceRef = useMemo(() => doc(db, 'kioskDevices', 'kiosk-001'), [db]);
-  const kioskControlRef = useMemo(() => doc(db, 'kioskControl', 'global'), [db]);
+  const kioskDeviceRef = doc(db, 'kioskDevices', 'kiosk-001');
+  const kioskControlRef = doc(db, 'kioskControl', 'global');
 
   useKioskHeartbeat(kioskDeviceRef, current?.id);
   useKioskControl(kioskControlRef, (ctrl) => { 
@@ -162,3 +162,5 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
     </div>
   );
 }
+
+    

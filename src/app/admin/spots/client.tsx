@@ -13,7 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { deleteSpot } from "@/lib/firestore-client";
 import { SpotForm } from "./spot-form";
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface SpotsClientProps {
@@ -27,8 +27,7 @@ export default function SpotsClient({ locations }: SpotsClientProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
 
-  const spotsQuery = useMemoFirebase(() => collection(firestore, 'spots'), [firestore]);
-  const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(spotsQuery);
+  const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(collection(firestore, 'spots'));
 
   const handleFormSuccess = () => {
     if (selectedSpot) {
@@ -144,3 +143,5 @@ export default function SpotsClient({ locations }: SpotsClientProps) {
     </div>
   );
 }
+
+    

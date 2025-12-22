@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Spot, KioskSettings } from '@/lib/types';
 import { getSpotClient } from '@/lib/firestore-client';
@@ -108,8 +109,8 @@ export default function KiosClient({ settings }: { settings: KioskSettings }) {
     loadSpots();
   }, [settings]);
 
-    const kioskDeviceRef = useMemo(() => doc(firestore, 'kioskDevices', 'kiosk-001'), [firestore]);
-    const kioskControlRef = useMemo(() => doc(firestore, 'kioskControl', 'global'), [firestore]);
+    const kioskDeviceRef = doc(firestore, 'kioskDevices', 'kiosk-001');
+    const kioskControlRef = doc(firestore, 'kioskControl', 'global');
     const currentSpotId = spots[0]?.id;
 
     useKioskHeartbeat(kioskDeviceRef, currentSpotId);
@@ -145,3 +146,5 @@ export default function KiosClient({ settings }: { settings: KioskSettings }) {
       />
   );
 }
+
+    
