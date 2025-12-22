@@ -1,11 +1,11 @@
 
 'use client';
 
-import React, { createContext, useContext, ReactNode, useMemo, useEffect } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth } from 'firebase/auth';
-import { initializeFirebase } from '@/firebase/init'; // UPDATED IMPORT
+import { initializeFirebase } from '@/firebase/init';
 import { errorEmitter } from './error-emitter';
 import { FirestorePermissionError } from './errors';
 import { useToast } from '@/hooks/use-toast';
@@ -40,14 +40,15 @@ interface FirebaseServices {
   auth: Auth;
 }
 
+// Initialize Firebase services once when the module is loaded.
+// This creates a stable, singleton instance.
+const firebaseServices = initializeFirebase();
+
 export const FirebaseContext = createContext<FirebaseServices | undefined>(undefined);
 
 export const FirebaseClientProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // The initializeFirebase function is now isomorphic and can be called directly.
-  const services = useMemo(() => initializeFirebase(), []);
-
   return (
-    <FirebaseContext.Provider value={services}>
+    <FirebaseContext.Provider value={firebaseServices}>
       <FirebaseErrorListener />
       {children}
     </FirebaseContext.Provider>
