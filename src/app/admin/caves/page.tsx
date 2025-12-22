@@ -1,6 +1,7 @@
+
 import CavesClient from "./client";
 
-export default function CavesPage() {
+export default function LocationsPage() {
   return (
     <div className="p-4 md:p-8">
        <header className="mb-8">

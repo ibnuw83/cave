@@ -37,7 +37,7 @@ export default function AdminDashboard() {
             getAllUsersAdmin(),
           ]);
           setStats([
-            { title: 'Total Lokasi', value: locations.length, icon: <Mountain className="h-6 w-6" />, href: '/admin/caves', color: 'bg-blue-900/50 text-blue-100' },
+            { title: 'Total Lokasi', value: locations.length, icon: <Mountain className="h-6 w-6" />, href: '/admin/locations', color: 'bg-blue-900/50 text-blue-100' },
             { title: 'Total Spot', value: spots.length, icon: <MapPin className="h-6 w-6" />, href: '/admin/spots', color: 'bg-green-900/50 text-green-100' },
             { title: 'Total Pengguna', value: users.length, icon: <Users className="h-6 w-6" />, href: '/admin/users', color: 'bg-yellow-900/50 text-yellow-100' },
           ]);
@@ -91,7 +91,7 @@ export default function AdminDashboard() {
            </CardHeader>
            <CardContent>
              <Button asChild>
-                <Link href="/admin/caves">
+                <Link href="/admin/locations">
                   Buka Manajemen Lokasi <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
              </Button>

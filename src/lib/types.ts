@@ -13,6 +13,23 @@ export interface UserProfile {
   disabled?: boolean;
 }
 
+export type CaveMapNode = {
+  id: string;          // spotId
+  label: string;
+  x: number;           // posisi relatif (0–100)
+  y: number;
+};
+
+export type CaveMapEdge = {
+  from: string;
+  to: string;
+};
+
+export type CaveMiniMap = {
+  nodes: CaveMapNode[];
+  edges: CaveMapEdge[];
+};
+
 export interface Location {
   id: string;
   name: string;
@@ -20,6 +37,7 @@ export interface Location {
   description: string;
   coverImage: string;
   isActive: boolean;
+  miniMap: CaveMiniMap;
 }
 
 export type Hotspot = {
@@ -84,23 +102,6 @@ export interface KioskSettings {
   paymentGateway?: PaymentGatewaySettings;
   adsense?: AdSenseSettings;
 }
-
-export type CaveMapNode = {
-  id: string;          // spotId
-  label: string;
-  x: number;           // posisi relatif (0–100)
-  y: number;
-};
-
-export type CaveMapEdge = {
-  from: string;
-  to: string;
-};
-
-export type CaveMiniMap = {
-  nodes: CaveMapNode[];
-  edges: CaveMapEdge[];
-};
 
 export interface PricingTier {
   id: string; // Corresponds to user role, e.g., 'pro1', 'vip'

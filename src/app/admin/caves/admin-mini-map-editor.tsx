@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CaveMiniMap } from '@/lib/types';
+import { Location } from '@/lib/types';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
@@ -10,11 +10,11 @@ import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export function AdminMiniMapEditor({
-  caveId,
+  locationId,
   initialMap,
 }: {
-  caveId: string;
-  initialMap: CaveMiniMap;
+  locationId: string;
+  initialMap: Location['miniMap'];
 }) {
   const db = useFirestore();
   const { toast } = useToast();
@@ -34,9 +34,11 @@ export function AdminMiniMapEditor({
   async function saveMap() {
     setIsSaving(true);
     try {
-        await updateDoc(doc(db, 'caveMaps', caveId), {
-            nodes: map.nodes,
-            edges: map.edges, // make sure edges are saved too
+        await updateDoc(doc(db, 'locations', locationId), {
+            miniMap: {
+                nodes: map.nodes,
+                edges: map.edges,
+            },
             updatedAt: serverTimestamp(),
         });
         toast({ title: "Berhasil", description: "Tata letak peta mini telah disimpan." });

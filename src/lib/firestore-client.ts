@@ -1,3 +1,4 @@
+
 import {
   doc,
   getDoc,
@@ -181,8 +182,12 @@ export async function getLocationClient(id: string): Promise<Location | null> {
 
 
 export function addLocation(locationData: Omit<Location, 'id'>): Promise<string> {
+    const newLocationData = {
+        ...locationData,
+        miniMap: { nodes: [], edges: [] } // Inisialisasi miniMap kosong
+    };
     return new Promise((resolve, reject) => {
-        addDoc(collection(db, 'locations'), locationData)
+        addDoc(collection(db, 'locations'), newLocationData)
             .then(docRef => {
                 resolve(docRef.id);
             })
@@ -191,7 +196,7 @@ export function addLocation(locationData: Omit<Location, 'id'>): Promise<string>
                     const permissionError = new FirestorePermissionError({
                         path: '/locations',
                         operation: 'create',
-                        requestResourceData: locationData,
+                        requestResourceData: newLocationData,
                     });
                     errorEmitter.emit('permission-error', permissionError);
                 }
