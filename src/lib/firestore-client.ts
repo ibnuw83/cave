@@ -181,7 +181,7 @@ export async function getLocationClient(id: string): Promise<Location | null> {
 }
 
 
-export function addLocation(locationData: Omit<Location, 'id'>): Promise<string> {
+export function addLocation(locationData: Omit<Location, 'id' | 'miniMap'>): Promise<string> {
     const newLocationData = {
         ...locationData,
         miniMap: { nodes: [], edges: [] } // Inisialisasi miniMap kosong
