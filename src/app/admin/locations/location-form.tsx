@@ -66,11 +66,16 @@ export function LocationForm({ location, onSave, onCancel }: LocationFormProps) 
           ...values,
         };
   
-        await updateLocation(location.id, values);
+        // Always include miniMap, using existing or providing default
+        await updateLocation(location.id, {
+          ...values,
+          miniMap: location.miniMap ?? { nodes: [], edges: [] },
+        });
   
         onSave(updatedLocationData);
   
       } else {
+        // Ensure miniMap is created for new locations
         const newLocationData: Omit<Location, 'id'> = {
           ...values,
           miniMap: { nodes: [], edges: [] },
