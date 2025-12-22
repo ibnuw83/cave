@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getLocations, getAllSpotsForAdmin, getAllUsersAdmin } from '@/lib/firestore-client';
+import { getLocations, getAllSpotsForAdmin } from '@/lib/firestore-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mountain, MapPin, Users, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 interface Stat {
   title: string;
@@ -23,23 +24,37 @@ export default function AdminDashboard() {
   const { user } = useUser();
   const [stats, setStats] = useState<Stat[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     async function fetchData() {
       if (user) {
+        setLoading(true);
         try {
-          const [locations, spots, users] = await Promise.all([
+          const [locationsRes, spotsRes, usersRes] = await Promise.all([
             getLocations(true),
             getAllSpotsForAdmin(),
-            getAllUsersAdmin(),
+            fetch('/api/admin/users') // Fetch users from the secure API route
           ]);
+
+          if (!usersRes.ok) {
+            throw new Error('Gagal mengambil data pengguna.');
+          }
+          const users = await usersRes.json();
+          
           setStats([
-            { title: 'Total Lokasi', value: locations.length, icon: <Mountain className="h-6 w-6" />, href: '/admin/locations', color: 'bg-blue-900/50 text-blue-100' },
-            { title: 'Total Spot', value: spots.length, icon: <MapPin className="h-6 w-6" />, href: '/admin/spots', color: 'bg-green-900/50 text-green-100' },
+            { title: 'Total Lokasi', value: locationsRes.length, icon: <Mountain className="h-6 w-6" />, href: '/admin/locations', color: 'bg-blue-900/50 text-blue-100' },
+            { title: 'Total Spot', value: spotsRes.length, icon: <MapPin className="h-6 w-6" />, href: '/admin/spots', color: 'bg-green-900/50 text-green-100' },
             { title: 'Total Pengguna', value: users.length, icon: <Users className="h-6 w-6" />, href: '/admin/users', color: 'bg-yellow-900/50 text-yellow-100' },
           ]);
-        } catch (error) {
-          console.error("Failed to fetch admin dashboard data due to permission errors or other issues.");
+
+        } catch (error: any) {
+          console.error("Failed to fetch admin dashboard data:", error);
+          toast({
+            variant: 'destructive',
+            title: 'Gagal Memuat Dashboard',
+            description: error.message || 'Tidak dapat mengambil data admin.',
+          });
         } finally {
           setLoading(false);
         }
@@ -48,7 +63,7 @@ export default function AdminDashboard() {
     if (user) {
       fetchData();
     }
-  }, [user]);
+  }, [user, toast]);
 
   return (
     <div className="p-4 md:p-8">

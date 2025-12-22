@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { UserProfile } from '@/lib/types';
-import { updateUserRole, getAllUsersAdmin } from '@/lib/firestore-client';
+import { updateUserRole } from '@/lib/firestore-client';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -29,15 +29,25 @@ export default function UsersClient() {
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
 
 
-  const fetchUsers = () => {
+  const fetchUsers = async () => {
     setLoading(true);
-    getAllUsersAdmin()
-      .then(setUsers)
-      .catch(() => {
-        // Error is handled by the global error handler
+    try {
+      const response = await fetch('/api/admin/users');
+      if (!response.ok) {
+        throw new Error('Gagal mengambil data pengguna.');
+      }
+      const data = await response.json();
+      setUsers(data);
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Gagal Memuat',
+            description: error.message || 'Tidak dapat mengambil daftar pengguna.',
+        });
         setUsers([]); // Set to empty array on error
-      })
-      .finally(() => setLoading(false));
+    } finally {
+        setLoading(false);
+    }
   };
   
   useEffect(() => {

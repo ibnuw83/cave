@@ -103,24 +103,6 @@ export async function updateUserProfile(uid: string, data: Partial<Pick<UserProf
     }
 }
 
-// Admin-only function, assumes admin privileges are checked by the caller (API route)
-export async function getAllUsersAdmin(): Promise<UserProfile[]> {
-  const usersRef = collection(db, 'users');
-  try {
-    const querySnapshot = await getDocs(usersRef);
-    return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as UserProfile));
-  } catch (error: any) {
-    if (error.code === 'permission-denied') {
-        const permissionError = new FirestorePermissionError({
-            path: '/users',
-            operation: 'list',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-    }
-     throw error;
-  }
-}
-
 export async function updateUserRole(uid: string, role: UserProfile['role']) {
   const userRef = doc(db, 'users', uid);
   const dataToUpdate = { role, updatedAt: serverTimestamp() };
@@ -183,28 +165,25 @@ export async function getLocationClient(id: string): Promise<Location | null> {
 }
 
 
-export function addLocation(locationData: Omit<Location, 'id' | 'miniMap'>): Promise<string> {
+export async function addLocation(locationData: Omit<Location, 'id' | 'miniMap'>): Promise<string> {
     const newLocationData = {
         ...locationData,
         miniMap: { nodes: [], edges: [] } // Inisialisasi miniMap kosong
     };
-    return new Promise((resolve, reject) => {
-        addDoc(collection(db, 'locations'), newLocationData)
-            .then(docRef => {
-                resolve(docRef.id);
-            })
-            .catch(error => {
-                if (error.code === 'permission-denied') {
-                    const permissionError = new FirestorePermissionError({
-                        path: '/locations',
-                        operation: 'create',
-                        requestResourceData: newLocationData,
-                    });
-                    errorEmitter.emit('permission-error', permissionError);
-                }
-                reject(error);
+    try {
+        const docRef = await addDoc(collection(db, 'locations'), newLocationData);
+        return docRef.id;
+    } catch (error: any) {
+        if (error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: '/locations',
+                operation: 'create',
+                requestResourceData: newLocationData,
             });
-    });
+            errorEmitter.emit('permission-error', permissionError);
+        }
+        throw error;
+    }
 }
 
 export async function updateLocation(id: string, locationData: Partial<Omit<Location, 'id'>>) {
@@ -290,24 +269,21 @@ export async function getSpotClient(id: string): Promise<Spot | null> {
   }
 }
 
-export function addSpot(spotData: Omit<Spot, 'id'>): Promise<string> {
-    return new Promise((resolve, reject) => {
-        addDoc(collection(db, 'spots'), spotData)
-            .then(docRef => {
-                resolve(docRef.id);
-            })
-            .catch(error => {
-                if (error.code === 'permission-denied') {
-                    const permissionError = new FirestorePermissionError({
-                        path: '/spots',
-                        operation: 'create',
-                        requestResourceData: spotData,
-                    });
-                    errorEmitter.emit('permission-error', permissionError);
-                }
-                reject(error);
+export async function addSpot(spotData: Omit<Spot, 'id'>): Promise<string> {
+    try {
+        const docRef = await addDoc(collection(db, 'spots'), spotData);
+        return docRef.id;
+    } catch (error: any) {
+        if (error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: '/spots',
+                operation: 'create',
+                requestResourceData: spotData,
             });
-    });
+            errorEmitter.emit('permission-error', permissionError);
+        }
+        throw error;
+    }
 }
 
 export async function updateSpot(id: string, spotData: Partial<Omit<Spot, 'id'>>) {

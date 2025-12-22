@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { safeGetAdminApp } from '@/firebase/admin';
 import { cookies } from 'next/headers';
-import { createUserAdmin } from '@/lib/firestore-admin';
+import { createUserAdmin, getAllUsersAdmin } from '@/lib/firestore-admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
 async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
@@ -31,6 +31,23 @@ async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
       return null;
     }
 }
+
+// Handler for GET /api/admin/users to fetch all users
+export async function GET(req: NextRequest) {
+    const isAdmin = await verifyAdmin(req);
+    if (!isAdmin) {
+        return NextResponse.json({ error: 'Akses ditolak: Hanya admin yang diizinkan.' }, { status: 403 });
+    }
+
+    try {
+        const users = await getAllUsersAdmin();
+        return NextResponse.json(users);
+    } catch (error: any) {
+        console.error('[API] Gagal mengambil daftar pengguna:', error);
+        return NextResponse.json({ error: error.message || 'Gagal mengambil daftar pengguna.' }, { status: 500 });
+    }
+}
+
 
 // Handler for POST /api/admin/users
 export async function POST(req: NextRequest) {
