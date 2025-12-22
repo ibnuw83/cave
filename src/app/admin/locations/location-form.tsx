@@ -89,11 +89,7 @@ export function LocationForm({ location, onSave, onCancel }: LocationFormProps) 
         } as Location);
       }
     } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Gagal',
-        description: 'Gagal menyimpan lokasi.',
-      });
+      // Error handled by global error handler
     }
   };
 
