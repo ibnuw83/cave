@@ -36,7 +36,6 @@ export function AdminMiniMapEditor({
   async function saveMap() {
     setIsSaving(true);
     try {
-        // Menggunakan 'locations' secara eksplisit
         await updateDoc(doc(db, 'locations', locationId), {
             miniMap: {
                 nodes: map.nodes,
@@ -70,6 +69,15 @@ export function AdminMiniMapEditor({
                 const y = ((e.clientY - rect.top) / rect.height) * 100;
                 updateNode(dragId, x, y);
             }}
+            onTouchMove={e => {
+              if (!dragId) return;
+              const touch = e.touches[0];
+              const rect = (e.currentTarget as SVGElement).getBoundingClientRect();
+              const x = ((touch.clientX - rect.left) / rect.width) * 100;
+              const y = ((touch.clientY - rect.top) / rect.height) * 100;
+              updateNode(dragId, x, y);
+            }}
+            onTouchEnd={() => setDragId(null)}
         >
             {/* edges */}
             {map.edges.map((e, i) => {
@@ -99,6 +107,7 @@ export function AdminMiniMapEditor({
                     fill="hsl(var(--primary))"
                     className="cursor-move"
                     onMouseDown={() => setDragId(n.id)}
+                    onTouchStart={() => setDragId(n.id)}
                 />
                  <text x={n.x + 3} y={n.y + 1.5} fontSize="3" fill="hsl(var(--foreground))" className='pointer-events-none'>
                     {n.label}
