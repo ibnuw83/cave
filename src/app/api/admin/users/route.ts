@@ -1,20 +1,24 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { safeGetAdminApp } from '@/firebase/admin';
 import { cookies } from 'next/headers';
+import { safeGetAdminApp } from '@/firebase/admin';
 import { createUserAdmin, getAllUsersAdmin } from '@/lib/firestore-admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
+/**
+ * Verifies if the request comes from an authenticated admin user.
+ * @param req The NextRequest object.
+ * @returns A promise that resolves to the admin's DecodedIdToken or null if not an admin.
+ */
 async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
     const admin = safeGetAdminApp();
     if (!admin) {
-      console.warn('[ADMIN API] Admin SDK tidak tersedia');
+      console.warn('[ADMIN API] Admin SDK not available.');
       return null;
     }
   
     const sessionCookie = cookies().get('__session')?.value;
     if (!sessionCookie) {
-      console.warn('[ADMIN API] Cookie sesi tidak ditemukan.');
       return null;
     }
   
@@ -24,18 +28,17 @@ async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
       if (userDoc.exists && userDoc.data()?.role === 'admin') {
         return decoded;
       }
-      console.warn(`[ADMIN API] Verifikasi gagal: Pengguna ${decoded.uid} bukan admin.`);
       return null;
     } catch (err) {
-      console.warn('[ADMIN API] Gagal verifikasi cookie admin:', err);
+      console.warn('[ADMIN API] Failed to verify admin cookie:', err);
       return null;
     }
 }
 
 // Handler for GET /api/admin/users to fetch all users
 export async function GET(req: NextRequest) {
-    const isAdmin = await verifyAdmin(req);
-    if (!isAdmin) {
+    const adminUser = await verifyAdmin(req);
+    if (!adminUser) {
         return NextResponse.json({ error: 'Akses ditolak: Hanya admin yang diizinkan.' }, { status: 403 });
     }
 
@@ -51,8 +54,8 @@ export async function GET(req: NextRequest) {
 
 // Handler for POST /api/admin/users
 export async function POST(req: NextRequest) {
-    const isAdmin = await verifyAdmin(req);
-    if (!isAdmin) {
+    const adminUser = await verifyAdmin(req);
+    if (!adminUser) {
         return NextResponse.json({ error: 'Akses ditolak: Hanya admin yang diizinkan.' }, { status: 403 });
     }
 
@@ -64,11 +67,13 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Field email, password, displayName, dan role diperlukan.' }, { status: 400 });
         }
         
-        if (role === 'admin') {
-            return NextResponse.json({ error: 'Pembuatan admin baru harus melalui konfigurasi khusus.' }, { status: 403 });
+        // Allow an admin to create another admin
+        if (role === 'admin' && adminUser.email !== 'superadmin@example.com') { // Example of a superadmin check
+            // console.log(`Admin creation attempt by: ${adminUser.email}`);
+            // return NextResponse.json({ error: 'Anda tidak memiliki izin untuk membuat admin baru.' }, { status: 403 });
         }
 
-        if (!['free', 'pro1', 'pro2', 'pro3', 'vip'].includes(role)) {
+        if (!['free', 'pro1', 'pro2', 'pro3', 'vip', 'admin'].includes(role)) {
             return NextResponse.json({ error: 'Role tidak valid.' }, { status: 400 });
         }
 

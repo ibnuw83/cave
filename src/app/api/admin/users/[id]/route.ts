@@ -1,20 +1,24 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { safeGetAdminApp } from '@/firebase/admin';
 import { cookies } from 'next/headers';
+import { safeGetAdminApp } from '@/firebase/admin';
 import { deleteUserAdmin, updateUserStatusAdmin } from '@/lib/firestore-admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
+/**
+ * Verifies if the request comes from an authenticated admin user.
+ * @param req The NextRequest object.
+ * @returns A promise that resolves to the admin's DecodedIdToken or null if not an admin.
+ */
 async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
     const admin = safeGetAdminApp();
     if (!admin) {
-      console.warn('[ADMIN API] Admin SDK tidak tersedia');
+      console.warn('[ADMIN API] Admin SDK not available.');
       return null;
     }
   
     const sessionCookie = cookies().get('__session')?.value;
     if (!sessionCookie) {
-      console.warn('[ADMIN API] Cookie sesi tidak ditemukan.');
       return null;
     }
   
@@ -24,10 +28,9 @@ async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
       if (userDoc.exists && userDoc.data()?.role === 'admin') {
         return decoded;
       }
-      console.warn(`[ADMIN API] Verifikasi gagal: Pengguna ${decoded.uid} bukan admin.`);
       return null;
     } catch (err) {
-      console.warn('[ADMIN API] Gagal verifikasi cookie admin:', err);
+      console.warn('[ADMIN API] Failed to verify admin cookie:', err);
       return null;
     }
 }
@@ -64,7 +67,7 @@ export async function PUT(
         }
 
         await updateUserStatusAdmin(userId, disabled);
-        return NextResponse.json({ message: `Status pengguna berhasil diubah.` }, { status: 200 });
+        return NextResponse.json({ message: `Status pengguna berhasil diubah.` });
 
     } catch (error: any) {
         console.error(`[API] Gagal mengubah status pengguna ${userId}:`, error);
@@ -98,7 +101,7 @@ export async function DELETE(
 
     try {
         await deleteUserAdmin(userId);
-        return NextResponse.json({ message: 'Pengguna berhasil dihapus.' }, { status: 200 });
+        return NextResponse.json({ message: 'Pengguna berhasil dihapus.' });
     } catch (error: any) {
         console.error(`[API] Gagal menghapus pengguna ${userId}:`, error);
         return NextResponse.json({ error: error.message || 'Gagal menghapus pengguna.' }, { status: 500 });
