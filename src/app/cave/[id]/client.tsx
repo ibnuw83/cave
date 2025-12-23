@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Lock, ChevronLeft, Download, WifiOff, Loader2, Sparkles, Info } from 'lucide-react';
+import { Lock, ChevronLeft, Download, WifiOff, Loader2, Sparkles, Info, ServerCrash } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { saveLocationForOffline, isLocationAvailableOffline } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +14,12 @@ import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase';
 import AdBanner from '@/app/components/AdBanner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { getLocationClient, getSpotClient } from '@/lib/firestore-client'; // Changed
+import { useCollection } from '@/firebase/firestore/use-collection';
+import { collection, query, where } from 'firebase/firestore';
+import { useFirestore } from '@/firebase/provider';
+
 
 function SpotCard({ spot, isLocked, isOffline, lockedMessage }: { spot: Spot; isLocked: boolean; isOffline: boolean, lockedMessage: string; }) {
   const content = (
@@ -49,7 +54,6 @@ function SpotCard({ spot, isLocked, isOffline, lockedMessage }: { spot: Spot; is
     </Card>
   );
 
-  // Perubahan di sini: Arahkan ke halaman spot, bukan pricing, untuk menampilkan soft-paywall (LockedScreen)
   return (
     <Link href={`/spot/${spot.id}`} className="group">
       <TooltipProvider>
@@ -68,18 +72,48 @@ function SpotCard({ spot, isLocked, isOffline, lockedMessage }: { spot: Spot; is
   );
 }
 
-export default function CaveClient({ location, spots }: { location: Location, spots: Spot[] }) {
+export default function CaveClient({ locationId }: { locationId: string }) {
   const { user, userProfile } = useUser();
   const router = useRouter();
   const { toast } = useToast();
+  const firestore = useFirestore();
+
+  const [location, setLocation] = useState<Location | null>(null);
+  const [spots, setSpots] = useState<Spot[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [isOffline, setIsOffline] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-
+  
   useEffect(() => {
-    // Check offline status on mount
-    isLocationAvailableOffline(location.id).then(setIsOffline);
-  }, [location.id]);
+    async function fetchData() {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const loc = await getLocationClient(locationId);
+            if (!loc) {
+                setError("Lokasi tidak dapat ditemukan.");
+                return;
+            }
+            setLocation(loc);
+
+            const spotsQuery = query(collection(firestore, 'spots'), where('locationId', '==', locationId));
+            const spotsSnapshot = await getDocs(spotsQuery);
+            const fetchedSpots = spotsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Spot));
+            setSpots(fetchedSpots);
+
+            // Check offline status
+            isLocationAvailableOffline(locationId).then(setIsOffline);
+        } catch (err) {
+            console.error(err);
+            setError("Gagal memuat data lokasi. Silakan coba lagi.");
+        } finally {
+            setIsLoading(false);
+        }
+    }
+    fetchData();
+  }, [locationId, firestore]);
 
   const handleDownload = async () => {
     if (!location || !spots) return;
@@ -102,7 +136,6 @@ export default function CaveClient({ location, spots }: { location: Location, sp
   const showAds = role === 'free';
   
   const handleStartMission = () => {
-    // Find the first spot that is either not a PRO spot, or the user is not 'free'
     const firstAccessibleSpot = sortedSpots.find(s => !s.isPro || (user && role !== 'free'));
 
     if (firstAccessibleSpot) {
@@ -116,6 +149,49 @@ export default function CaveClient({ location, spots }: { location: Location, sp
     }
   };
   
+  if (isLoading) {
+    return (
+        <div className="container mx-auto min-h-screen max-w-5xl p-4 md:p-8">
+            <header className="mb-8">
+                <Skeleton className="h-8 w-48 mb-4" />
+                <Skeleton className="h-64 w-full rounded-lg" />
+            </header>
+            <main>
+                <div className="mb-6 flex justify-between items-center">
+                    <div>
+                        <Skeleton className="h-8 w-40 mb-2" />
+                        <Skeleton className="h-4 w-60" />
+                    </div>
+                    <Skeleton className="h-12 w-36" />
+                </div>
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    <Skeleton className="h-56 w-full" />
+                    <Skeleton className="h-56 w-full" />
+                    <Skeleton className="h-56 w-full" />
+                </div>
+            </main>
+        </div>
+    );
+  }
+
+  if (error || !location) {
+    return (
+         <div className="container mx-auto min-h-screen max-w-5xl p-4 md:p-8 flex items-center justify-center text-center">
+            <div>
+                <ServerCrash className="h-16 w-16 mx-auto text-destructive mb-4" />
+                <h1 className="text-2xl font-bold mb-2">Oops! Terjadi Kesalahan</h1>
+                <p className="text-muted-foreground mb-6">{error || 'Data lokasi ini tidak dapat dimuat.'}</p>
+                <Button asChild>
+                    <Link href="/">
+                        <ChevronLeft className="mr-2 h-4 w-4" />
+                        Kembali ke Halaman Utama
+                    </Link>
+                </Button>
+            </div>
+        </div>
+    )
+  }
+
   return (
     <div className="container mx-auto min-h-screen max-w-5xl p-4 md:p-8">
       <header className="mb-8">
@@ -212,3 +288,5 @@ export default function CaveClient({ location, spots }: { location: Location, sp
     </div>
   );
 }
+
+    

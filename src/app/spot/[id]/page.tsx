@@ -1,6 +1,3 @@
-
-import { getSpot, getSpots } from '@/lib/firestore-admin';
-import { useUser } from '@/firebase/auth/use-user-server'; // Server-side user hook
 import SpotPageClient from './client';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
@@ -10,54 +7,24 @@ type Props = {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  try {
-    const spot = await getSpot(params.id);
-  
-    if (!spot) {
-      return {
-        title: 'Spot Tidak Ditemukan',
-        description: 'Data untuk spot ini tidak dapat dimuat.',
-      };
-    }
-
-    return {
-      title: `${spot.title} - Cave Explorer 4D`,
-      description: spot.description,
-      openGraph: {
-        title: spot.title,
-        description: spot.description,
-        images: [spot.imageUrl],
-      },
-    }
-  } catch (error) {
-     console.error(`[generateMetadata] Failed for /spot/${params.id}:`, error);
-     return {
-      title: 'Error Memuat Spot',
-      description: 'Gagal memuat metadata untuk spot ini.',
-    };
+  // Metadata can be fetched on the client or be static
+  return {
+    title: `Spot ${params.id} - Cave Explorer 4D`,
+    description: `Jelajahi detail dari spot ${params.id}.`,
   }
 }
 
 export default async function SpotPage({ params }: Props) {
   const spotId = params.id;
   
-  const spot = await getSpot(spotId);
-  
-  if (!spot) {
+  if (!spotId) {
     notFound();
   }
 
-  // Fetch all spots in the same location to allow for client-side navigation
-  const allSpotsInLocation = await getSpots(spot.locationId);
-
-  const { userProfile } = await useUser();
-  const role = userProfile?.role || 'free';
-  
+  // The client component now handles all data fetching and logic
   return (
-    <SpotPageClient
-      spot={spot}
-      allSpotsInLocation={allSpotsInLocation}
-      userRole={role}
-    />
+    <SpotPageClient spotId={spotId} />
   );
 }
+
+    
