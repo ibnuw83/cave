@@ -57,7 +57,7 @@ function LocationsSubMenu() {
     const isLocationsActive = pathname.startsWith('/admin/locations');
 
     return (
-        <Collapsible open={isLocationsActive}>
+        <Collapsible defaultOpen={isLocationsActive}>
             <CollapsibleTrigger className="w-full">
                  <div className={cn(
                     'flex flex-col items-center justify-center rounded-md p-2 text-xs font-medium transition-colors md:flex-row md:justify-between md:gap-3 md:text-sm md:px-3 md:py-2 w-full',
@@ -76,9 +76,9 @@ function LocationsSubMenu() {
                         <div className='flex items-center justify-center p-2'><Loader2 className="h-4 w-4 animate-spin"/></div>
                     ) : (
                         locations.map(loc => (
-                            <Link key={loc.id} href={`/admin/locations?edit=${loc.id}`} className={cn(
+                            <Link key={loc.id} href={`/admin/locations/${loc.id}`} className={cn(
                                 "py-1 px-3 rounded-md hover:bg-muted/50",
-                                pathname.includes(loc.id) && "bg-primary/10 text-amber-200"
+                                pathname === `/admin/locations/${loc.id}` && "bg-primary/10 text-amber-200"
                             )}>
                                 {loc.name}
                             </Link>
