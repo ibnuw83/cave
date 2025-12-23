@@ -1,8 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { adminAuth } from '@/firebase/admin';
-import { deleteUserAdmin, updateUserStatusAdmin } from '@/lib/firestore-admin';
+import { adminAuth, adminDb } from '@/firebase/admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
 /**
@@ -18,7 +17,7 @@ async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
   
     try {
       const decoded = await adminAuth.verifySessionCookie(sessionCookie, true);
-      const userDoc = await (await import('@/firebase/admin')).adminDb.collection('users').doc(decoded.uid).get();
+      const userDoc = await adminDb.collection('users').doc(decoded.uid).get();
       if (userDoc.exists && userDoc.data()?.role === 'admin') {
         return decoded;
       }
@@ -58,7 +57,9 @@ export async function PUT(
             return NextResponse.json({ error: 'Properti `disabled` (boolean) diperlukan.' }, { status: 400 });
         }
 
-        await updateUserStatusAdmin(userId, disabled);
+        await adminAuth.updateUser(userId, { disabled });
+        await adminDb.collection('users').doc(userId).update({ disabled });
+        
         return NextResponse.json({ message: `Status pengguna berhasil diubah.` });
 
     } catch (error: any) {
@@ -91,7 +92,11 @@ export async function DELETE(
     }
 
     try {
-        await deleteUserAdmin(userId);
+        const batch = adminDb.batch();
+        batch.delete(adminDb.collection('users').doc(userId));
+        await adminAuth.deleteUser(userId);
+        await batch.commit();
+
         return NextResponse.json({ message: 'Pengguna berhasil dihapus.' });
     } catch (error: any) {
         console.error(`[API] Gagal menghapus pengguna ${userId}:`, error);

@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { adminAuth, adminDb } from '@/firebase/admin';
-import type { Location } from '@/lib/types';
 import * as admin from 'firebase-admin';
 
 async function verifyAdmin(req: NextRequest) {
@@ -17,41 +16,42 @@ async function verifyAdmin(req: NextRequest) {
     }
 }
 
-export async function GET(req: NextRequest) {
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
     const adminUser = await verifyAdmin(req);
     if (!adminUser) {
         return NextResponse.json({ error: 'Akses ditolak.' }, { status: 403 });
     }
+
     try {
-        const locationsRef = adminDb.collection('locations');
-        const querySnapshot = await locationsRef.get();
-        const locations = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Location));
-        return NextResponse.json(locations);
+        const { id } = params;
+        const spotData = await req.json();
+        const docRef = adminDb.collection('spots').doc(id);
+        
+        await docRef.update({
+            ...spotData,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        const updatedDoc = await docRef.get();
+        return NextResponse.json({ id: updatedDoc.id, ...updatedDoc.data() });
     } catch (error: any) {
-        console.error("Error fetching locations: ", error);
+        console.error(`Error updating spot ${params.id}:`, error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
 
-export async function POST(req: NextRequest) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
     const adminUser = await verifyAdmin(req);
     if (!adminUser) {
         return NextResponse.json({ error: 'Akses ditolak.' }, { status: 403 });
     }
 
     try {
-        const locationData: Omit<Location, 'id' | 'miniMap'> = await req.json();
-        
-        const dataToSave = {
-          ...locationData,
-          miniMap: { nodes: [], edges: [] }
-        };
-
-        const docRef = await adminDb.collection('locations').add(dataToSave);
-        const newLocation = { id: docRef.id, ...dataToSave };
-        return NextResponse.json(newLocation, { status: 201 });
+        const { id } = params;
+        await adminDb.collection('spots').doc(id).delete();
+        return NextResponse.json({ message: `Spot ${id} berhasil dihapus.` });
     } catch (error: any) {
-        console.error("Error creating location: ", error);
+        console.error(`Error deleting spot ${params.id}:`, error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

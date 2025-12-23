@@ -1,10 +1,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { adminAuth } from '@/firebase/admin';
-import { createUserAdmin, getAllUsersAdmin } from '@/lib/firestore-admin';
+import { adminAuth, adminDb } from '@/firebase/admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
-import { UserProfile } from '@/lib/types';
+import type { UserProfile } from '@/lib/types';
+import * as admin from 'firebase-admin';
 
 /**
  * Verifies if the request comes from an authenticated admin user.
@@ -19,7 +19,7 @@ async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
   
     try {
       const decoded = await adminAuth.verifySessionCookie(sessionCookie, true);
-      const userDoc = await (await import('@/firebase/admin')).adminDb.collection('users').doc(decoded.uid).get();
+      const userDoc = await adminDb.collection('users').doc(decoded.uid).get();
       if (userDoc.exists && userDoc.data()?.role === 'admin') {
         return decoded;
       }
@@ -38,7 +38,24 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        const users = await getAllUsersAdmin();
+        const userRecords = await adminAuth.listUsers();
+        const usersRef = adminDb.collection('users');
+        const usersSnap = await usersRef.get();
+        const profiles: Record<string, UserProfile> = {};
+        usersSnap.forEach(doc => {
+            profiles[doc.id] = doc.data() as UserProfile;
+        });
+
+        const users = userRecords.users.map(user => ({
+            id: user.uid,
+            email: user.email || null,
+            displayName: user.displayName || null,
+            photoURL: user.photoURL || null,
+            role: profiles[user.uid]?.role || 'free',
+            disabled: user.disabled,
+            updatedAt: profiles[user.uid]?.updatedAt || new Date(user.metadata.lastSignInTime || user.metadata.creationTime),
+        }));
+
         return NextResponse.json(users);
     } catch (error: any) {
         console.error('[API] Gagal mengambil daftar pengguna:', error);
@@ -67,7 +84,14 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Role tidak valid.' }, { status: 400 });
         }
 
-        const userRecord = await createUserAdmin({ email, password, displayName, role });
+        const userRecord = await adminAuth.createUser({ email, password, displayName });
+        
+        await adminDb.collection('users').doc(userRecord.uid).set({
+            email,
+            displayName,
+            role,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
         
         return NextResponse.json({ uid: userRecord.uid, email: userRecord.email }, { status: 201 });
     } catch (error: any) {

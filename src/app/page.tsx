@@ -1,19 +1,14 @@
-'use client';
-
 import HomeClient from '@/app/components/home-client';
-import { getKioskSettings } from '@/lib/firestore-client';
-import { KioskSettings } from '@/lib/types';
-import { useEffect, useState } from 'react';
+import { getKioskSettings } from '@/lib/firestore-admin';
+import type { KioskSettings } from '@/lib/types';
 
-export default function Home() {
-  const [settings, setSettings] = useState<KioskSettings | null>(null);
-  
-  useEffect(() => {
-    // Fetch settings on the client side.
-    getKioskSettings().then(setSettings).catch(() => setSettings(null));
-  }, []);
+// This forces the page to be dynamically rendered, ensuring fresh data.
+export const dynamic = 'force-dynamic';
 
-  // Pass the client-side fetched settings to the client component.
-  // It will handle its own loading state for locations.
+export default async function Home() {
+  const settings: KioskSettings | null = await getKioskSettings();
+
+  // The HomeClient component is now responsible for its own data fetching on the client-side
+  // for a more interactive experience, but we pass server-fetched settings to it.
   return <HomeClient initialSettings={settings} />;
 }

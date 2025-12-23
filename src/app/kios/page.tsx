@@ -1,8 +1,8 @@
-
 import { getKioskSettings } from "@/lib/firestore-admin";
 import KiosClient from "./client";
 import { KioskSettings } from "@/lib/types";
-import { Loader2 } from 'lucide-react';
+
+export const dynamic = 'force-dynamic';
 
 export default async function KiosPage() {
   let settings: KioskSettings | null = null;

@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Location } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -19,13 +20,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { LocationForm } from "./location-form";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useUser } from "@/firebase";
 
-export default function LocationsClient({ initialLocations }: { initialLocations: Location[] }) {
+export default function LocationsClient({ initialLocations, onDataChange }: { initialLocations: Location[], onDataChange: () => void }) {
   const { userProfile } = useUser();
-  const [locations, setLocations] = useState<Location[]>(initialLocations);
-  const [loading, setLoading] = useState(false);
+  const [locations] = useState<Location[]>(initialLocations);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const { toast } = useToast();
@@ -33,26 +32,6 @@ export default function LocationsClient({ initialLocations }: { initialLocations
   const sortedLocations = useMemo(() => {
     return [...locations].sort((a,b) => a.name.localeCompare(b.name));
   }, [locations]);
-
-  const refreshLocations = async () => {
-    setLoading(true);
-    try {
-        const response = await fetch('/api/admin/locations');
-        if (!response.ok) throw new Error('Failed to fetch locations');
-        const data = await response.json();
-        setLocations(data);
-    } catch (error) {
-        toast({ variant: 'destructive', title: 'Gagal', description: 'Gagal memuat ulang data lokasi.' });
-    } finally {
-        setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    if (!isFormOpen) {
-        refreshLocations();
-    }
-  }, [isFormOpen]);
 
   const handleFormSuccess = () => {
     if (selectedLocation) {
@@ -62,7 +41,7 @@ export default function LocationsClient({ initialLocations }: { initialLocations
     }
     setIsFormOpen(false);
     setSelectedLocation(null);
-    refreshLocations(); // Refresh data after save
+    onDataChange();
   };
 
   const openForm = (location: Location | null) => {
@@ -78,7 +57,7 @@ export default function LocationsClient({ initialLocations }: { initialLocations
             throw new Error(errorData.error || 'Gagal menghapus lokasi.');
         }
         toast({ title: "Berhasil", description: "Lokasi dan semua spot di dalamnya berhasil dihapus." });
-        refreshLocations();
+        onDataChange();
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Gagal', description: error.message });
     }
@@ -104,57 +83,50 @@ export default function LocationsClient({ initialLocations }: { initialLocations
         </Button>
       </div>
 
-       {loading ? (
-        <div className="space-y-4">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-        </div>
-      ) : (
-        <div className="space-y-4">
-            {sortedLocations.map((location) => (
-            <Card key={location.id}>
-                <CardHeader>
-                <div className="flex justify-between items-start">
-                    <div>
-                    <CardTitle className="text-lg">{location.name}</CardTitle>
-                    <CardDescription>
-                        <Badge variant={location.isActive ? "default" : "secondary"}>
-                            {location.isActive ? "Aktif" : "Nonaktif"}
-                        </Badge>
-                         <Badge variant="outline" className="ml-2">{location.category}</Badge>
-                    </CardDescription>
-                    </div>
-                    <div className="flex gap-2">
-                    <Button variant="outline" size="icon" onClick={() => openForm(location)}>
-                        <Edit className="h-4 w-4" />
-                    </Button>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="icon">
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Anda yakin ingin menghapus?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                            Aksi ini akan menghapus lokasi "{location.name}" dan semua spot di dalamnya. Aksi ini tidak dapat diurungkan.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Batal</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(location.id)}>Hapus</AlertDialogAction>
-                        </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                    </div>
-                </div>
-                </CardHeader>
-            </Card>
-            ))}
-            {sortedLocations.length === 0 && !loading && <p className="text-center text-muted-foreground py-8">Belum ada lokasi.</p>}
-        </div>
-      )}
+      <div className="space-y-4">
+          {sortedLocations.map((location) => (
+          <Card key={location.id}>
+              <CardHeader>
+              <div className="flex justify-between items-start">
+                  <div>
+                  <CardTitle className="text-lg">{location.name}</CardTitle>
+                  <CardDescription>
+                      <Badge variant={location.isActive ? "default" : "secondary"}>
+                          {location.isActive ? "Aktif" : "Nonaktif"}
+                      </Badge>
+                       <Badge variant="outline" className="ml-2">{location.category}</Badge>
+                  </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                  <Button variant="outline" size="icon" onClick={() => openForm(location)}>
+                      <Edit className="h-4 w-4" />
+                  </Button>
+                  <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="icon">
+                          <Trash2 className="h-4 w-4" />
+                      </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                      <AlertDialogHeader>
+                          <AlertDialogTitle>Anda yakin ingin menghapus?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                          Aksi ini akan menghapus lokasi "{location.name}" dan semua spot di dalamnya. Aksi ini tidak dapat diurungkan.
+                          </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                          <AlertDialogCancel>Batal</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(location.id)}>Hapus</AlertDialogAction>
+                      </AlertDialogFooter>
+                      </AlertDialogContent>
+                  </AlertDialog>
+                  </div>
+              </div>
+              </CardHeader>
+          </Card>
+          ))}
+          {sortedLocations.length === 0 && <p className="text-center text-muted-foreground py-8">Belum ada lokasi.</p>}
+      </div>
     </div>
   );
 }
