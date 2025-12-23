@@ -2,12 +2,13 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mountain, MapPin, Users } from 'lucide-react';
+import { Mountain, MapPin, Users, Info } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { AdminSeedButton } from './admin-seed-button';
 import { useEffect, useState } from 'react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface Stat {
   title: string;
@@ -94,11 +95,17 @@ export default function AdminDashboard() {
          <Card>
            <CardHeader>
              <CardTitle>Data Awal (Seeding)</CardTitle>
-             <p className="text-muted-foreground pt-2">Isi database dengan data lokasi & spot awal untuk pengembangan.</p>
+             <p className="text-muted-foreground pt-2">Isi database dengan data contoh untuk pengembangan atau reset.</p>
            </CardHeader>
            <CardContent>
              <AdminSeedButton />
-             <p className="text-xs text-muted-foreground mt-3">Tindakan ini akan menghapus semua lokasi dan spot yang ada saat ini.</p>
+             <Alert variant="destructive" className="mt-4">
+                <Info className="h-4 w-4" />
+                <AlertTitle>Peringatan!</AlertTitle>
+                <AlertDescription>
+                    Fitur ini akan **MENGHAPUS SEMUA** lokasi dan spot yang ada, lalu menggantinya dengan data contoh. Gunakan hanya untuk development.
+                </AlertDescription>
+            </Alert>
            </CardContent>
          </Card>
       </div>
