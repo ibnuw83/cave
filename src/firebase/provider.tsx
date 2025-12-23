@@ -1,5 +1,9 @@
-
 'use client';
+
+// Guard untuk memastikan komponen ini tidak pernah dirender di server.
+if (typeof window === 'undefined') {
+  throw new Error('FirebaseClientProvider must only run on the client');
+}
 
 import React, { createContext, useContext, ReactNode, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
