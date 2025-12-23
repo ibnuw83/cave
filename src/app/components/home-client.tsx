@@ -31,6 +31,8 @@ import placeholderImages from '@/lib/placeholder-images.json';
 import { useRouter } from 'next/navigation';
 import { useUser, useAuth } from '@/firebase';
 import { signOut as firebaseSignOut } from 'firebase/auth';
+import { getLocations } from '@/lib/firestore-client';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const AuthSection = () => {
   const { user, userProfile, isUserLoading, isProfileLoading } = useUser();
@@ -143,14 +145,25 @@ const AuthSection = () => {
 };
 
 interface HomeClientProps {
-    initialLocations: Location[];
     initialSettings: KioskSettings | null;
 }
 
-export default function HomeClient({ initialLocations, initialSettings }: HomeClientProps) {
-  const [locations] = useState<Location[]>(initialLocations);
+export default function HomeClient({ initialSettings }: HomeClientProps) {
+  const [locations, setLocations] = useState<Location[]>([]);
   const [settings] = useState<KioskSettings | null>(initialSettings);
+  const [isLoading, setIsLoading] = useState(true);
   
+  useEffect(() => {
+    setIsLoading(true);
+    getLocations() // Fetch only active locations for the public view
+      .then(setLocations)
+      .catch(err => {
+        console.error("Failed to fetch locations on client:", err);
+        // Optionally show a toast error
+      })
+      .finally(() => setIsLoading(false));
+  }, []);
+
   const heroImage = placeholderImages.placeholderImages.find(img => img.id === 'hero-background')?.imageUrl || '/placeholder.jpg';
   
   return (
@@ -201,7 +214,13 @@ export default function HomeClient({ initialLocations, initialSettings }: HomeCl
       <main id="cave-list" className="bg-black pb-16">
          <div className="container mx-auto max-w-5xl px-4 md:px-8">
             <h2 className="mb-8 text-center text-3xl font-semibold text-white/90 md:text-4xl">Lokasi Tersedia</h2>
-            {locations.length > 0 ? (
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <Skeleton className="h-56 w-full rounded-lg" />
+                <Skeleton className="h-56 w-full rounded-lg" />
+                <Skeleton className="h-56 w-full rounded-lg" />
+              </div>
+            ) : locations.length > 0 ? (
             <Carousel
               opts={{
                 align: "start",

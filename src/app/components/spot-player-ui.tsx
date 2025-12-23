@@ -73,76 +73,6 @@ function SpotNavigation({ currentSpotId, allSpots, isUIVisible }: { currentSpotI
     );
 }
 
-/**
- * Creates a WAV file header for PCM audio data.
- * @param pcmData The raw PCM audio data.
- * @param channels Number of audio channels.
- * @param sampleRate The sample rate of the audio.
- * @param bitDepth The bit depth of the audio.
- * @returns A buffer containing the WAV header.
- */
-function createWavHeader(pcmData: ArrayBuffer, channels: number, sampleRate: number, bitDepth: number): ArrayBuffer {
-    const bytesPerSample = bitDepth / 8;
-    const blockAlign = channels * bytesPerSample;
-    const byteRate = sampleRate * blockAlign;
-    const dataSize = pcmData.byteLength;
-
-    const buffer = new ArrayBuffer(44);
-    const view = new DataView(buffer);
-
-    // RIFF chunk descriptor
-    writeString(view, 0, 'RIFF');
-    view.setUint32(4, 36 + dataSize, true);
-    writeString(view, 8, 'WAVE');
-    
-    // "fmt " sub-chunk
-    writeString(view, 12, 'fmt ');
-    view.setUint32(16, 16, true); // Sub-chunk size (16 for PCM)
-    view.setUint16(20, 1, true);  // Audio format (1 for PCM)
-    view.setUint16(22, channels, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, byteRate, true);
-    view.setUint16(32, blockAlign, true);
-    view.setUint16(34, bitDepth, true);
-    
-    // "data" sub-chunk
-    writeString(view, 36, 'data');
-    view.setUint32(40, dataSize, true);
-
-    return buffer;
-}
-
-function writeString(view: DataView, offset: number, str: string) {
-    for (let i = 0; i < str.length; i++) {
-        view.setUint8(offset + i, str.charCodeAt(i));
-    }
-}
-
-/**
- * Converts raw PCM audio data (in base64) to a WAV audio blob URL.
- * This is done entirely on the client-side.
- * @param base64PcmData The base64 encoded string of raw PCM audio.
- * @returns A promise that resolves to an object URL for the WAV audio.
- */
-async function convertPcmToWavUrl(base64PcmData: string): Promise<string> {
-    // Decode base64 to an ArrayBuffer
-    const pcmData = Uint8Array.from(atob(base64PcmData), c => c.charCodeAt(0)).buffer;
-    
-    // Define audio parameters (should match the output of the TTS model)
-    const channels = 1;
-    const sampleRate = 24000;
-    const bitDepth = 16;
-    
-    // Create the WAV header
-    const header = createWavHeader(pcmData, channels, sampleRate, bitDepth);
-    
-    // Combine header and PCM data into a single Blob
-    const wavBlob = new Blob([header, pcmData], { type: 'audio/wav' });
-
-    // Create a URL for the Blob
-    return URL.createObjectURL(wavBlob);
-}
-
 export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false, onVrModeChange }: { spot: Spot, userRole: string, allSpots: Spot[], vrMode?: boolean; onVrModeChange?: (active: boolean) => void }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -273,11 +203,10 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
     }
   };
 
-  const playAudioFromBase64 = async (base64Pcm: string, vibrationPattern?: number[]) => {
+  const playAudioFromUrl = async (url: string, vibrationPattern?: number[]) => {
       stopSpeaking(); 
       
-      const audioUrl = await convertPcmToWavUrl(base64Pcm);
-      const audio = new Audio(audioUrl);
+      const audio = new Audio(url);
       
       audio.onended = () => {
           handlePlaybackEnd();
@@ -333,13 +262,10 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
             throw new Error(`AI narration failed (status: ${response.status})`);
         }
         
-        const base64Pcm = await response.text();
+        const audioBlob = await response.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
         
-        if (!base64Pcm || base64Pcm.length < 100) {
-            throw new Error('Invalid or empty narration payload received from API.');
-        }
-        
-        await playAudioFromBase64(base64Pcm, spot.effects?.vibrationPattern);
+        await playAudioFromUrl(audioUrl, spot.effects?.vibrationPattern);
 
     } catch (error) {
         console.warn("Failed to play AI narration, falling back to browser TTS:", error);

@@ -1,15 +1,19 @@
+'use client';
 
 import HomeClient from '@/app/components/home-client';
-import { getLocations } from '@/lib/firestore-admin';
-import { getKioskSettings } from '@/lib/firestore-admin';
+import { getKioskSettings } from '@/lib/firestore-client';
+import { KioskSettings } from '@/lib/types';
+import { useEffect, useState } from 'react';
 
-export const revalidate = 3600; // Revalidate every hour
+export default function Home() {
+  const [settings, setSettings] = useState<KioskSettings | null>(null);
+  
+  useEffect(() => {
+    // Fetch settings on the client side.
+    getKioskSettings().then(setSettings).catch(() => setSettings(null));
+  }, []);
 
-export default async function Home() {
-  // This is now a Server Component that fetches initial data.
-  // This helps with SEO and faster perceived load times.
-  const locations = await getLocations(false).catch(() => []);
-  const settings = await getKioskSettings().catch(() => null);
-
-  return <HomeClient initialLocations={locations} initialSettings={settings} />;
+  // Pass the client-side fetched settings to the client component.
+  // It will handle its own loading state for locations.
+  return <HomeClient initialSettings={settings} />;
 }

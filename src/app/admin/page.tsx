@@ -1,32 +1,56 @@
+'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mountain, MapPin, Users, DatabaseZap } from 'lucide-react';
+import { Mountain, MapPin, Users } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { getLocations, getSpotsForLocation, getAllUsersAdmin } from '@/lib/firestore-admin';
 import { AdminSeedButton } from './admin-seed-button';
+import { useEffect, useState } from 'react';
 
 interface Stat {
   title: string;
-  value: number;
+  value: string;
   icon: React.ReactNode;
   href: string;
   color: string;
 }
 
-export const revalidate = 0; // Ensure fresh data on every visit
+export default function AdminDashboard() {
+  const [counts, setCounts] = useState({ locations: '...', spots: '...', users: '...' });
 
-export default async function AdminDashboard() {
+  useEffect(() => {
+    // Fetch counts on the client side
+    const fetchCounts = async () => {
+      try {
+        const [locationsRes, spotsRes, usersRes] = await Promise.all([
+          fetch('/api/admin/locations'),
+          fetch('/api/admin/spots'),
+          fetch('/api/admin/users'),
+        ]);
 
-  const locations = await getLocations(true).catch(() => []);
-  const allSpots = (await Promise.all(locations.map(l => getSpotsForLocation(l.id)))).flat();
-  const allUsers = await getAllUsersAdmin().catch(() => []);
+        const locations = await locationsRes.json();
+        const spots = await spotsRes.json();
+        const users = await usersRes.json();
+
+        setCounts({
+          locations: locations.length.toString(),
+          spots: spots.length.toString(),
+          users: users.length.toString(),
+        });
+      } catch (error) {
+        console.error("Failed to fetch admin dashboard counts:", error);
+        setCounts({ locations: 'N/A', spots: 'N/A', users: 'N/A' });
+      }
+    };
+
+    fetchCounts();
+  }, []);
 
   const stats: Stat[] = [
-    { title: 'Total Lokasi', value: locations.length, icon: <Mountain className="h-6 w-6" />, href: '/admin/locations', color: 'bg-blue-900/50 text-blue-100' },
-    { title: 'Total Spot', value: allSpots.length, icon: <MapPin className="h-6 w-6" />, href: '/admin/spots', color: 'bg-green-900/50 text-green-100' },
-    { title: 'Total Pengguna', value: allUsers.length, icon: <Users className="h-6 w-6" />, href: '/admin/users', color: 'bg-yellow-900/50 text-yellow-100' },
+    { title: 'Total Lokasi', value: counts.locations, icon: <Mountain className="h-6 w-6" />, href: '/admin/locations', color: 'bg-blue-900/50 text-blue-100' },
+    { title: 'Total Spot', value: counts.spots, icon: <MapPin className="h-6 w-6" />, href: '/admin/spots', color: 'bg-green-900/50 text-green-100' },
+    { title: 'Total Pengguna', value: counts.users, icon: <Users className="h-6 w-6" />, href: '/admin/users', color: 'bg-yellow-900/50 text-yellow-100' },
   ];
 
   return (

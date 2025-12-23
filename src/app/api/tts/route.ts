@@ -1,10 +1,38 @@
 
 import { textToSpeech } from '@/ai/flows/tts-flow';
 import {NextRequest} from 'next/server';
+import wav from 'wav';
 
 export const dynamic = 'force-dynamic';
 
-// This endpoint now directly converts a given text to speech and returns raw audio data.
+async function toWav(
+    pcmData: Buffer,
+    channels = 1,
+    rate = 24000,
+    sampleWidth = 2
+  ): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      const writer = new wav.Writer({
+        channels,
+        sampleRate: rate,
+        bitDepth: sampleWidth * 8,
+      });
+  
+      let bufs = [] as any[];
+      writer.on('error', reject);
+      writer.on('data', function (d) {
+        bufs.push(d);
+      });
+      writer.on('end', function () {
+        resolve(Buffer.concat(bufs));
+      });
+  
+      writer.write(pcmData);
+      writer.end();
+    });
+}
+
+// This endpoint now directly converts a given text to speech and returns a complete WAV audio file.
 export async function POST(req: NextRequest) {
   try {
     const { text } = await req.json();
@@ -13,25 +41,22 @@ export async function POST(req: NextRequest) {
       return new Response(JSON.stringify({ error: 'Text is required for narration' }), { status: 400 });
     }
 
-    // Convert the provided text to speech
-    const { media } = await textToSpeech(text);
+    // 1. Convert the provided text to speech (returns raw base64 PCM)
+    const { media: base64Pcm } = await textToSpeech(text);
 
-    if (!media) {
-        return new Response(JSON.stringify({ error: 'Failed to generate audio' }), { status: 500 });
+    if (!base64Pcm) {
+        return new Response(JSON.stringify({ error: 'Failed to generate audio from AI' }), { status: 500 });
     }
     
-    // Convert base64 data URI to a Buffer
-    const base64Data = media.split(';base64,').pop();
-    if (!base64Data) {
-        return new Response(JSON.stringify({ error: 'Invalid audio data format' }), { status: 500 });
-    }
-    const audioBuffer = Buffer.from(base64Data, 'base64');
+    // 2. Decode base64 and convert PCM to WAV on the server
+    const pcmBuffer = Buffer.from(base64Pcm, 'base64');
+    const wavBuffer = await toWav(pcmBuffer);
     
-    // Return the raw audio file as a blob
-    return new Response(audioBuffer, {
+    // 3. Return the complete audio file as a blob
+    return new Response(wavBuffer, {
       headers: { 
         'Content-Type': 'audio/wav',
-        'Content-Length': String(audioBuffer.length),
+        'Content-Length': String(wavBuffer.length),
        },
     });
 

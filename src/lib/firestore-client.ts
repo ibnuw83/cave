@@ -128,7 +128,7 @@ export async function updateUserRole(uid: string, role: UserProfile['role']) {
   }
 }
 
-// --- Location Functions (Client-Side for Admin Panel) ---
+// --- Location Functions (Client-Side for Admin Panel & Public View) ---
 
 export async function getLocations(includeInactive = false): Promise<Location[]> {
   const locationsRef = collection(db, 'locations');
@@ -169,83 +169,18 @@ export async function getLocationClient(id: string): Promise<Location | null> {
     }
 }
 
+// --- Spot Functions (Client-Side) ---
 
-export async function addLocation(locationData: Omit<Location, 'id' | 'miniMap'>): Promise<string> {
-    const newLocationData = {
-        ...locationData,
-        miniMap: { nodes: [], edges: [] } // Inisialisasi miniMap kosong
-    };
-    try {
-        const docRef = await addDoc(collection(db, 'locations'), newLocationData);
-        return docRef.id;
-    } catch (error: any) {
-        if (error.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: '/locations',
-                operation: 'create',
-                requestResourceData: newLocationData,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        }
-        throw error;
-    }
-}
-
-export async function updateLocation(id: string, locationData: Partial<Omit<Location, 'id'>>) {
-  const docRef = doc(db, 'locations', id);
-  try {
-    await updateDoc(docRef, locationData);
-  } catch (error: any) {
-    if (error.code === 'permission-denied') {
-        const permissionError = new FirestorePermissionError({
-            path: `/locations/${id}`,
-            operation: 'update',
-            requestResourceData: locationData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-    }
-    throw error;
-  }
-}
-
-
-export async function deleteLocation(id: string): Promise<void> {
-  const locationDocRef = doc(db, 'locations', id);
-  const spotsQuery = query(collection(db, 'spots'), where('locationId', '==', id));
-  
-  const batch = writeBatch(db);
-  
-  try {
-    const spotsSnapshot = await getDocs(spotsQuery);
-    spotsSnapshot.forEach(spotDoc => {
-        batch.delete(spotDoc.ref);
-    });
-    batch.delete(locationDocRef);
-    await batch.commit();
-  } catch (error: any) {
-      if (error.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: `/locations/${id} and associated spots`,
-                operation: 'delete',
-            });
-            errorEmitter.emit('permission-error', permissionError);
-      }
-      throw error;
-  }
-}
-
-
-// --- Spot Functions (Client-Side for Admin Panel) ---
-
-export async function getAllSpotsForAdmin(): Promise<Spot[]> {
+export async function getSpotsForLocation(locationId: string): Promise<Spot[]> {
   const spotsRef = collection(db, 'spots');
+  const q = query(spotsRef, where('locationId', '==', locationId));
   try {
-    const querySnapshot = await getDocs(spotsRef);
+    const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Spot));
   } catch (error: any) {
     if (error.code === 'permission-denied') {
       const permissionError = new FirestorePermissionError({
-        path: '/spots',
+        path: `/spots`, // Simplified path for query
         operation: 'list',
       });
       errorEmitter.emit('permission-error', permissionError);
@@ -253,6 +188,7 @@ export async function getAllSpotsForAdmin(): Promise<Spot[]> {
     throw error;
   }
 }
+
 
 export async function getSpotClient(id: string): Promise<Spot | null> {
   const docRef = doc(db, 'spots', id);
@@ -274,55 +210,6 @@ export async function getSpotClient(id: string): Promise<Spot | null> {
   }
 }
 
-export async function addSpot(spotData: Omit<Spot, 'id'>): Promise<string> {
-    try {
-        const docRef = await addDoc(collection(db, 'spots'), spotData);
-        return docRef.id;
-    } catch (error: any) {
-        if (error.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: '/spots',
-                operation: 'create',
-                requestResourceData: spotData,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        }
-        throw error;
-    }
-}
-
-export async function updateSpot(id: string, spotData: Partial<Omit<Spot, 'id'>>) {
-  const docRef = doc(db, 'spots', id);
-  try {
-    await updateDoc(docRef, spotData);
-  } catch (error: any) {
-    if (error.code === 'permission-denied') {
-        const permissionError = new FirestorePermissionError({
-            path: `/spots/${id}`,
-            operation: 'update',
-            requestResourceData: spotData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-    }
-    throw error;
-  }
-}
-
-export async function deleteSpot(id: string) {
-  const docRef = doc(db, 'spots', id);
-  try {
-    await deleteDoc(docRef);
-  } catch (error: any) {
-    if (error.code === 'permission-denied') {
-        const permissionError = new FirestorePermissionError({
-            path: `/spots/${id}`,
-            operation: 'delete',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-    }
-    throw error;
-  }
-}
 
 // --- Kiosk Settings Functions ---
 

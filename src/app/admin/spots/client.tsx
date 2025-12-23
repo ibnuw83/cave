@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Location, Spot } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -14,39 +13,48 @@ import { SpotForm } from "./spot-form";
 import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
-interface SpotsClientProps {
-  locations: Location[];
-  initialSpots: Spot[];
-}
-
-export default function SpotsClient({ locations, initialSpots }: SpotsClientProps) {
+export default function SpotsClient() {
   const { userProfile } = useUser();
-  const [spots, setSpots] = useState<Spot[]>(initialSpots);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [spots, setSpots] = useState<Spot[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState<Spot | null>(null);
   const [filterLocationId, setFilterLocationId] = useState<string>('all');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   
-  const refreshSpots = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/spots');
-      if (!response.ok) throw new Error("Failed to fetch spots");
-      const data = await response.json();
-      setSpots(data);
+      const [locsRes, spotsRes] = await Promise.all([
+        fetch('/api/admin/locations'),
+        fetch('/api/admin/spots')
+      ]);
+      if (!locsRes.ok || !spotsRes.ok) throw new Error("Failed to fetch initial data");
+      
+      const locsData = await locsRes.json();
+      const spotsData = await spotsRes.json();
+
+      setLocations(locsData);
+      setSpots(spotsData);
     } catch (e) {
-      toast({ variant: 'destructive', title: 'Gagal', description: 'Gagal memuat ulang data spot.' });
+      toast({ variant: 'destructive', title: 'Gagal', description: 'Gagal memuat ulang data.' });
     } finally {
       setLoading(false);
     }
-  }
+  }, [toast]);
+
+  useEffect(() => {
+    if (!isFormOpen) {
+        fetchData();
+    }
+  }, [isFormOpen, fetchData]);
 
   const handleFormSuccess = () => {
     toast({ title: "Berhasil", description: `Spot telah ${selectedSpot ? 'diperbarui' : 'ditambahkan'}.` });
     setIsFormOpen(false);
     setSelectedSpot(null);
-    refreshSpots();
+    fetchData(); // Refresh data
   };
 
   const openForm = (spot: Spot | null) => {
@@ -62,7 +70,7 @@ export default function SpotsClient({ locations, initialSpots }: SpotsClientProp
         throw new Error(errorData.error || 'Gagal menghapus spot.');
       }
       toast({ title: "Berhasil", description: "Spot berhasil dihapus." });
-      refreshSpots();
+      fetchData(); // Refresh data
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Gagal', description: error.message });
     }

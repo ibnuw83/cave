@@ -1,11 +1,9 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Location } from '@/lib/types';
-import { addLocation, updateLocation } from '@/lib/firestore-admin-api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -59,30 +57,26 @@ export function LocationForm({ location, onSave, onCancel }: LocationFormProps) 
       return;
     }
   
+    const url = location ? `/api/admin/locations/${location.id}` : '/api/admin/locations';
+    const method = location ? 'PUT' : 'POST';
+
     try {
-      if (location) {
-        const updatedLocationData = {
-          ...location,
-          ...values,
-        };
-  
-        await updateLocation(location.id, {
-          ...values,
-          miniMap: location.miniMap ?? { nodes: [], edges: [] },
-        });
-  
-        onSave(updatedLocationData);
-  
-      } else {
-        const newLocationData: Omit<Location, 'id'> = {
-          ...values,
-          miniMap: { nodes: [], edges: [] },
-        };
-  
-        const newLocation = await addLocation(newLocationData);
-  
-        onSave(newLocation);
+       const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(values),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Gagal menyimpan lokasi.');
       }
+      
+      const savedLocation = await response.json();
+      onSave(savedLocation);
+
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Gagal', description: error.message || 'Gagal menyimpan lokasi.' });
     }

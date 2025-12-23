@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from "react";
@@ -19,7 +18,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { deleteLocation, addLocation, updateLocation } from "@/lib/firestore-admin-api";
 import { LocationForm } from "./location-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUser } from "@/firebase";
@@ -50,6 +48,12 @@ export default function LocationsClient({ initialLocations }: { initialLocations
     }
   }
 
+  useEffect(() => {
+    if (!isFormOpen) {
+        refreshLocations();
+    }
+  }, [isFormOpen]);
+
   const handleFormSuccess = () => {
     if (selectedLocation) {
       toast({ title: "Berhasil", description: "Lokasi berhasil diperbarui." });
@@ -68,11 +72,15 @@ export default function LocationsClient({ initialLocations }: { initialLocations
 
   const handleDelete = async (id: string) => {
     try {
-        await deleteLocation(id);
+        const response = await fetch(`/api/admin/locations/${id}`, { method: 'DELETE' });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Gagal menghapus lokasi.');
+        }
         toast({ title: "Berhasil", description: "Lokasi dan semua spot di dalamnya berhasil dihapus." });
         refreshLocations();
-    } catch (error) {
-        // Error is handled by the API route and toast is shown there
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Gagal', description: error.message });
     }
   };
 

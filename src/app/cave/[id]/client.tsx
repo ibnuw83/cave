@@ -2,19 +2,19 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Location, Spot } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Location, Spot } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Lock, ChevronLeft, Download, WifiOff, Loader2, Sparkles, Info, ServerCrash } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { saveLocationForOffline, isLocationAvailableOffline } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase';
 import AdBanner from '@/app/components/AdBanner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useRouter } from 'next/navigation';
 
 function SpotCard({ spot, isLocked, isOffline, lockedMessage }: { spot: Spot; isLocked: boolean; isOffline: boolean, lockedMessage: string; }) {
   const content = (
@@ -25,6 +25,7 @@ function SpotCard({ spot, isLocked, isOffline, lockedMessage }: { spot: Spot; is
             src={spot.imageUrl}
             alt={spot.title}
             fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className={`object-cover ${isLocked ? 'opacity-50' : 'group-hover:scale-110 transition-transform duration-300'}`}
             data-ai-hint="cave interior"
           />
@@ -50,7 +51,7 @@ function SpotCard({ spot, isLocked, isOffline, lockedMessage }: { spot: Spot; is
   );
 
   return (
-    <Link href={`/spot/${spot.id}`} className="group">
+    <Link href={`/spot/${spot.id}`} className="group" prefetch={false}>
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -73,18 +74,21 @@ interface CaveClientProps {
 }
 
 export default function CaveClient({ initialLocation, initialSpots }: CaveClientProps) {
-  const { userProfile } = useUser();
   const router = useRouter();
+  const { userProfile } = useUser();
   const { toast } = useToast();
-  
+
   const [location] = useState<Location>(initialLocation);
   const [spots] = useState<Spot[]>(initialSpots);
+  
   const [isOffline, setIsOffline] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  
+
   useEffect(() => {
-    isLocationAvailableOffline(location.id).then(setIsOffline);
-  }, [location.id]);
+    if (location) {
+      isLocationAvailableOffline(location.id).then(setIsOffline);
+    }
+  }, [location]);
 
   const handleDownload = async () => {
     if (!location || !spots) return;
