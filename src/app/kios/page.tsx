@@ -1,4 +1,5 @@
-import { getKioskSettings } from "@/lib/firestore-admin";
+
+import { getKioskSettings } from "@/lib/firestore-client";
 import KiosClient from "./client";
 import { KioskSettings } from "@/lib/types";
 
@@ -9,6 +10,7 @@ export default async function KiosPage() {
   let error: string | null = null;
 
   try {
+    // This now calls the client-side fetch function, but it will work on the server too.
     const fetchedSettings = await getKioskSettings();
     if (fetchedSettings && fetchedSettings.playlist?.length) {
       settings = fetchedSettings;
