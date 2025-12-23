@@ -1,4 +1,3 @@
-
 import { getKioskSettings } from "@/lib/firestore-client";
 import KiosClient from "./client";
 import { KioskSettings } from "@/lib/types";
