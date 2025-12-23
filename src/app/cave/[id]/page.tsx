@@ -23,11 +23,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: `${location.name} - Cave Explorer 4D`,
       description: location.description,
     };
-  } catch {
-    // 🔒 JANGAN THROW, JANGAN notFound
+  } catch (error) {
+    console.error(`[generateMetadata] Failed for /cave/${params.id}:`, error);
     return {
-      title: 'Cave Explorer 4D',
-      description: 'Pengalaman eksplorasi virtual 4D.',
+      title: 'Error Memuat Lokasi',
+      description: 'Gagal memuat metadata untuk lokasi ini.',
     };
   }
 }
@@ -36,16 +36,7 @@ export default async function CavePage({ params }: Props) {
   const location = await getLocation(params.id);
 
   if (!location) {
-    return (
-      <div className="flex min-h-screen items-center justify-center text-white bg-background">
-        <div className="text-center p-8">
-          <h1 className="text-2xl font-bold">Lokasi tidak tersedia</h1>
-          <p className="opacity-70 mt-2">
-            Data sedang tidak dapat dimuat. Silakan coba lagi nanti.
-          </p>
-        </div>
-      </div>
-    );
+    notFound();
   }
 
   const spots = await getSpots(params.id);

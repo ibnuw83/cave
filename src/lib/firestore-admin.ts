@@ -19,8 +19,8 @@ export async function getLocations(includeInactive = false): Promise<Location[]>
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Location));
     } catch (error: any) {
         console.error("[Firestore Admin] Failed to getLocations:", error.message);
-        // On server-side failure, return empty array to prevent page crash
-        return [];
+        // Re-throw the error to let Next.js handle it as a server error
+        throw error;
     }
 }
 
@@ -38,7 +38,8 @@ export async function getLocation(id: string): Promise<Location | null> {
 
     } catch (error: any) {
         console.error(`[Firestore Admin] Failed to getLocation for id ${id}:`, error.message);
-        return null;
+        // Re-throw the error to let Next.js handle it as a server error
+        throw error;
     }
 }
 
@@ -50,7 +51,8 @@ export async function getSpots(locationId: string): Promise<Spot[]> {
         return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Spot));
     } catch (error: any) {
         console.error(`[Firestore Admin] Failed to getSpots for locationId ${locationId}:`, error.message);
-        return [];
+         // Re-throw the error to let Next.js handle it as a server error
+        throw error;
     }
 }
 
@@ -66,7 +68,8 @@ export async function getSpot(id: string): Promise<Spot | null> {
     return { id: docSnap.id, ...docSnap.data() } as Spot;
   } catch (error: any) {
     console.error(`[Firestore Admin] Failed to getSpot for id ${id}:`, error.message);
-    return null;
+     // Re-throw the error to let Next.js handle it as a server error
+    throw error;
   }
 }
 
@@ -99,7 +102,7 @@ export async function getAllUsersAdmin(): Promise<UserProfile[]> {
 
   } catch (error: any) {
     console.error("[Firestore Admin] Failed to getAllUsersAdmin:", error.message);
-    return [];
+    throw error;
   }
 }
 

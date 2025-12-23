@@ -29,10 +29,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         images: [spot.imageUrl],
       },
     }
-  } catch {
+  } catch (error) {
+     console.error(`[generateMetadata] Failed for /spot/${params.id}:`, error);
      return {
-      title: 'Cave Explorer 4D',
-      description: 'Pengalaman eksplorasi virtual 4D.',
+      title: 'Error Memuat Spot',
+      description: 'Gagal memuat metadata untuk spot ini.',
     };
   }
 }
@@ -43,16 +44,7 @@ export default async function SpotPage({ params }: Props) {
   const spot = await getSpot(spotId);
   
   if (!spot) {
-     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-black text-white">
-        <div className="text-center p-8">
-          <h1 className="text-2xl font-bold">Spot tidak tersedia</h1>
-          <p className="opacity-70 mt-2">
-            Data untuk spot ini tidak dapat dimuat. Silakan coba lagi nanti.
-          </p>
-        </div>
-      </div>
-    );
+    notFound();
   }
 
   // Fetch all spots in the same location to allow for client-side navigation
