@@ -19,6 +19,7 @@ export async function getLocations(includeInactive = false): Promise<Location[]>
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Location));
     } catch (error: any) {
         console.error("[Firestore Admin] Failed to getLocations:", error.message);
+        // On server-side failure, return empty array to prevent page crash
         return [];
     }
 }
