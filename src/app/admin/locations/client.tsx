@@ -19,35 +19,25 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { LocationForm } from "./location-form";
 import { useUser } from "@/firebase";
 
-export default function LocationsClient({ initialLocations, onDataChange }: { initialLocations: Location[], onDataChange: () => void }) {
+export default function LocationsClient({ 
+    initialLocations, 
+    onDataChange,
+    onEdit,
+    onAdd,
+}: { 
+    initialLocations: Location[], 
+    onDataChange: () => void,
+    onEdit: (location: Location) => void,
+    onAdd: () => void,
+ }) {
   const { userProfile } = useUser();
-  const [locations] = useState<Location[]>(initialLocations);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const { toast } = useToast();
 
   const sortedLocations = useMemo(() => {
-    return [...locations].sort((a,b) => a.name.localeCompare(b.name));
-  }, [locations]);
-
-  const handleFormSuccess = () => {
-    if (selectedLocation) {
-      toast({ title: "Berhasil", description: "Lokasi berhasil diperbarui." });
-    } else {
-      toast({ title: "Berhasil", description: "Lokasi baru berhasil ditambahkan." });
-    }
-    setIsFormOpen(false);
-    setSelectedLocation(null);
-    onDataChange();
-  };
-
-  const openForm = (location: Location | null) => {
-    setSelectedLocation(location);
-    setIsFormOpen(true);
-  };
+    return [...initialLocations].sort((a,b) => a.name.localeCompare(b.name));
+  }, [initialLocations]);
 
   const handleDelete = async (id: string) => {
     try {
@@ -71,14 +61,10 @@ export default function LocationsClient({ initialLocations, onDataChange }: { in
     );
   }
   
-  if (isFormOpen) {
-    return <LocationForm location={selectedLocation} onSave={handleFormSuccess} onCancel={() => { setIsFormOpen(false); setSelectedLocation(null); }} />;
-  }
-  
   return (
     <div>
       <div className="flex justify-end mb-4">
-        <Button onClick={() => openForm(null)}>
+        <Button onClick={onAdd}>
           <Plus className="mr-2 h-4 w-4" /> Tambah Lokasi
         </Button>
       </div>
@@ -98,7 +84,7 @@ export default function LocationsClient({ initialLocations, onDataChange }: { in
                   </CardDescription>
                   </div>
                   <div className="flex gap-2">
-                  <Button variant="outline" size="icon" onClick={() => openForm(location)}>
+                  <Button variant="outline" size="icon" onClick={() => onEdit(location)}>
                       <Edit className="h-4 w-4" />
                   </Button>
                   <AlertDialog>
