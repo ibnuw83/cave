@@ -1,6 +1,6 @@
 
 import { adminDb } from '@/firebase/admin';
-import type { Location, Spot, UserProfile } from './types';
+import type { Location, Spot, UserProfile, KioskSettings, PricingTier } from './types';
 
 // --- Location Functions (Server-Side) ---
 
@@ -64,6 +64,35 @@ export async function getSpot(id: string): Promise<Spot | null> {
     return { id: docSnap.id, ...docSnap.data() } as Spot;
   } catch (error) {
     console.error(`[Firestore Admin] Error fetching spot ${id}:`, error);
+    throw error;
+  }
+}
+
+// --- Kiosk & Pricing Functions (Server-Side) ---
+export async function getKioskSettings(): Promise<KioskSettings | null> {
+  try {
+    const docRef = adminDb.collection('kioskSettings').doc('main');
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) {
+      return null;
+    }
+    return { id: docSnap.id, ...docSnap.data() } as KioskSettings;
+  } catch (error) {
+    console.error('[Firestore Admin] Error fetching kiosk settings:', error);
+    throw error;
+  }
+}
+
+export async function getPricingTiers(): Promise<PricingTier[]> {
+  try {
+    const tiersRef = adminDb.collection('pricingTiers');
+    const snapshot = await tiersRef.orderBy('order', 'asc').get();
+    if (snapshot.empty) {
+      return [];
+    }
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PricingTier));
+  } catch (error) {
+    console.error('[Firestore Admin] Error fetching pricing tiers:', error);
     throw error;
   }
 }

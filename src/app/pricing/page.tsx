@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -7,7 +8,7 @@ import { Check, Star, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/firebase';
-import { getPricingTiers } from '@/lib/firestore-client';
+import { getPricingTiers as getPricingTiersClient } from '@/lib/firestore-client';
 import { PricingTier } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -18,7 +19,7 @@ export default function PricingPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        getPricingTiers().then(data => {
+        getPricingTiersClient().then(data => {
             setTiers(data);
             setLoading(false);
         }).catch(err => {

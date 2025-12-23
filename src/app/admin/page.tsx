@@ -1,15 +1,11 @@
 
-'use client';
-
-import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mountain, MapPin, Users, DatabaseZap } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { useUser } from '@/firebase';
-import { useToast } from '@/hooks/use-toast';
+import { getLocations, getSpotsForLocation, getAllUsersAdmin } from '@/lib/firestore-admin';
+import { AdminSeedButton } from './admin-seed-button';
 
 interface Stat {
   title: string;
@@ -19,126 +15,42 @@ interface Stat {
   color: string;
 }
 
-export default function AdminDashboard() {
-  const { userProfile, isProfileLoading } = useUser();
-  const [stats, setStats] = useState<Stat[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isSeeding, setIsSeeding] = useState(false);
-  const { toast } = useToast();
+export const revalidate = 0; // Ensure fresh data on every visit
 
-  useEffect(() => {
-    async function fetchData() {
-      if (userProfile?.role !== 'admin') return;
+export default async function AdminDashboard() {
 
-      setLoading(true);
-      try {
-        const locationsPromise = fetch('/api/admin/locations').then(res => res.json());
-        const spotsPromise = fetch('/api/admin/spots').then(res => res.json());
-        const usersPromise = fetch('/api/admin/users').then(res => res.json());
+  const locations = await getLocations(true).catch(() => []);
+  const allSpots = (await Promise.all(locations.map(l => getSpotsForLocation(l.id)))).flat();
+  const allUsers = await getAllUsersAdmin().catch(() => []);
 
-        const [locationsRes, spotsRes, usersRes] = await Promise.all([locationsPromise, spotsPromise, usersPromise]);
-
-        setStats([
-          { title: 'Total Lokasi', value: locationsRes.length, icon: <Mountain className="h-6 w-6" />, href: '/admin/locations', color: 'bg-blue-900/50 text-blue-100' },
-          { title: 'Total Spot', value: spotsRes.length, icon: <MapPin className="h-6 w-6" />, href: '/admin/spots', color: 'bg-green-900/50 text-green-100' },
-          { title: 'Total Pengguna', value: usersRes.length, icon: <Users className="h-6 w-6" />, href: '/admin/users', color: 'bg-yellow-900/50 text-yellow-100' },
-        ]);
-
-      } catch (error: any) {
-        console.error("Failed to fetch admin dashboard data:", error);
-        toast({
-          variant: 'destructive',
-          title: 'Gagal Memuat Dashboard',
-          description: error.message || 'Tidak dapat mengambil data statistik.',
-        });
-      } finally {
-        setLoading(false);
-      }
-    }
-    
-    if (!isProfileLoading && userProfile) {
-        fetchData();
-    }
-  }, [userProfile, isProfileLoading, toast, isSeeding]); // Rerun when seeding is done
-  
-  const handleSeedData = async () => {
-    if (!confirm('Anda yakin ingin mengisi database dengan data awal? Ini akan menghapus data lokasi dan spot yang ada.')) {
-      return;
-    }
-    setIsSeeding(true);
-    try {
-      const response = await fetch('/api/admin/seed', { method: 'POST' });
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.error || 'Gagal mengisi data.');
-      }
-      toast({
-        title: 'Berhasil!',
-        description: 'Database telah diisi dengan data awal.',
-      });
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Gagal',
-        description: error.message,
-      });
-    } finally {
-      setIsSeeding(false);
-    }
-  };
-  
-  if (isProfileLoading) {
-      return (
-        <div className="p-4 md:p-8">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <Skeleton className="h-32 w-full" />
-                <Skeleton className="h-32 w-full" />
-                <Skeleton className="h-32 w-full" />
-            </div>
-        </div>
-      );
-  }
-
-  if (userProfile?.role !== 'admin') {
-    return (
-      <div className="p-4 md:p-8">
-        <p className="text-center text-muted-foreground py-12">
-          Anda tidak memiliki akses ke halaman ini.
-        </p>
-      </div>
-    );
-  }
+  const stats: Stat[] = [
+    { title: 'Total Lokasi', value: locations.length, icon: <Mountain className="h-6 w-6" />, href: '/admin/locations', color: 'bg-blue-900/50 text-blue-100' },
+    { title: 'Total Spot', value: allSpots.length, icon: <MapPin className="h-6 w-6" />, href: '/admin/spots', color: 'bg-green-900/50 text-green-100' },
+    { title: 'Total Pengguna', value: allUsers.length, icon: <Users className="h-6 w-6" />, href: '/admin/users', color: 'bg-yellow-900/50 text-yellow-100' },
+  ];
 
   return (
     <div className="p-4 md:p-8">
       <header className="mb-8">
         <h1 className="text-2xl md:text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">Selamat datang di Admin Panel, {userProfile.displayName}.</p>
+        <p className="text-muted-foreground">Selamat datang di Panel Admin.</p>
       </header>
       
-      {loading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
-        </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {stats.map((stat) => (
-            <Card key={stat.title} className={cn('border-none hover:scale-105 transition-transform', stat.color)}>
-              <Link href={stat.href}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                  {stat.icon}
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{stat.value}</div>
-                </CardContent>
-              </Link>
-            </Card>
-          ))}
-        </div>
-      )}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {stats.map((stat) => (
+          <Card key={stat.title} className={cn('border-none hover:scale-105 transition-transform', stat.color)}>
+            <Link href={stat.href}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+                {stat.icon}
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{stat.value}</div>
+              </CardContent>
+            </Link>
+          </Card>
+        ))}
+      </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
          <Card>
@@ -160,10 +72,7 @@ export default function AdminDashboard() {
              <p className="text-muted-foreground pt-2">Isi database dengan data lokasi & spot awal untuk pengembangan.</p>
            </CardHeader>
            <CardContent>
-             <Button onClick={handleSeedData} disabled={isSeeding}>
-                <DatabaseZap className="mr-2 h-4 w-4" />
-                {isSeeding ? 'Memproses...' : 'Isi Database dengan Data Awal'}
-             </Button>
+             <AdminSeedButton />
              <p className="text-xs text-muted-foreground mt-3">Tindakan ini akan menghapus semua lokasi dan spot yang ada saat ini.</p>
            </CardContent>
          </Card>

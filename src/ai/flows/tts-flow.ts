@@ -14,7 +14,7 @@ const ttsFlow = ai.defineFlow(
     name: 'ttsFlow',
     inputSchema: z.string(),
     outputSchema: z.object({
-        media: z.string().describe('The base64 encoded raw PCM audio data.'),
+        media: z.string().describe('The base64 encoded raw PCM audio data from the data URI.'),
     }),
   },
   async (query) => {
@@ -35,8 +35,8 @@ const ttsFlow = ai.defineFlow(
       throw new Error('No media returned from TTS model');
     }
 
-    // The media.url from the TTS model is already 'data:audio/pcm;base64,....'
-    // We just need to extract the base64 part.
+    // The media.url from the TTS model is 'data:audio/pcm;base64,....'
+    // We extract just the base64 part.
     const base64PcmData = media.url.substring(media.url.indexOf(',') + 1);
 
     return {
