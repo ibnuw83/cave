@@ -1,33 +1,20 @@
-
 import * as admin from 'firebase-admin';
-import { firebaseConfig } from './config';
 
-let adminApp: admin.app.App | null = null;
+let adminApp: admin.app.App;
 
-try {
-  if (!admin.apps.length) {
-    adminApp = admin.initializeApp({
-      credential: admin.credential.applicationDefault(),
-      projectId: firebaseConfig.projectId,
-    });
-    console.log('[Firebase Admin] Initialized');
-  } else {
-    adminApp = admin.app();
-  }
-} catch (err) {
-  console.warn('[Firebase Admin] Not initialized (no credentials)');
-  adminApp = null;
+// This logic ensures we initialize the app only once.
+if (!admin.apps.length) {
+  adminApp = admin.initializeApp({
+    // ADC (Application Default Credentials) will be used in App Hosting.
+    credential: admin.credential.applicationDefault(),
+  });
+  console.log('[Firebase Admin] Initialized successfully.');
+} else {
+  // Use the already-initialized app.
+  adminApp = admin.app();
 }
 
-/**
- * Safe getter
- * ❗ auth & db BARU dibuat saat fungsi dipanggil
- */
-export function safeGetAdminApp() {
-  if (!adminApp) return null;
-
-  return {
-    auth: admin.auth(adminApp),
-    db: admin.firestore(adminApp),
-  };
-}
+// Export the initialized services directly.
+// If initialization fails, the server will crash on startup, which is a clear signal of a config problem.
+export const adminAuth = admin.auth(adminApp);
+export const adminDb = admin.firestore(adminApp);

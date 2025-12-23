@@ -1,26 +1,14 @@
 
 'use server';
-import { safeGetAdminApp } from '@/firebase/admin';
+import { adminDb, adminAuth } from '@/firebase/admin';
 import { Location, Spot, UserProfile } from './types';
 import { UserRecord } from 'firebase-admin/auth';
 import { firestore } from 'firebase-admin';
 
-// Fungsi ini sekarang menggunakan safeGetAdminApp untuk menghindari crash jika Admin SDK tidak terinisialisasi.
-const getAdminServices = () => {
-    const app = safeGetAdminApp();
-    if (!app) {
-        console.warn(`[Firestore Admin] Firebase Admin SDK tidak tersedia. Pengambilan data sisi server dinonaktifkan.`);
-        return { db: null, auth: null };
-    }
-    return app;
-}
 
 export async function getLocations(includeInactive = false): Promise<Location[]> {
-    const { db } = getAdminServices();
-    if (!db) return []; 
-    
     try {
-        let locationsRef: firestore.Query<firestore.DocumentData> = db.collection('locations');
+        let locationsRef: firestore.Query<firestore.DocumentData> = adminDb.collection('locations');
         if (!includeInactive) {
             locationsRef = locationsRef.where('isActive', '==', true);
         }
@@ -30,61 +18,44 @@ export async function getLocations(includeInactive = false): Promise<Location[]>
         }
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Location));
     } catch (error: any) {
-        // Log the error but return an empty array to prevent crashing the page
-        console.error("[Firestore Admin] Gagal mengambil getLocations:", error.message);
+        console.error("[Firestore Admin] Failed to getLocations:", error.message);
         return [];
     }
 }
 
 export async function getLocation(id: string): Promise<Location | null> {
-    const { db } = getAdminServices();
-    if (!db) {
-        console.error("[Firestore Admin] Gagal mendapatkan koneksi DB di getLocation.");
-        return null;
-    }
-    
     try {
-        const docRef = db.collection('locations').doc(id);
+        const docRef = adminDb.collection('locations').doc(id);
         const docSnap = await docRef.get();
 
         if (!docSnap.exists) {
-            console.warn(`[Firestore Admin] Dokumen tidak ditemukan di path: locations/${id}`);
+            console.warn(`[Firestore Admin] Document not found at path: locations/${id}`);
             return null;
         }
 
         return { id: docSnap.id, ...docSnap.data() } as Location;
 
     } catch (error: any) {
-        console.error(`[Firestore Admin] Gagal mengambil getLocation untuk id ${id}:`, error.message);
+        console.error(`[Firestore Admin] Failed to getLocation for id ${id}:`, error.message);
         return null;
     }
 }
 
 export async function getSpots(locationId: string): Promise<Spot[]> {
-    const { db } = getAdminServices();
-    if (!db) {
-         return [];
-    }
-
     try {
-        const spotsRef = db.collection('spots');
+        const spotsRef = adminDb.collection('spots');
         const q = spotsRef.where('locationId', '==', locationId);
         const querySnapshot = await q.get();
         return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Spot));
     } catch (error: any) {
-        console.error(`[Firestore Admin] Gagal mengambil getSpots untuk locationId ${locationId}:`, error.message);
+        console.error(`[Firestore Admin] Failed to getSpots for locationId ${locationId}:`, error.message);
         return [];
     }
 }
 
 export async function getSpot(id: string): Promise<Spot | null> {
-  const { db } = getAdminServices();
-  if (!db) {
-    return null;
-  }
-
   try {
-    const docRef = db.collection('spots').doc(id);
+    const docRef = adminDb.collection('spots').doc(id);
     const docSnap = await docRef.get();
     
     if (!docSnap.exists) {
@@ -93,21 +64,18 @@ export async function getSpot(id: string): Promise<Spot | null> {
     
     return { id: docSnap.id, ...docSnap.data() } as Spot;
   } catch (error: any) {
-    console.error(`[Firestore Admin] Gagal mengambil getSpot untuk id ${id}:`, error.message);
+    console.error(`[Firestore Admin] Failed to getSpot for id ${id}:`, error.message);
     return null;
   }
 }
 
 export async function getAllUsersAdmin(): Promise<UserProfile[]> {
-  const { db, auth } = getAdminServices();
-  if (!db || !auth) return [];
-  
   try {
-    const listUsersResult = await auth.listUsers();
+    const listUsersResult = await adminAuth.listUsers();
     const uids = listUsersResult.users.map(u => u.uid);
     if (uids.length === 0) return [];
     
-    const usersRef = db.collection('users');
+    const usersRef = adminDb.collection('users');
     const querySnapshot = await usersRef.where(firestore.FieldPath.documentId(), 'in', uids).get();
     const profilesByUid = querySnapshot.docs.reduce((acc, doc) => {
         acc[doc.id] = { id: doc.id, ...doc.data() } as UserProfile;
@@ -129,17 +97,14 @@ export async function getAllUsersAdmin(): Promise<UserProfile[]> {
     });
 
   } catch (error: any) {
-    console.error("[Firestore Admin] Gagal mengambil getAllUsersAdmin:", error.message);
+    console.error("[Firestore Admin] Failed to getAllUsersAdmin:", error.message);
     return [];
   }
 }
 
 export async function createUserAdmin(data: { email: string, password?: string, displayName: string, role: UserProfile['role'] }): Promise<UserRecord> {
-  const { auth, db } = getAdminServices();
-  if (!auth || !db) throw new Error("Admin SDK tidak terinisialisasi.");
-
   // Create user in Auth
-  const userRecord = await auth.createUser({
+  const userRecord = await adminAuth.createUser({
     email: data.email,
     emailVerified: true,
     password: data.password,
@@ -154,7 +119,7 @@ export async function createUserAdmin(data: { email: string, password?: string, 
     photoURL: userRecord.photoURL || null,
     role: data.role,
   };
-  await db.collection('users').doc(userRecord.uid).set({
+  await adminDb.collection('users').doc(userRecord.uid).set({
     ...userProfile,
     updatedAt: firestore.FieldValue.serverTimestamp(),
   });
@@ -164,19 +129,13 @@ export async function createUserAdmin(data: { email: string, password?: string, 
 
 
 export async function deleteUserAdmin(uid: string): Promise<void> {
-  const { auth, db } = getAdminServices();
-  if (!auth || !db) throw new Error("Admin SDK tidak terinisialisasi.");
-
   // Delete from Auth
-  await auth.deleteUser(uid);
+  await adminAuth.deleteUser(uid);
 
   // Delete from Firestore
-  await db.collection('users').doc(uid).delete();
+  await adminDb.collection('users').doc(uid).delete();
 }
 
 export async function updateUserStatusAdmin(uid: string, disabled: boolean): Promise<void> {
-    const { auth } = getAdminServices();
-    if (!auth) throw new Error("Admin SDK tidak terinisialisasi.");
-
-    await auth.updateUser(uid, { disabled });
+    await adminAuth.updateUser(uid, { disabled });
 }

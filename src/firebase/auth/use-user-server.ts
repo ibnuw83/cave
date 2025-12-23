@@ -2,22 +2,21 @@
 import 'server-only';
 
 import { cookies } from 'next/headers';
-import { safeGetAdminApp } from '../admin';
+import { adminAuth, adminDb } from '../admin';
 import { UserProfile } from '@/lib/types';
-import { getDoc } from 'firebase-admin/firestore';
+import { DecodedIdToken } from 'firebase-admin/auth';
+import { UserRecord } from 'firebase-admin/auth';
+
+interface UseUserReturn {
+    user: UserRecord | null;
+    userProfile: UserProfile | null;
+}
 
 /**
  * Server-side hook to get the current user and their profile.
  * Reads the session cookie and uses the Firebase Admin SDK.
  */
-export const useUser = async () => {
-  const admin = safeGetAdminApp();
-  if (!admin) {
-      console.warn('[useUser Server] Admin SDK not available.');
-      return { user: null, userProfile: null };
-  }
-  const { auth, db } = admin;
-  
+export const useUser = async (): Promise<UseUserReturn> => {
   const sessionCookie = cookies().get('__session')?.value;
 
   if (!sessionCookie) {
@@ -25,10 +24,10 @@ export const useUser = async () => {
   }
 
   try {
-    const decodedIdToken = await auth.verifySessionCookie(sessionCookie, true);
-    const user = await auth.getUser(decodedIdToken.uid);
+    const decodedIdToken: DecodedIdToken = await adminAuth.verifySessionCookie(sessionCookie, true);
+    const user: UserRecord = await adminAuth.getUser(decodedIdToken.uid);
 
-    const profileRef = db.collection('users').doc(user.uid);
+    const profileRef = adminDb.collection('users').doc(user.uid);
     const profileSnap = await profileRef.get();
 
     if (!profileSnap.exists) {

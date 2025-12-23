@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { safeGetAdminApp } from '@/firebase/admin';
+import { adminAuth } from '@/firebase/admin';
 import { createUserAdmin, getAllUsersAdmin } from '@/lib/firestore-admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 import { UserProfile } from '@/lib/types';
@@ -12,19 +12,14 @@ import { UserProfile } from '@/lib/types';
  * @returns A promise that resolves to the admin's DecodedIdToken or null if not an admin.
  */
 async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
-    const admin = safeGetAdminApp();
-    if (!admin) {
-      return null;
-    }
-  
     const sessionCookie = cookies().get('__session')?.value;
     if (!sessionCookie) {
       return null;
     }
   
     try {
-      const decoded = await admin.auth.verifySessionCookie(sessionCookie, true);
-      const userDoc = await admin.db.collection('users').doc(decoded.uid).get();
+      const decoded = await adminAuth.verifySessionCookie(sessionCookie, true);
+      const userDoc = await (await import('@/firebase/admin')).adminDb.collection('users').doc(decoded.uid).get();
       if (userDoc.exists && userDoc.data()?.role === 'admin') {
         return decoded;
       }
