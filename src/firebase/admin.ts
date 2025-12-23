@@ -16,9 +16,9 @@ if (!admin.apps.length) {
       throw new Error("NEXT_PUBLIC_FIREBASE_PROJECT_ID is not set in the environment variables.");
     }
     
-    admin.initializeApp({
-      projectId: projectId,
-    });
+    // In a Google Cloud environment (like App Hosting), initializing without arguments
+    // automatically uses the project's service account credentials. This is the most robust method.
+    admin.initializeApp();
 
   } catch (error: any) {
     console.error('[Firebase Admin] CRITICAL: Failed to initialize Firebase Admin SDK.', error);

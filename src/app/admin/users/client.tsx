@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -23,10 +24,8 @@ export default function UsersClient() {
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const { user: currentUser, userProfile, isProfileLoading } = useUser();
-
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
-
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -48,6 +47,10 @@ export default function UsersClient() {
         setLoading(false);
     }
   }, [toast]);
+  
+  const sortedUsers = useMemo(() => {
+    return [...users].sort((a, b) => (a.displayName || a.email || '').localeCompare(b.displayName || b.email || ''));
+  }, [users]);
   
   useEffect(() => {
     if (!isProfileLoading && userProfile?.role === 'admin') {
@@ -171,10 +174,6 @@ export default function UsersClient() {
     setSelectedUser(null);
     fetchUsers();
   };
-  
-  const sortedUsers = useMemo(() => {
-    return [...users].sort((a, b) => (a.displayName || a.email || '').localeCompare(b.displayName || b.email || ''));
-  }, [users]);
   
   if (loading) {
     return (
