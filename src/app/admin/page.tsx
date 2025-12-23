@@ -3,15 +3,13 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mountain, MapPin, Users } from 'lucide-react';
+import { Mountain, MapPin, Users, DatabaseZap } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { getLocations, getAllSpotsForAdmin } from '@/lib/firestore-client';
-import { Location, Spot, UserProfile } from '@/lib/types';
 
 interface Stat {
   title: string;
@@ -25,6 +23,7 @@ export default function AdminDashboard() {
   const { userProfile, isProfileLoading } = useUser();
   const [stats, setStats] = useState<Stat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSeeding, setIsSeeding] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -33,13 +32,9 @@ export default function AdminDashboard() {
 
       setLoading(true);
       try {
-        // Fetch data that doesn't require a separate API call first
-        const locationsPromise = getLocations(true);
-        const spotsPromise = getAllSpotsForAdmin();
-        const usersPromise = fetch('/api/admin/users').then(res => {
-            if (!res.ok) throw new Error('Gagal mengambil data pengguna');
-            return res.json();
-        });
+        const locationsPromise = fetch('/api/admin/locations').then(res => res.json());
+        const spotsPromise = fetch('/api/admin/spots').then(res => res.json());
+        const usersPromise = fetch('/api/admin/users').then(res => res.json());
 
         const [locationsRes, spotsRes, usersRes] = await Promise.all([locationsPromise, spotsPromise, usersPromise]);
 
@@ -64,7 +59,33 @@ export default function AdminDashboard() {
     if (!isProfileLoading && userProfile) {
         fetchData();
     }
-  }, [userProfile, isProfileLoading, toast]);
+  }, [userProfile, isProfileLoading, toast, isSeeding]); // Rerun when seeding is done
+  
+  const handleSeedData = async () => {
+    if (!confirm('Anda yakin ingin mengisi database dengan data awal? Ini akan menghapus data lokasi dan spot yang ada.')) {
+      return;
+    }
+    setIsSeeding(true);
+    try {
+      const response = await fetch('/api/admin/seed', { method: 'POST' });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Gagal mengisi data.');
+      }
+      toast({
+        title: 'Berhasil!',
+        description: 'Database telah diisi dengan data awal.',
+      });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Gagal',
+        description: error.message,
+      });
+    } finally {
+      setIsSeeding(false);
+    }
+  };
   
   if (isProfileLoading) {
       return (
@@ -119,7 +140,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      <div className="mt-8 grid gap-4 md:grid-cols-1">
+      <div className="mt-8 grid gap-4 md:grid-cols-2">
          <Card>
            <CardHeader>
              <CardTitle>Pintasan Cepat</CardTitle>
@@ -131,6 +152,19 @@ export default function AdminDashboard() {
              <Button asChild><Link href="/admin/users">Kelola Pengguna</Link></Button>
              <Button asChild><Link href="/admin/pricing">Kelola Paket</Link></Button>
              <Button asChild><Link href="/admin/kiosk">Pengaturan Kios</Link></Button>
+           </CardContent>
+         </Card>
+         <Card>
+           <CardHeader>
+             <CardTitle>Data Awal (Seeding)</CardTitle>
+             <p className="text-muted-foreground pt-2">Isi database dengan data lokasi & spot awal untuk pengembangan.</p>
+           </CardHeader>
+           <CardContent>
+             <Button onClick={handleSeedData} disabled={isSeeding}>
+                <DatabaseZap className="mr-2 h-4 w-4" />
+                {isSeeding ? 'Memproses...' : 'Isi Database dengan Data Awal'}
+             </Button>
+             <p className="text-xs text-muted-foreground mt-3">Tindakan ini akan menghapus semua lokasi dan spot yang ada saat ini.</p>
            </CardContent>
          </Card>
       </div>

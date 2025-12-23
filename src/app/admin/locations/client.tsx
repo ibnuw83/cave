@@ -19,15 +19,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { deleteLocation, getLocations } from "@/lib/firestore-client";
+import { deleteLocation, addLocation, updateLocation } from "@/lib/firestore-admin-api";
 import { LocationForm } from "./location-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUser } from "@/firebase";
 
-export default function LocationsClient() {
+export default function LocationsClient({ initialLocations }: { initialLocations: Location[] }) {
   const { userProfile } = useUser();
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [locations, setLocations] = useState<Location[]>(initialLocations);
+  const [loading, setLoading] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const { toast } = useToast();
@@ -36,28 +36,18 @@ export default function LocationsClient() {
     return [...locations].sort((a,b) => a.name.localeCompare(b.name));
   }, [locations]);
 
-  useEffect(() => {
-    const fetchLocations = () => {
-        setLoading(true);
-        getLocations(true).then(l => {
-            setLocations(l);
-            setLoading(false);
-        }).catch(() => setLoading(false));
+  const refreshLocations = async () => {
+    setLoading(true);
+    try {
+        const response = await fetch('/api/admin/locations');
+        if (!response.ok) throw new Error('Failed to fetch locations');
+        const data = await response.json();
+        setLocations(data);
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'Gagal', description: 'Gagal memuat ulang data lokasi.' });
+    } finally {
+        setLoading(false);
     }
-    // Fetch locations when the component mounts or when returning from the form
-    if (!isFormOpen && userProfile?.role === 'admin') {
-        fetchLocations();
-    } else if (userProfile?.role !== 'admin') {
-      setLoading(false);
-    }
-  }, [isFormOpen, userProfile]);
-
-  if (userProfile?.role !== 'admin') {
-    return (
-      <p className="text-center text-muted-foreground py-12">
-        Anda tidak memiliki akses ke halaman ini.
-      </p>
-    );
   }
 
   const handleFormSuccess = () => {
@@ -68,7 +58,7 @@ export default function LocationsClient() {
     }
     setIsFormOpen(false);
     setSelectedLocation(null);
-    // Data will be re-fetched by the useEffect
+    refreshLocations(); // Refresh data after save
   };
 
   const openForm = (location: Location | null) => {
@@ -80,11 +70,20 @@ export default function LocationsClient() {
     try {
         await deleteLocation(id);
         toast({ title: "Berhasil", description: "Lokasi dan semua spot di dalamnya berhasil dihapus." });
+        refreshLocations();
     } catch (error) {
-        // Error is now handled by the global errorEmitter. No need for a toast here.
+        // Error is handled by the API route and toast is shown there
     }
   };
 
+  if (userProfile?.role !== 'admin') {
+    return (
+      <p className="text-center text-muted-foreground py-12">
+        Anda tidak memiliki akses ke halaman ini.
+      </p>
+    );
+  }
+  
   if (isFormOpen) {
     return <LocationForm location={selectedLocation} onSave={handleFormSuccess} onCancel={() => { setIsFormOpen(false); setSelectedLocation(null); }} />;
   }

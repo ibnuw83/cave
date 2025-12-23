@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Location, KioskSettings, UserProfile } from '@/lib/types';
+import { Location, KioskSettings } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,12 +27,10 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { clearOfflineCache } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
-import { getKioskSettings, getLocations } from '@/lib/firestore-client';
 import placeholderImages from '@/lib/placeholder-images.json';
 import { useRouter } from 'next/navigation';
 import { useUser, useAuth } from '@/firebase';
 import { signOut as firebaseSignOut } from 'firebase/auth';
-
 
 const AuthSection = () => {
   const { user, userProfile, isUserLoading, isProfileLoading } = useUser();
@@ -134,7 +132,6 @@ const AuthSection = () => {
     );
   }
 
-  // If not logged in, show a login button
   return (
     <Button variant="outline" asChild>
       <Link href="/login">
@@ -145,41 +142,17 @@ const AuthSection = () => {
   );
 };
 
+interface HomeClientProps {
+    initialLocations: Location[];
+    initialSettings: KioskSettings | null;
+}
 
-export default function HomeClient() {
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [settings, setSettings] = useState<KioskSettings | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export default function HomeClient({ initialLocations, initialSettings }: HomeClientProps) {
+  const [locations] = useState<Location[]>(initialLocations);
+  const [settings] = useState<KioskSettings | null>(initialSettings);
   
   const heroImage = placeholderImages.placeholderImages.find(img => img.id === 'hero-background')?.imageUrl || '/placeholder.jpg';
   
-  useEffect(() => {
-    setIsLoading(true);
-    Promise.all([
-      getLocations(false),
-      getKioskSettings()
-    ]).then(([locationsData, settingsData]) => {
-      setLocations(locationsData);
-      setSettings(settingsData);
-    }).catch(err => {
-      console.error("Failed to fetch initial data", err);
-    }).finally(() => {
-      setIsLoading(false);
-    });
-
-  }, []);
-  
-  if (isLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="text-center">
-          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-          <p className="mt-4 text-lg text-muted-foreground">Memuat data...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen">
       <header className="relative flex h-[70vh] w-full flex-col items-center justify-center text-center text-white overflow-hidden">

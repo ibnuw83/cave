@@ -1,17 +1,30 @@
+
 import SpotPageClient from './client';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import { getSpot, getSpotsForLocation } from '@/lib/firestore-admin';
 
 type Props = {
   params: { id: string }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  // Metadata can be fetched on the client or be static
-  return {
-    title: `Spot ${params.id} - Cave Explorer 4D`,
-    description: `Jelajahi detail dari spot ${params.id}.`,
+  try {
+    const spot = await getSpot(params.id);
+    if (spot) {
+      return {
+        title: `${spot.title} - Cave Explorer 4D`,
+        description: `Jelajahi detail dari spot ${spot.title}.`,
+      };
+    }
+  } catch (error) {
+    console.error(`[Metadata] Failed to fetch spot ${params.id}:`, error);
   }
+  
+  return {
+    title: `Spot Tidak Ditemukan`,
+    description: `Data untuk spot ini tidak dapat dimuat.`,
+  };
 }
 
 export default async function SpotPage({ params }: Props) {
@@ -21,10 +34,16 @@ export default async function SpotPage({ params }: Props) {
     notFound();
   }
 
-  // The client component now handles all data fetching and logic
+  const spot = await getSpot(spotId);
+
+  if (!spot) {
+    notFound();
+  }
+
+  // Fetch all other spots in the same location for navigation
+  const allSpotsInLocation = await getSpotsForLocation(spot.locationId);
+
   return (
-    <SpotPageClient spotId={spotId} />
+    <SpotPageClient initialSpot={spot} allSpotsInLocation={allSpotsInLocation} />
   );
 }
-
-    

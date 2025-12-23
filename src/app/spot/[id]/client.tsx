@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -7,71 +8,32 @@ import LockedScreen from '@/app/components/locked-screen';
 import SpotPlayerUI from '@/app/components/spot-player-ui';
 import HybridViewer from '@/app/components/hybrid-viewer';
 import PanoramaViewer from '@/components/viewer-panorama';
-import { getSpotClient } from '@/lib/firestore-client';
-import { useUser, useFirestore } from '@/firebase';
-import { Loader2, ServerCrash, ChevronLeft } from 'lucide-react';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+import { useUser } from '@/firebase';
+import { Loader2 } from 'lucide-react';
 
-export default function SpotPageClient({ spotId }: { spotId: string; }) {
-  const [spot, setSpot] = useState<Spot | null>(null);
-  const [allSpotsInLocation, setAllSpotsInLocation] = useState<Spot[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface SpotPageClientProps {
+  initialSpot: Spot;
+  allSpotsInLocation: Spot[];
+}
 
+export default function SpotPageClient({ initialSpot, allSpotsInLocation }: SpotPageClientProps) {
+  const [spot, setSpot] = useState<Spot>(initialSpot);
   const [vrMode, setVrMode] = useState(false);
   const router = useRouter();
   const { userProfile, isUserLoading, isProfileLoading } = useUser();
-  const firestore = useFirestore();
-  const role = userProfile?.role || 'free';
-
-  useEffect(() => {
-    // If a new spot is loaded, potentially exit VR mode
-    setVrMode(false);
-  }, [spotId]);
   
+  // When the initialSpot prop changes (due to navigation), update the state
   useEffect(() => {
-    async function fetchSpotData() {
-        if (!spotId) {
-            setError("ID Spot tidak valid.");
-            setIsLoading(false);
-            return;
-        }
-
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const currentSpot = await getSpotClient(spotId);
-            if (!currentSpot) {
-                setError("Spot tidak ditemukan.");
-                setIsLoading(false);
-                return;
-            }
-            setSpot(currentSpot);
-
-            // Fetch all other spots in the same location
-            const spotsQuery = query(collection(firestore, 'spots'), where('locationId', '==', currentSpot.locationId));
-            const spotsSnapshot = await getDocs(spotsQuery);
-            const fetchedSpots = spotsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Spot));
-            setAllSpotsInLocation(fetchedSpots);
-
-        } catch (err) {
-            console.error("Failed to fetch spot data:", err);
-            setError("Gagal memuat data untuk spot ini.");
-        } finally {
-            setIsLoading(false);
-        }
-    }
-    fetchSpotData();
-  }, [spotId, firestore]);
+    setSpot(initialSpot);
+    setVrMode(false); // Exit VR mode on spot change
+  }, [initialSpot]);
 
   const goToSpot = (id: string) => {
     router.push(`/spot/${id}`);
   };
 
-  const isDataLoading = isLoading || isUserLoading || isProfileLoading;
+  const isDataLoading = isUserLoading || isProfileLoading;
+  const role = userProfile?.role || 'free';
 
   if (isDataLoading) {
     return (
@@ -81,31 +43,17 @@ export default function SpotPageClient({ spotId }: { spotId: string; }) {
     )
   }
 
-  if (error || !spot) {
-      return (
-         <div className="container mx-auto min-h-screen max-w-5xl p-4 md:p-8 flex items-center justify-center text-center">
-            <div>
-                <ServerCrash className="h-16 w-16 mx-auto text-destructive mb-4" />
-                <h1 className="text-2xl font-bold mb-2">Gagal Memuat Spot</h1>
-                <p className="text-muted-foreground mb-6">{error || 'Data untuk spot ini tidak dapat dimuat.'}</p>
-                <Button asChild>
-                    <Link href="/">
-                        <ChevronLeft className="mr-2 h-4 w-4" />
-                        Kembali ke Halaman Utama
-                    </Link>
-                </Button>
-            </div>
-        </div>
-      )
-  }
-
   if (spot.isPro && role === 'free') {
     return <LockedScreen spot={spot} />;
   }
 
+  // Use a different key for PanoramaViewer to force a re-mount when the spot changes
+  const viewerKey = `viewer-${spot.id}`;
+
   if (spot.viewType === 'panorama') {
     return (
         <PanoramaViewer
+            key={viewerKey}
             imageUrl={spot.imageUrl}
             hotspots={spot.hotspots || []}
             spotId={spot.id}
@@ -125,6 +73,7 @@ export default function SpotPageClient({ spotId }: { spotId: string; }) {
 
   return (
     <HybridViewer
+      key={viewerKey}
       imageUrl={spot.imageUrl}
       forcedType={spot.viewType !== 'auto' ? spot.viewType : undefined}
     >
@@ -132,5 +81,3 @@ export default function SpotPageClient({ spotId }: { spotId: string; }) {
     </HybridViewer>
   );
 }
-
-    

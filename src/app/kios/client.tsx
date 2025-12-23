@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Spot, KioskSettings } from '@/lib/types';
-import { getSpotClient } from '@/lib/firestore-client';
+import { getSpot } from '@/lib/firestore-admin';
 import { getOfflineLocationData } from '@/lib/offline';
 import { enterKioskLock, exitKioskLock } from '@/lib/kiosk';
 import KioskPlayer from './player';
@@ -13,6 +13,33 @@ import { useKioskHeartbeat, useKioskControl } from '@/hooks/use-kiosk';
 import { useFirestore } from '@/firebase';
 
 type PlaylistSpot = Spot & { duration: number };
+
+async function fetchSpotData(spotId: string, locationId?: string): Promise<Spot | null> {
+    try {
+        const response = await fetch(`/api/spots/${spotId}`);
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch (e) {
+        console.warn(`Online fetch failed for ${spotId}, trying offline.`, e);
+    }
+    
+    // Fallback to offline if online fails
+    try {
+        if (locationId) {
+            const offline = await getOfflineLocationData(locationId);
+            const cachedSpot = offline?.spots.find(s => s.id === spotId);
+            if (cachedSpot) {
+                return cachedSpot;
+            }
+        }
+    } catch (e) {
+        console.warn(`Offline fetch failed for ${spotId}.`, e);
+    }
+
+    return null;
+}
+
 
 export default function KiosClient({ settings }: { settings: KioskSettings }) {
   const router = useRouter();
@@ -65,31 +92,12 @@ export default function KiosClient({ settings }: { settings: KioskSettings }) {
       }
       
       const spotPromises = settings.playlist.map(async (item) => {
-          try {
-              // 1. Try online first
-              const onlineSpot = await getSpotClient(item.spotId);
-              if (onlineSpot) {
-                  return { ...onlineSpot, duration: item.duration };
-              }
-          } catch (e) {
-             console.warn(`Online fetch failed for ${item.spotId}, trying offline.`, e);
+          const spotData = await fetchSpotData(item.spotId, settings.locationId);
+          if (spotData) {
+            return { ...spotData, duration: item.duration };
           }
-
-          // 2. Fallback to offline
-          try {
-              if(settings.locationId) {
-                const offline = await getOfflineLocationData(settings.locationId);
-                const cachedSpot = offline?.spots.find(s => s.id === item.spotId);
-                if (cachedSpot) {
-                    return { ...cachedSpot, duration: item.duration };
-                }
-              }
-          } catch (e) {
-              console.warn(`Offline fetch failed for ${item.spotId}.`, e);
-          }
-          
           console.error(`Spot ${item.spotId} not found online or offline.`);
-          return null; // Return null if spot is not found anywhere
+          return null;
       });
 
       const loadedSpots = (await Promise.all(spotPromises)).filter(Boolean) as PlaylistSpot[];
@@ -109,14 +117,14 @@ export default function KiosClient({ settings }: { settings: KioskSettings }) {
     loadSpots();
   }, [settings]);
 
-    const kioskDeviceRef = doc(firestore, 'kioskDevices', 'kiosk-001');
-    const kioskControlRef = doc(firestore, 'kioskControl', 'global');
-    const currentSpotId = spots.length > 0 ? spots[0]?.id : undefined;
+  const kioskDeviceRef = useMemo(() => doc(firestore, 'kioskDevices', 'kiosk-001'), [firestore]);
+  const kioskControlRef = useMemo(() => doc(firestore, 'kioskControl', 'global'), [firestore]);
+  const currentSpotId = useMemo(() => spots.length > 0 ? spots[0]?.id : undefined, [spots]);
 
-    useKioskHeartbeat(kioskDeviceRef, currentSpotId);
-    useKioskControl(kioskControlRef, (ctrl) => {
-        // Handle control commands
-    });
+  useKioskHeartbeat(kioskDeviceRef, currentSpotId);
+  useKioskControl(kioskControlRef, (ctrl) => {
+      // Handle control commands
+  });
 
 
   if (loading) {
@@ -146,5 +154,3 @@ export default function KiosClient({ settings }: { settings: KioskSettings }) {
       />
   );
 }
-
-    

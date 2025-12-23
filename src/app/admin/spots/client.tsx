@@ -1,8 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
-import { collection } from 'firebase/firestore';
+import { useState, useMemo, useEffect } from 'react';
 import { Location, Spot } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -11,35 +10,43 @@ import { Plus, Edit, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { deleteSpot } from "@/lib/firestore-client";
 import { SpotForm } from "./spot-form";
-import { useCollection, useFirestore, useUser } from '@/firebase';
+import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface SpotsClientProps {
   locations: Location[];
+  initialSpots: Spot[];
 }
 
-export default function SpotsClient({ locations }: SpotsClientProps) {
+export default function SpotsClient({ locations, initialSpots }: SpotsClientProps) {
   const { userProfile } = useUser();
+  const [spots, setSpots] = useState<Spot[]>(initialSpots);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState<Spot | null>(null);
   const [filterLocationId, setFilterLocationId] = useState<string>('all');
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const firestore = useFirestore();
-
-  // Only run the query if the user is an admin
-  const spotsRef = userProfile?.role === 'admin' ? collection(firestore, 'spots') : null;
-  const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(spotsRef);
+  
+  const refreshSpots = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/admin/spots');
+      if (!response.ok) throw new Error("Failed to fetch spots");
+      const data = await response.json();
+      setSpots(data);
+    } catch (e) {
+      toast({ variant: 'destructive', title: 'Gagal', description: 'Gagal memuat ulang data spot.' });
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const handleFormSuccess = () => {
-    if (selectedSpot) {
-      toast({ title: "Berhasil", description: "Spot berhasil diperbarui." });
-    } else {
-      toast({ title: "Berhasil", description: "Spot baru berhasil ditambahkan." });
-    }
+    toast({ title: "Berhasil", description: `Spot telah ${selectedSpot ? 'diperbarui' : 'ditambahkan'}.` });
     setIsFormOpen(false);
     setSelectedSpot(null);
+    refreshSpots();
   };
 
   const openForm = (spot: Spot | null) => {
@@ -49,17 +56,19 @@ export default function SpotsClient({ locations }: SpotsClientProps) {
 
   const handleDelete = async (id: string) => {
     try {
-      await deleteSpot(id);
+      const response = await fetch(`/api/admin/spots/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Gagal menghapus spot.');
+      }
       toast({ title: "Berhasil", description: "Spot berhasil dihapus." });
-    } catch (error) {
-      // Error is now handled by the global errorEmitter. No need for a toast here.
+      refreshSpots();
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Gagal', description: error.message });
     }
   };
 
   const filteredSpots = useMemo(() => {
-    if (!spots) {
-      return [];
-    }
     const spotsToSort = [...spots];
     if (filterLocationId === 'all') {
       return spotsToSort.sort((a, b) => a.order - b.order);
@@ -105,7 +114,7 @@ export default function SpotsClient({ locations }: SpotsClientProps) {
         </Button>
       </div>
 
-      {spotsLoading ? (
+      {loading ? (
         <div className="space-y-4">
           <Skeleton className="h-24 w-full" />
           <Skeleton className="h-24 w-full" />

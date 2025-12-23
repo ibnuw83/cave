@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Location } from '@/lib/types';
-import { addLocation, updateLocation } from '@/lib/firestore-client';
+import { addLocation, updateLocation } from '@/lib/firestore-admin-api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -66,7 +66,6 @@ export function LocationForm({ location, onSave, onCancel }: LocationFormProps) 
           ...values,
         };
   
-        // Always include miniMap, using existing or providing default
         await updateLocation(location.id, {
           ...values,
           miniMap: location.miniMap ?? { nodes: [], edges: [] },
@@ -75,21 +74,17 @@ export function LocationForm({ location, onSave, onCancel }: LocationFormProps) 
         onSave(updatedLocationData);
   
       } else {
-        // Ensure miniMap is created for new locations
         const newLocationData: Omit<Location, 'id'> = {
           ...values,
           miniMap: { nodes: [], edges: [] },
         };
   
-        const newLocationId = await addLocation(newLocationData);
+        const newLocation = await addLocation(newLocationData);
   
-        onSave({
-          id: newLocationId,
-          ...newLocationData,
-        } as Location);
+        onSave(newLocation);
       }
-    } catch (error) {
-      // Error handled by global error handler
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Gagal', description: error.message || 'Gagal menyimpan lokasi.' });
     }
   };
 

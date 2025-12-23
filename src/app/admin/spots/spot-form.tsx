@@ -5,7 +5,6 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Location, Spot } from '@/lib/types';
-import { addSpot, updateSpot } from '@/lib/firestore-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -104,17 +103,25 @@ export function SpotForm({ spot, locations, allSpots, onSave, onCancel }: SpotFo
     // remove vibrationPattern from top level
     delete (spotData as any).vibrationPattern;
 
+    const url = spot ? `/api/admin/spots/${spot.id}` : '/api/admin/spots';
+    const method = spot ? 'PUT' : 'POST';
+
     try {
-      if (spot) {
-        await updateSpot(spot.id, spotData);
-        onSave({ id: spot.id, ...spotData } as Spot);
-      } else {
-        const newSpotId = await addSpot(spotData);
-        onSave({ id: newSpotId, ...spotData } as Spot);
-      }
-    } catch (error) {
-        // Error is now handled by the permission-error emitter in firestore.ts
-        // The toast will be shown by the global listener.
+        const response = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(spotData),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Gagal menyimpan spot.');
+        }
+
+        const savedSpot = await response.json();
+        onSave(savedSpot);
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Gagal', description: error.message });
     }
   };
 

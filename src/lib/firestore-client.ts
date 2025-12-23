@@ -17,8 +17,8 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
-import { initializeFirebase } from '@/firebase/init'; // UPDATED IMPORT
-import type { UserProfile, Location, Spot, KioskSettings, PricingTier } from './types';
+import { initializeFirebase } from '@/firebase/init';
+import type { UserProfile, Location, Spot, KioskSettings, PricingTier } from '../types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -53,22 +53,27 @@ export async function getUserProfileClient(uid: string): Promise<UserProfile | n
 }
 
 export async function createUserProfile(user: User): Promise<UserProfile> {
-    const userProfileData: Omit<UserProfile, 'id' | 'updatedAt' | 'role'> = {
+    const userProfileData = {
       displayName: user.displayName || user.email?.split('@')[0] || 'Pengguna Baru',
       email: user.email,
       photoURL: user.photoURL,
+      role: 'free' as const,
+      updatedAt: serverTimestamp(),
     };
     const userRef = doc(db, 'users', user.uid);
 
     try {
-        const userDataWithRole = { ...userProfileData, role: 'free' as const, updatedAt: serverTimestamp() };
-        await setDoc(userRef, userDataWithRole, { merge: true });
+        await setDoc(userRef, userProfileData, { merge: true });
+        
+        // After setting, we return a client-side object with a local date
         const createdProfile: UserProfile = {
             id: user.uid,
-            ...userProfileData,
+            displayName: userProfileData.displayName,
+            email: userProfileData.email,
+            photoURL: userProfileData.photoURL,
             role: 'free',
             updatedAt: new Date(), // Use local date for immediate feedback
-        } as UserProfile
+        };
         return createdProfile;
     } catch (error: any) {
          if (error.code === 'permission-denied') {
@@ -451,3 +456,6 @@ export async function trackKioskSpotView(locationId: string, spotId: string): Pr
         console.warn(`Failed to track kiosk view for spot ${spotId}:`, error.message);
     }
 }
+
+
+    

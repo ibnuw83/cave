@@ -1,17 +1,32 @@
+
 import type { Metadata } from 'next';
 import CaveClient from './client';
 import { notFound } from 'next/navigation';
+import { getLocation } from '@/lib/firestore-admin';
+import { getSpotsForLocation } from '@/lib/firestore-admin';
 
 type Props = {
   params: { id: string };
 };
 
-// Metadata can be generated on the client if needed, or kept static
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-    return {
-      title: `Lokasi ${params.id}`,
-      description: `Jelajahi detail lokasi ${params.id}.`,
-    };
+  try {
+    const location = await getLocation(params.id);
+    if (location) {
+      return {
+        title: location.name,
+        description: `Jelajahi spot-spot menakjubkan di ${location.name}.`,
+      };
+    }
+  } catch (error) {
+    // Fallback metadata on error
+    console.error(`[Metadata] Failed to fetch location ${params.id}:`, error);
+  }
+
+  return {
+    title: `Lokasi Tidak Ditemukan`,
+    description: `Data untuk lokasi ini tidak dapat dimuat.`,
+  };
 }
 
 export default async function CavePage({ params }: Props) {
@@ -20,9 +35,16 @@ export default async function CavePage({ params }: Props) {
   if (!locationId) {
     notFound();
   }
+  
+  const location = await getLocation(locationId);
+  
+  // If no location is found, trigger the 404 page immediately.
+  if (!location) {
+    notFound();
+  }
 
-  // The client component will handle fetching its own data
-  return <CaveClient locationId={locationId} />;
+  // Fetch spots for the location
+  const spots = await getSpotsForLocation(locationId);
+
+  return <CaveClient initialLocation={location} initialSpots={spots} />;
 }
-
-    
