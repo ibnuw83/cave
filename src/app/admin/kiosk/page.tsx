@@ -1,9 +1,10 @@
+
 'use client';
 
 import KioskClient from "./client";
 import { Location } from "@/lib/types";
 import { useState, useEffect } from "react";
-import { getLocations as getLocationsClient } from "@/lib/firestore-client";
+import { getLocations } from "@/lib/firestore-client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,7 +16,7 @@ export default function KioskSettingsPage() {
   const { toast } = useToast();
   
   useEffect(() => {
-    getLocationsClient(true) // Fetch all locations, including inactive ones for the admin
+    getLocations(true) // Fetch all locations, including inactive ones for the admin
       .then(setLocations)
       .catch(() => {
         toast({
