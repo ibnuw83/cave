@@ -1,10 +1,5 @@
 'use client';
 
-// Guard untuk memastikan komponen ini tidak pernah dirender di server.
-if (typeof window === 'undefined') {
-  throw new Error('FirebaseClientProvider must only run on the client');
-}
-
 import React, { createContext, useContext, ReactNode, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
@@ -13,7 +8,6 @@ import { initializeFirebase } from '@/firebase/init';
 import { errorEmitter } from './error-emitter';
 import { FirestorePermissionError } from './errors';
 import { useToast } from '@/hooks/use-toast';
-
 
 function FirebaseErrorListener() {
   const { toast } = useToast();
@@ -44,8 +38,6 @@ interface FirebaseServices {
   auth: Auth;
 }
 
-// Initialize Firebase services once when the module is loaded.
-// This creates a stable, singleton instance.
 const firebaseServices = initializeFirebase();
 
 export const FirebaseContext = createContext<FirebaseServices | undefined>(undefined);
@@ -83,5 +75,3 @@ export const useFirebaseApp = (): FirebaseApp => {
   const { firebaseApp } = useFirebase();
   return firebaseApp;
 };
-
-    

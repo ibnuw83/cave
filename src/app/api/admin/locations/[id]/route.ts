@@ -16,6 +16,29 @@ async function verifyAdmin(req: NextRequest) {
     }
 }
 
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+    const adminUser = await verifyAdmin(req);
+    if (!adminUser) {
+        return NextResponse.json({ error: 'Akses ditolak.' }, { status: 403 });
+    }
+
+    try {
+        const { id } = params;
+        const docRef = adminDb.collection('locations').doc(id);
+        const docSnap = await docRef.get();
+
+        if (!docSnap.exists) {
+            return NextResponse.json({ error: 'Lokasi tidak ditemukan.' }, { status: 404 });
+        }
+
+        return NextResponse.json({ id: docSnap.id, ...docSnap.data() });
+    } catch (error: any) {
+        console.error(`Error fetching location ${params.id}:`, error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+}
+
+
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
     const adminUser = await verifyAdmin(req);
     if (!adminUser) {
