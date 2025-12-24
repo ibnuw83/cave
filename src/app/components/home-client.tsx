@@ -31,6 +31,8 @@ import { useUser, useAuth } from '@/firebase';
 import { signOut as firebaseSignOut } from 'firebase/auth';
 import { getLocations, getKioskSettings } from '@/lib/firestore-client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Toaster } from '@/components/ui/toaster';
+import Footer from './footer';
 
 const AuthSection = () => {
   const { user, userProfile, isUserLoading, isProfileLoading } = useUser();
@@ -267,6 +269,8 @@ export default function HomeClient() {
             )}
         </div>
       </main>
+      <Footer />
+      <Toaster />
     </div>
   );
 }

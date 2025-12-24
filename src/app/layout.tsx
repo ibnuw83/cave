@@ -1,6 +1,3 @@
-'use client';
-
-import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';
 import Script from 'next/script';
@@ -23,10 +20,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <FirebaseClientProvider>
-            <div className="flex flex-col min-h-screen">
-              <main className="flex-grow">{children}</main>
-            </div>
-            <Toaster />
+          {children}
         </FirebaseClientProvider>
       </body>
     </html>

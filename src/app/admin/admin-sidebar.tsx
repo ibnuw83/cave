@@ -6,9 +6,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { Mountain, MapPin, Users, Home, LogOut, ArrowLeft, Settings, User as UserIcon, Gem, ChevronsUpDown, Loader2 } from 'lucide-react';
+import { Mountain, MapPin, Users, Home, LogOut, ArrowLeft, Settings, User as UserIcon, Gem } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { KioskSettings, Location, UserProfile } from '@/lib/types';
+import { KioskSettings, UserProfile } from '@/lib/types';
 import Image from 'next/image';
 import { useAuth } from '@/firebase';
 import { User, signOut as firebaseSignOut } from 'firebase/auth';
@@ -21,8 +21,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { getLocations } from '@/lib/firestore-client';
 
 function AdminNavLink({ href, icon, label, color, activeColor }: { href: string; icon: React.ReactNode; label: string; color: string; activeColor: string; }) {
   const pathname = usePathname();
@@ -41,55 +39,6 @@ function AdminNavLink({ href, icon, label, color, activeColor }: { href: string;
     </Link>
   );
 }
-
-function LocationsSubMenu() {
-    const [locations, setLocations] = useState<Location[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const pathname = usePathname();
-
-    useEffect(() => {
-        getLocations(true).then(data => {
-            setLocations(data.sort((a,b) => a.name.localeCompare(b.name)));
-            setIsLoading(false);
-        });
-    }, []);
-
-    const isLocationsActive = pathname.startsWith('/admin/locations');
-
-    return (
-        <Collapsible defaultOpen={isLocationsActive}>
-            <CollapsibleTrigger className="w-full">
-                 <div className={cn(
-                    'flex flex-col items-center justify-center rounded-md p-2 text-xs font-medium transition-colors md:flex-row md:justify-between md:gap-3 md:text-sm md:px-3 md:py-2 w-full',
-                    isLocationsActive ? `bg-primary/20 text-amber-300 border border-primary/20` : `text-amber-400 hover:bg-muted/50 hover:text-foreground`
-                )}>
-                    <div className="flex flex-col items-center md:flex-row md:gap-3">
-                        <Mountain />
-                        <span className="mt-1 md:mt-0">Lokasi</span>
-                    </div>
-                    <ChevronsUpDown className="hidden md:block h-4 w-4" />
-                </div>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="md:pl-6 text-sm">
-                <div className="flex flex-col items-stretch py-2 gap-1">
-                    {isLoading ? (
-                        <div className='flex items-center justify-center p-2'><Loader2 className="h-4 w-4 animate-spin"/></div>
-                    ) : (
-                        locations.map(loc => (
-                            <Link key={loc.id} href={`/admin/locations/${loc.id}`} className={cn(
-                                "py-1 px-3 rounded-md hover:bg-muted/50",
-                                pathname === `/admin/locations/${loc.id}` && "bg-primary/10 text-amber-200"
-                            )}>
-                                {loc.name}
-                            </Link>
-                        ))
-                    )}
-                </div>
-            </CollapsibleContent>
-        </Collapsible>
-    );
-}
-
 
 export default function AdminSidebar({ user, userProfile }: { user: User; userProfile: UserProfile }) {
   const [settings, setSettings] = useState<KioskSettings | null>(null);
@@ -222,7 +171,7 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
       {/* Main Navigation */}
       <nav className="grid grid-cols-5 gap-1 md:flex md:flex-col md:gap-1 md:p-4">
         <AdminNavLink href="/admin" icon={<Home />} label="Dashboard" color="text-sky-400" activeColor="text-sky-300" />
-        <div className='contents md:block'><LocationsSubMenu /></div>
+        <AdminNavLink href="/admin/locations" icon={<Mountain />} label="Lokasi" color="text-amber-400" activeColor="text-amber-300" />
         <AdminNavLink href="/admin/spots" icon={<MapPin />} label="Spot" color="text-rose-400" activeColor="text-rose-300" />
         <AdminNavLink href="/admin/pricing" icon={<Gem />} label="Paket" color="text-teal-400" activeColor="text-teal-300" />
         <AdminNavLink href="/admin/kiosk" icon={<Settings />} label="Pengaturan" color="text-violet-400" activeColor="text-violet-300" />
