@@ -26,7 +26,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { clearOfflineCache } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
-import placeholderImages from '@/lib/placeholder-images.json';
 import { useRouter } from 'next/navigation';
 import { useUser, useAuth } from '@/firebase';
 import { signOut as firebaseSignOut } from 'firebase/auth';
@@ -147,17 +146,23 @@ export default function HomeClient() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [settings, setSettings] = useState<KioskSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [heroImage, setHeroImage] = useState('/placeholder.jpg');
   
   useEffect(() => {
     async function fetchData() {
         setIsLoading(true);
         try {
-            const [locsData, settingsData] = await Promise.all([
+            const [locsData, settingsData, imagesData] = await Promise.all([
                 getLocations(),
                 getKioskSettings(),
+                fetch('/placeholder-images.json').then(res => res.json())
             ]);
             setLocations(locsData);
             setSettings(settingsData);
+            const heroImg = imagesData.placeholderImages.find((img: any) => img.id === 'hero-background');
+            if (heroImg) {
+                setHeroImage(heroImg.imageUrl);
+            }
         } catch (err) {
             console.error("Failed to fetch initial data on client:", err);
         } finally {
@@ -166,8 +171,6 @@ export default function HomeClient() {
     }
     fetchData();
   }, []);
-
-  const heroImage = placeholderImages.placeholderImages.find(img => img.id === 'hero-background')?.imageUrl || '/placeholder.jpg';
   
   return (
     <div className="min-h-screen">

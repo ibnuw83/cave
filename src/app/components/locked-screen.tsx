@@ -5,10 +5,21 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Lock, ArrowLeft, Gem } from 'lucide-react';
-import placeholderImages from '@/lib/placeholder-images.json';
+import { useEffect, useState } from 'react';
 
 export default function LockedScreen({ spot }: { spot: Spot }) {
-  const bgImage = placeholderImages.placeholderImages.find(img => img.id === 'locked-screen-background')?.imageUrl || spot.imageUrl;
+  const [bgImage, setBgImage] = useState(spot.imageUrl);
+
+  useEffect(() => {
+    fetch('/placeholder-images.json')
+      .then(res => res.json())
+      .then(data => {
+        const lockedImg = data.placeholderImages.find((img: any) => img.id === 'locked-screen-background');
+        if (lockedImg) {
+          setBgImage(lockedImg.imageUrl);
+        }
+      });
+  }, []);
   
   return (
     <div className="relative h-screen w-screen overflow-hidden">
