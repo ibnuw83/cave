@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, CheckCircle, ArrowLeft } from 'lucide-react';
-import { useUser } from '@/firebase';
+import { useUser, useAuth } from '@/firebase';
 import { getPricingTiers, updateUserRole } from '@/lib/firestore-client';
 import { PricingTier, UserProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -16,7 +16,8 @@ import Link from 'next/link';
 function PembayaranComponent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading, refreshUserProfile } = useUser();
+  const auth = useAuth();
   const { toast } = useToast();
 
   const [tier, setTier] = useState<PricingTier | null>(null);
@@ -62,7 +63,15 @@ function PembayaranComponent() {
 
     setIsProcessing(true);
     try {
+      // 1. Update role in Firestore
       await updateUserRole(user.uid, tier.id as UserProfile['role']);
+      
+      // 2. Force refresh the auth token to get the new custom claims
+      await auth.currentUser?.getIdToken(true);
+
+      // 3. Refresh local user profile state from Firestore
+      await refreshUserProfile();
+
       toast({
         title: 'Pembayaran Berhasil!',
         description: `Anda sekarang adalah pengguna ${tier.name}.`,

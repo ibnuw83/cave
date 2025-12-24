@@ -24,7 +24,7 @@ export default function UsersClient() {
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const auth = useAuth();
-  const { user: currentUser, userProfile, isProfileLoading } = useUser();
+  const { user: currentUser, userProfile, isProfileLoading, refreshUserProfile } = useUser();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
 
@@ -112,6 +112,14 @@ export default function UsersClient() {
     
     try {
         await updateUserRole(uid, newRole);
+        
+        // Force token refresh for the current admin user if they change their own role (though disallowed)
+        // More importantly, this pattern is needed if we were to allow users to change their own role elsewhere
+        if (currentUser?.uid === uid) {
+            await auth.currentUser?.getIdToken(true);
+            await refreshUserProfile();
+        }
+
         setUsers(currentUsers => 
             currentUsers.map(u => u.id === uid ? { ...u, role: newRole } : u)
         );
