@@ -52,8 +52,10 @@ function SpotCard({ spot, isLocked, isOffline, lockedMessage }: { spot: Spot; is
     </Card>
   );
 
+  const destination = isLocked ? '/pricing' : `/spot/${spot.id}`;
+
   return (
-    <Link href={`/spot/${spot.id}`} className="group" prefetch={false}>
+    <Link href={destination} className="group" prefetch={false}>
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -95,7 +97,7 @@ function CavePageFallback() {
 export default function CavePage() {
   const params = useParams();
   const router = useRouter();
-  const { userProfile } = useUser();
+  const { userProfile, isUserLoading, isProfileLoading } = useUser();
   const { toast } = useToast();
 
   const [location, setLocation] = useState<Location | null>(null);
@@ -149,9 +151,11 @@ export default function CavePage() {
             setLoading(false);
         }
     }
-
-    fetchData();
-  }, [id, isAdmin]);
+    
+    if(!isUserLoading && !isProfileLoading) {
+      fetchData();
+    }
+  }, [id, isAdmin, isUserLoading, isProfileLoading]);
 
   useEffect(() => {
     if (location) {
