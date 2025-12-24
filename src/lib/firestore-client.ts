@@ -54,25 +54,22 @@ export async function getUserProfileClient(uid: string): Promise<UserProfile | n
 }
 
 export async function createUserProfile(user: User): Promise<UserProfile> {
-    const userProfileData = {
+    const userProfileData: Omit<UserProfile, 'id' | 'updatedAt'> = {
       displayName: user.displayName || user.email?.split('@')[0] || 'Pengguna Baru',
       email: user.email,
       photoURL: user.photoURL,
       role: 'free' as const,
-      updatedAt: serverTimestamp(),
+      disabled: false,
     };
     const userRef = doc(db, 'users', user.uid);
 
     try {
-        await setDoc(userRef, userProfileData, { merge: true });
+        await setDoc(userRef, { ...userProfileData, updatedAt: serverTimestamp() }, { merge: true });
         
         // After setting, we return a client-side object with a local date
         const createdProfile: UserProfile = {
             id: user.uid,
-            displayName: userProfileData.displayName,
-            email: userProfileData.email,
-            photoURL: userProfileData.photoURL,
-            role: 'free',
+            ...userProfileData,
             updatedAt: new Date(), // Use local date for immediate feedback
         };
         return createdProfile;

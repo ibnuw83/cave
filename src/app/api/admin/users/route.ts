@@ -36,32 +36,30 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        const userRecords = await adminAuth.listUsers();
+        // Use Firestore as the source of truth for the user list.
         const usersRef = adminDb.collection('users');
         const usersSnap = await usersRef.get();
-        const profiles: Record<string, UserProfile> = {};
+        
+        const profiles: UserProfile[] = [];
         usersSnap.forEach(doc => {
-            profiles[doc.id] = doc.data() as UserProfile;
+            profiles.push({ id: doc.id, ...doc.data() } as UserProfile);
         });
 
-        const users = userRecords.users.map(user => {
-            const profile = profiles[user.uid];
-            // Provide safe fallbacks if a user exists in Auth but not in Firestore
-            const creationTime = user.metadata.creationTime ? new Date(user.metadata.creationTime) : new Date();
-            
-            return {
-                id: user.uid,
-                email: user.email || null,
-                displayName: user.displayName || null,
-                photoURL: user.photoURL || null,
-                role: profile?.role || 'free',
-                disabled: user.disabled,
-                // Ensure updatedAt is always a valid date
-                updatedAt: profile?.updatedAt || creationTime,
-            };
+        // Get auth data to supplement with disabled status
+        const userRecords = await adminAuth.listUsers();
+        const authDataMap = new Map(userRecords.users.map(u => [u.uid, u]));
+        
+        const combinedUsers = profiles.map(profile => {
+          const authUser = authDataMap.get(profile.id);
+          return {
+            ...profile,
+            // Ensure `disabled` status is always present, defaulting to false.
+            disabled: authUser ? authUser.disabled : (profile.disabled ?? false),
+          };
         });
 
-        return NextResponse.json(users);
+        return NextResponse.json(combinedUsers);
+
     } catch (error: any) {
         console.error('[API] Gagal mengambil daftar pengguna:', error);
         return NextResponse.json({ error: error.message || 'Gagal mengambil daftar pengguna.' }, { status: 500 });
@@ -95,11 +93,12 @@ export async function POST(req: NextRequest) {
             email,
             displayName,
             role,
+            disabled: false, // Ensure disabled field is set
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
         
         return NextResponse.json({ uid: userRecord.uid, email: userRecord.email }, { status: 201 });
-    } catch (error: any) {
+    } catch (error: any)
         console.error('[API] Gagal membuat pengguna:', error);
          if (error.code === 'auth/email-already-exists') {
             return NextResponse.json({ error: 'Email ini sudah terdaftar.' }, { status: 409 });
