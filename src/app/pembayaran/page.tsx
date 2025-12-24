@@ -16,7 +16,7 @@ import Link from 'next/link';
 function PembayaranComponent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, isUserLoading, refreshUserProfile } = useUser();
+  const { user, userProfile, isUserLoading, refreshUserProfile } = useUser();
   const auth = useAuth();
   const { toast } = useToast();
 
@@ -60,6 +60,14 @@ function PembayaranComponent() {
 
   const handleSimulatePayment = async () => {
     if (!user || !tier || !auth.currentUser) return;
+
+    if (userProfile?.role === tier.id) {
+      toast({
+        title: 'Paket sudah aktif',
+        description: 'Akun Anda sudah menggunakan paket ini.',
+      });
+      return;
+    }
 
     setIsProcessing(true);
     try {
