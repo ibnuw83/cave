@@ -6,25 +6,28 @@ import * as admin from 'firebase-admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
 async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
-    const adminApp = safeGetAdminApp();
-    const adminAuth = admin.auth(adminApp);
-    const adminDb = admin.firestore(adminApp);
+  const services = safeGetAdminApp();
+  if (!services) return null;
 
-    const authorization = req.headers.get('Authorization');
-    if (authorization?.startsWith('Bearer ')) {
-      const idToken = authorization.split('Bearer ')[1];
-      try {
-        const decodedToken = await adminAuth.verifyIdToken(idToken);
-        const userDoc = await adminDb.collection('users').doc(decodedToken.uid).get();
-        if (userDoc.exists && userDoc.data()?.role === 'admin') {
-            return decodedToken;
-        }
-      } catch (error) {
-        console.error("Error verifying token:", error);
-        return null;
-      }
+  const { auth, db } = services;
+
+  const authorization = req.headers.get('Authorization');
+  if (!authorization?.startsWith('Bearer ')) return null;
+
+  const idToken = authorization.replace('Bearer ', '');
+
+  try {
+    const decodedToken = await auth.verifyIdToken(idToken);
+    const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+
+    if (userDoc.exists && userDoc.data()?.role === 'admin') {
+      return decodedToken;
     }
     return null;
+  } catch (err) {
+    console.error('[verifyAdmin]', err);
+    return null;
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -32,10 +35,13 @@ export async function GET(req: NextRequest) {
     if (!adminUser) {
         return NextResponse.json({ error: 'Akses ditolak.' }, { status: 403 });
     }
+    
+    const services = safeGetAdminApp();
+    if (!services) return NextResponse.json({ error: 'Admin SDK tidak tersedia.' }, { status: 500 });
+    const { db } = services;
+
     try {
-        const adminApp = safeGetAdminApp();
-        const adminDb = admin.firestore(adminApp);
-        const locationsRef = adminDb.collection('locations');
+        const locationsRef = db.collection('locations');
         const querySnapshot = await locationsRef.get();
         const locations = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Location));
         return NextResponse.json(locations);
@@ -50,10 +56,12 @@ export async function POST(req: NextRequest) {
     if (!adminUser) {
         return NextResponse.json({ error: 'Akses ditolak.' }, { status: 403 });
     }
+    
+    const services = safeGetAdminApp();
+    if (!services) return NextResponse.json({ error: 'Admin SDK tidak tersedia.' }, { status: 500 });
+    const { db } = services;
 
     try {
-        const adminApp = safeGetAdminApp();
-        const adminDb = admin.firestore(adminApp);
         const locationData: Omit<Location, 'id' | 'miniMap'> = await req.json();
         
         const dataToSave = {
@@ -63,7 +71,7 @@ export async function POST(req: NextRequest) {
           miniMap: { nodes: [], edges: [] }
         };
 
-        const docRef = await adminDb.collection('locations').add(dataToSave);
+        const docRef = await db.collection('locations').add(dataToSave);
         const newLocation = { id: docRef.id, ...dataToSave };
         return NextResponse.json(newLocation, { status: 201 });
     } catch (error: any) {

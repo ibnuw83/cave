@@ -1,9 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { safeGetAdminApp } from '@/firebase/admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
-import * as admin from 'firebase-admin';
 
 /**
  * Verifies if the request comes from an authenticated admin user.
@@ -11,25 +9,28 @@ import * as admin from 'firebase-admin';
  * @returns A promise that resolves to the admin's DecodedIdToken or null if not an admin.
  */
 async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
-    const adminApp = safeGetAdminApp();
-    const adminAuth = admin.auth(adminApp);
-    const adminDb = admin.firestore(adminApp);
+  const services = safeGetAdminApp();
+  if (!services) return null;
 
-    const authorization = req.headers.get('Authorization');
-    if (authorization?.startsWith('Bearer ')) {
-      const idToken = authorization.split('Bearer ')[1];
-      try {
-        const decodedToken = await adminAuth.verifyIdToken(idToken);
-        const userDoc = await adminDb.collection('users').doc(decodedToken.uid).get();
-        if (userDoc.exists && userDoc.data()?.role === 'admin') {
-            return decodedToken;
-        }
-      } catch (error) {
-        console.error("Error verifying token:", error);
-        return null;
-      }
+  const { auth, db } = services;
+
+  const authorization = req.headers.get('Authorization');
+  if (!authorization?.startsWith('Bearer ')) return null;
+
+  const idToken = authorization.replace('Bearer ', '');
+
+  try {
+    const decodedToken = await auth.verifyIdToken(idToken);
+    const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+
+    if (userDoc.exists && userDoc.data()?.role === 'admin') {
+      return decodedToken;
     }
     return null;
+  } catch (err) {
+    console.error('[verifyAdmin]', err);
+    return null;
+  }
 }
 
 // Handler for PUT /api/admin/users/[id] to update user status
@@ -41,6 +42,10 @@ export async function PUT(
     if (!adminUser) {
         return NextResponse.json({ error: 'Akses ditolak: Hanya admin yang diizinkan.' }, { status: 403 });
     }
+    
+    const services = safeGetAdminApp();
+    if (!services) return NextResponse.json({ error: 'Admin SDK tidak tersedia.' }, { status: 500 });
+    const { auth, db } = services;
 
     const userId = params.id;
     if (!userId) {
@@ -55,9 +60,6 @@ export async function PUT(
     }
 
     try {
-        const adminApp = safeGetAdminApp();
-        const adminAuth = admin.auth(adminApp);
-        const adminDb = admin.firestore(adminApp);
         const body = await req.json();
         const { disabled } = body;
 
@@ -65,8 +67,8 @@ export async function PUT(
             return NextResponse.json({ error: 'Properti `disabled` (boolean) diperlukan.' }, { status: 400 });
         }
 
-        await adminAuth.updateUser(userId, { disabled });
-        await adminDb.collection('users').doc(userId).update({ disabled });
+        await auth.updateUser(userId, { disabled });
+        await db.collection('users').doc(userId).update({ disabled });
         
         return NextResponse.json({ message: `Status pengguna berhasil diubah.` });
 
@@ -86,6 +88,10 @@ export async function DELETE(
     if (!adminUser) {
         return NextResponse.json({ error: 'Akses ditolak: Hanya admin yang diizinkan.' }, { status: 403 });
     }
+    
+    const services = safeGetAdminApp();
+    if (!services) return NextResponse.json({ error: 'Admin SDK tidak tersedia.' }, { status: 500 });
+    const { auth, db } = services;
 
     const userId = params.id;
     if (!userId) {
@@ -100,12 +106,9 @@ export async function DELETE(
     }
 
     try {
-        const adminApp = safeGetAdminApp();
-        const adminAuth = admin.auth(adminApp);
-        const adminDb = admin.firestore(adminApp);
-        const batch = adminDb.batch();
-        batch.delete(adminDb.collection('users').doc(userId));
-        await adminAuth.deleteUser(userId);
+        const batch = db.batch();
+        batch.delete(db.collection('users').doc(userId));
+        await auth.deleteUser(userId);
         await batch.commit();
 
         return NextResponse.json({ message: 'Pengguna berhasil dihapus.' });

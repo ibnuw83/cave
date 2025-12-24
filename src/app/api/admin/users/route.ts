@@ -11,25 +11,28 @@ import * as admin from 'firebase-admin';
  * @returns A promise that resolves to the admin's DecodedIdToken or null if not an admin.
  */
 async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
-    const adminApp = safeGetAdminApp();
-    const adminAuth = admin.auth(adminApp);
-    const adminDb = admin.firestore(adminApp);
+  const services = safeGetAdminApp();
+  if (!services) return null;
 
-    const authorization = req.headers.get('Authorization');
-    if (authorization?.startsWith('Bearer ')) {
-      const idToken = authorization.split('Bearer ')[1];
-      try {
-        const decodedToken = await adminAuth.verifyIdToken(idToken);
-        const userDoc = await adminDb.collection('users').doc(decodedToken.uid).get();
-        if (userDoc.exists && userDoc.data()?.role === 'admin') {
-            return decodedToken;
-        }
-      } catch (error) {
-        console.error("Error verifying token:", error);
-        return null;
-      }
+  const { auth, db } = services;
+
+  const authorization = req.headers.get('Authorization');
+  if (!authorization?.startsWith('Bearer ')) return null;
+
+  const idToken = authorization.replace('Bearer ', '');
+
+  try {
+    const decodedToken = await auth.verifyIdToken(idToken);
+    const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+
+    if (userDoc.exists && userDoc.data()?.role === 'admin') {
+      return decodedToken;
     }
     return null;
+  } catch (err) {
+    console.error('[verifyAdmin]', err);
+    return null;
+  }
 }
 
 // Handler for GET /api/admin/users to fetch all users
@@ -38,29 +41,22 @@ export async function GET(req: NextRequest) {
     if (!adminUser) {
         return NextResponse.json({ error: 'Akses ditolak: Hanya admin yang diizinkan.' }, { status: 403 });
     }
+    
+    const services = safeGetAdminApp();
+    if (!services) return NextResponse.json({ error: 'Admin SDK tidak tersedia.' }, { status: 500 });
+    const { auth, db } = services;
 
     try {
-        const adminApp = safeGetAdminApp();
-        const adminAuth = admin.auth(adminApp);
-        const adminDb = admin.firestore(adminApp);
-        // Use Firestore as the source of truth for the user list.
-        const usersRef = adminDb.collection('users');
-        const usersSnap = await usersRef.get();
-        
-        const profiles: UserProfile[] = [];
-        usersSnap.forEach(doc => {
-            profiles.push({ id: doc.id, ...doc.data() } as UserProfile);
-        });
+        const usersSnap = await db.collection('users').get();
+        const profiles: UserProfile[] = usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
 
-        // Get auth data to supplement with disabled status
-        const userRecords = await adminAuth.listUsers();
+        const userRecords = await auth.listUsers();
         const authDataMap = new Map(userRecords.users.map(u => [u.uid, u]));
         
         const combinedUsers = profiles.map(profile => {
           const authUser = authDataMap.get(profile.id);
           return {
             ...profile,
-            // Ensure `disabled` status is always present, defaulting to false.
             disabled: authUser ? authUser.disabled : (profile.disabled ?? false),
           };
         });
@@ -81,10 +77,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Akses ditolak: Hanya admin yang diizinkan.' }, { status: 403 });
     }
 
+    const services = safeGetAdminApp();
+    if (!services) return NextResponse.json({ error: 'Admin SDK tidak tersedia.' }, { status: 500 });
+    const { auth, db } = services;
+
     try {
-        const adminApp = safeGetAdminApp();
-        const adminAuth = admin.auth(adminApp);
-        const adminDb = admin.firestore(adminApp);
         const body = await req.json();
         const { email, password, displayName, role } = body;
 
@@ -97,9 +94,9 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Role tidak valid.' }, { status: 400 });
         }
 
-        const userRecord = await adminAuth.createUser({ email, password, displayName });
+        const userRecord = await auth.createUser({ email, password, displayName });
         
-        await adminDb.collection('users').doc(userRecord.uid).set({
+        await db.collection('users').doc(userRecord.uid).set({
             email,
             displayName,
             role,

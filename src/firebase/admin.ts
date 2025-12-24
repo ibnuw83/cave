@@ -1,15 +1,23 @@
 
 import * as admin from 'firebase-admin';
 
+let services: { auth: admin.auth.Auth; db: admin.firestore.Firestore; } | null = null;
+
 /**
- * Ensures that the Firebase Admin SDK is initialized only once.
- * This function is the single entry point for accessing the admin app instance.
- * @returns The initialized Firebase Admin App instance.
+ * Ensures that the Firebase Admin SDK is initialized only once and returns auth/db services.
+ * This function is the single entry point for accessing the admin services.
+ * @returns An object containing the initialized auth and firestore services, or null on failure.
  */
-export function safeGetAdminApp(): admin.app.App {
-  // If the app is already initialized, return it.
+export function safeGetAdminApp(): { auth: admin.auth.Auth; db: admin.firestore.Firestore } | null {
+  if (services) {
+    return services;
+  }
+
+  // If the app is already initialized, get services from it.
   if (admin.apps.length > 0) {
-    return admin.app();
+    const app = admin.app();
+    services = { auth: admin.auth(app), db: admin.firestore(app) };
+    return services;
   }
 
   // Otherwise, initialize the app.
@@ -19,20 +27,21 @@ export function safeGetAdminApp(): admin.app.App {
     if (!projectId) {
       throw new Error("NEXT_PUBLIC_FIREBASE_PROJECT_ID is not set in the environment variables.");
     }
-
+    
     // In a Google Cloud environment (like App Hosting), initializing without arguments
     // automatically uses the project's service account credentials.
-    admin.initializeApp();
+    const app = admin.initializeApp();
     
     // Explicitly unset the emulator host environment variable after initialization.
     // This prevents accidental connections to an emulator in production.
     delete process.env.FIRESTORE_EMULATOR_HOST;
 
+    services = { auth: admin.auth(app), db: admin.firestore(app) };
+    return services;
+
   } catch (error: any) {
     console.error('[Firebase Admin] CRITICAL: Failed to initialize Firebase Admin SDK.', error);
-    // Crash the process if initialization fails, as it's a fatal configuration error.
-    process.exit(1);
+    // Don't crash the process, just return null so callers can handle it.
+    return null;
   }
-
-  return admin.app();
 }

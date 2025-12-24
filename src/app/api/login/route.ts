@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { safeGetAdminApp } from '@/firebase/admin';
-import * as admin from 'firebase-admin';
 
 export async function POST(req: NextRequest) {
-  const adminApp = safeGetAdminApp();
-  const adminAuth = admin.auth(adminApp);
+  const services = safeGetAdminApp();
+  if (!services) return NextResponse.json({ error: 'Admin SDK tidak tersedia.' }, { status: 500 });
+  const { auth } = services;
+
   const authorization = req.headers.get('Authorization');
   if (authorization?.startsWith('Bearer ')) {
     const idToken = authorization.split('Bearer ')[1];
     const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
 
     try {
-      const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
+      const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
       cookies().set('__session', sessionCookie, { maxAge: expiresIn, httpOnly: true, secure: true });
       return NextResponse.json({ status: 'success' });
     } catch (error) {

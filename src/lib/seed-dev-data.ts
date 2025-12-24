@@ -4,9 +4,6 @@ import { collection, writeBatch, getDocs } from 'firebase/firestore';
 import type { Location, Spot } from './types';
 import * as admin from 'firebase-admin';
 
-const adminApp = safeGetAdminApp();
-const adminDb = admin.firestore(adminApp);
-
 const locationsData: Omit<Location, 'id'>[] = [
   {
     name: 'Gua Jomblang',
@@ -73,11 +70,17 @@ const spotsData: { locationName: string; spots: Omit<Spot, 'id'|'locationId'>[] 
 ];
 
 export async function seedInitialData() {
-  const batch = writeBatch(adminDb);
+  const services = safeGetAdminApp();
+  if (!services) {
+    throw new Error('Admin SDK tidak tersedia untuk seeding data.');
+  }
+  const { db } = services;
+
+  const batch = writeBatch(db);
   
   // Clear existing locations and spots
-  const locationsCollection = collection(adminDb, 'locations');
-  const spotsCollection = collection(adminDb, 'spots');
+  const locationsCollection = collection(db, 'locations');
+  const spotsCollection = collection(db, 'spots');
   
   const [existingLocationsSnap, existingSpotsSnap] = await Promise.all([
     getDocs(locationsCollection),
@@ -91,7 +94,7 @@ export async function seedInitialData() {
   const locationNameToId: { [key: string]: string } = {};
 
   for (const locData of locationsData) {
-    const locRef = collection(adminDb, 'locations').doc();
+    const locRef = collection(db, 'locations').doc();
     batch.set(locRef, locData);
     locationNameToId[locData.name] = locRef.id;
   }
@@ -101,7 +104,7 @@ export async function seedInitialData() {
     const locationId = locationNameToId[spotGroup.locationName];
     if (locationId) {
       for (const spotData of spotGroup.spots) {
-        const spotRef = collection(adminDb, 'spots').doc();
+        const spotRef = collection(db, 'spots').doc();
         batch.set(spotRef, { ...spotData, locationId });
       }
     }

@@ -11,25 +11,28 @@ import type { UserProfile } from '@/lib/types';
  * @returns A promise that resolves to the admin's DecodedIdToken or null.
  */
 async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
-    const adminApp = safeGetAdminApp();
-    const adminAuth = admin.auth(adminApp);
-    const adminDb = admin.firestore(adminApp);
+  const services = safeGetAdminApp();
+  if (!services) return null;
 
-    const authorization = req.headers.get('Authorization');
-    if (authorization?.startsWith('Bearer ')) {
-      const idToken = authorization.split('Bearer ')[1];
-      try {
-        const decodedToken = await adminAuth.verifyIdToken(idToken);
-        const userDoc = await adminDb.collection('users').doc(decodedToken.uid).get();
-        if (userDoc.exists && userDoc.data()?.role === 'admin') {
-            return decodedToken;
-        }
-      } catch (error) {
-        console.error("Error verifying token:", error);
-        return null;
-      }
+  const { auth, db } = services;
+
+  const authorization = req.headers.get('Authorization');
+  if (!authorization?.startsWith('Bearer ')) return null;
+
+  const idToken = authorization.replace('Bearer ', '');
+
+  try {
+    const decodedToken = await auth.verifyIdToken(idToken);
+    const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+
+    if (userDoc.exists && userDoc.data()?.role === 'admin') {
+      return decodedToken;
     }
     return null;
+  } catch (err) {
+    console.error('[verifyAdmin]', err);
+    return null;
+  }
 }
 
 // Handler for POST /api/admin/users/role to update a user's role
@@ -39,10 +42,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Akses ditolak: Hanya admin yang diizinkan.' }, { status: 403 });
     }
 
+    const services = safeGetAdminApp();
+    if (!services) return NextResponse.json({ error: 'Admin SDK tidak tersedia.' }, { status: 500 });
+    const { auth, db } = services;
+
     try {
-        const adminApp = safeGetAdminApp();
-        const adminAuth = admin.auth(adminApp);
-        const adminDb = admin.firestore(adminApp);
         const body = await req.json();
         const { uid, role } = body;
 
@@ -59,7 +63,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Admin tidak dapat mengubah perannya sendiri.' }, { status: 400 });
         }
 
-        const userRef = adminDb.collection('users').doc(uid);
+        const userRef = db.collection('users').doc(uid);
 
         await userRef.update({
             role: role,
@@ -67,7 +71,7 @@ export async function POST(req: NextRequest) {
         });
         
         // This is important to ensure the client gets the new role claim quickly.
-        await adminAuth.setCustomUserClaims(uid, { role: role });
+        await auth.setCustomUserClaims(uid, { role: role });
 
         return NextResponse.json({ message: `Peran pengguna berhasil diperbarui.` });
 
