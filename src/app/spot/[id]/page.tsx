@@ -32,6 +32,8 @@ export default function SpotPage() {
   const [vrMode, setVrMode] = useState(false);
   
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const role = userProfile?.role ?? 'free';
+  const isPro = role.startsWith('pro') || role === 'vip' || role === 'admin';
 
   useEffect(() => {
     if (!id) {
@@ -74,8 +76,6 @@ export default function SpotPage() {
     router.push(`/spot/${spotId}`);
   };
 
-  const role = userProfile?.role || 'free';
-  
   if (loading || isUserLoading || isProfileLoading) return <SpotPageFallback />;
   
   if (error) {
@@ -112,7 +112,7 @@ export default function SpotPage() {
     );
   }
 
-  if (spot.isPro && role === 'free') {
+  if (spot.isPro && !isPro) {
     return <LockedScreen spot={spot} />;
   }
 
@@ -151,3 +151,5 @@ export default function SpotPage() {
     </HybridViewer>
   );
 }
+
+    

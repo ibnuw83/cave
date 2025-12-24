@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -118,6 +119,9 @@ export default function ProfilePage() {
     );
   }
   
+  const role = userProfile.role ?? 'free';
+  const isPro = role.startsWith('pro') || role === 'vip' || role === 'admin';
+
   const getRoleInfo = (role: UserProfile['role']): { icon: React.ReactNode; label: string; } => {
     switch(role) {
         case 'pro1': return { icon: <Gem className="h-4 w-4 text-amber-400" />, label: 'PRO 1' };
@@ -130,7 +134,7 @@ export default function ProfilePage() {
   }
 
   const roleInfo = getRoleInfo(userProfile.role);
-  const showAds = userProfile.role === 'free';
+  const showAds = !isPro;
 
   return (
     <>
@@ -156,7 +160,7 @@ export default function ProfilePage() {
                             </Button>
                         </div>
                         <div className="flex items-center gap-4 mt-2">
-                           <Badge variant={userProfile.role === 'vip' || userProfile.role === 'admin' ? 'default' : 'secondary'} className="gap-2">
+                           <Badge variant={isPro ? 'default' : 'secondary'} className="gap-2">
                                 {roleInfo.icon}
                                 <span className="uppercase">{roleInfo.label}</span>
                             </Badge>
@@ -193,7 +197,7 @@ export default function ProfilePage() {
                     <p className="text-muted-foreground">
                         Di sini Anda dapat melihat ringkasan akun Anda. Untuk saat ini, belum ada detail lebih lanjut.
                     </p>
-                    {userProfile.role !== 'free' && (
+                    {isPro && (
                         <Button asChild variant="default" className="mt-4">
                             <Link href="/pricing">Kelola Langganan</Link>
                         </Button>
@@ -206,3 +210,5 @@ export default function ProfilePage() {
     </>
   );
 }
+
+    

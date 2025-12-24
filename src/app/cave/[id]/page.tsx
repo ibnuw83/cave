@@ -108,6 +108,9 @@ export default function CavePage() {
   
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
 
+  const role = userProfile?.role ?? 'free';
+  const isPro = role.startsWith('pro') || role === 'vip' || role === 'admin';
+
   useEffect(() => {
     if (!id) {
         setError("ID Lokasi tidak valid.");
@@ -162,11 +165,10 @@ export default function CavePage() {
   };
   
   const sortedSpots = useMemo(() => [...spots].sort((a, b) => a.order - b.order), [spots]);
-  const role = userProfile?.role || 'free';
-  const showAds = role === 'free';
+  const showAds = !isPro;
   
   const handleStartMission = () => {
-    const firstAccessibleSpot = sortedSpots.find(s => !s.isPro || (userProfile && role !== 'free'));
+    const firstAccessibleSpot = sortedSpots.find(s => !s.isPro || isPro);
     if (firstAccessibleSpot) {
       router.push(`/spot/${firstAccessibleSpot.id}`);
     } else {
@@ -260,7 +262,7 @@ export default function CavePage() {
                   <Sparkles className="mr-2 h-4 w-4" />
                   Mulai Misi
                 </Button>
-                {(userProfile && (role.startsWith('pro') || role === 'vip' || role === 'admin')) && (
+                {isPro && (
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -279,7 +281,7 @@ export default function CavePage() {
                 )}
             </div>
         </div>
-         {(userProfile && (role.startsWith('pro') || role === 'vip' || role === 'admin')) && (
+         {isPro && (
           <p className="text-xs text-muted-foreground -mt-4 mb-8">Mode offline hanya tersedia untuk pengguna PRO & VIP.</p>
         )}
 
@@ -295,7 +297,7 @@ export default function CavePage() {
         <h3 className="text-lg font-semibold md:text-xl mb-4 mt-8">Daftar Spot</h3>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {sortedSpots.map((spot, index) => {
-            const isLocked = spot.isPro && !(userProfile && (role.startsWith('pro') || role === 'vip' || role === 'admin'));
+            const isLocked = spot.isPro && !isPro;
             const lockedMessage = userProfile ? "Upgrade untuk mengakses spot PRO ini" : "Login untuk akses konten PRO";
             return <SpotCard 
                       key={spot.id} 
@@ -311,3 +313,5 @@ export default function CavePage() {
     </div>
   );
 }
+
+    

@@ -84,8 +84,8 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
   const router = useRouter();
   const { toast } = useToast();
 
-  const isProUser = userRole.startsWith('pro') || userRole === 'vip' || userRole === 'admin';
-  const isFreeUser = !isProUser;
+  const role = userRole ?? 'free';
+  const isPro = role.startsWith('pro') || role === 'vip' || role === 'admin';
 
   const stopSpeaking = useCallback(() => {
     stopSpeechSynthesis();
@@ -184,7 +184,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
 
     if (hasNextSpot) {
         const nextSpot = allSpots[currentSpotIndex + 1];
-        if (isProUser || !nextSpot.isPro) {
+        if (isPro || !nextSpot.isPro) {
             router.push(`/spot/${nextSpot.id}`);
         } else {
             toast({
@@ -232,7 +232,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
       return;
     }
 
-    if (isFreeUser) {
+    if (!isPro) {
         toast({
             title: 'Fitur Narasi Khusus PRO',
             description: 'Nikmati narasi penuh, tur otomatis & bebas iklan dengan upgrade.',
@@ -317,7 +317,7 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
 
         <SpotNavigation currentSpotId={spot.id} allSpots={allSpots} isUIVisible={isUIVisible} />
 
-        {isFreeUser && !vrMode && (
+        {!isPro && !vrMode && (
           <div 
               className={cn("absolute bottom-40 md:bottom-32 left-1/2 -translate-x-1/2 z-30 transition-opacity duration-300 w-full max-w-lg px-4",
               isUIVisible ? "opacity-100" : "opacity-0 pointer-events-none")}
@@ -378,3 +378,5 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
     </>
   );
 }
+
+    

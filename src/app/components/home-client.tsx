@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -39,6 +40,10 @@ const AuthSection = () => {
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+
+  const role = userProfile?.role ?? 'free';
+  const isPro = role.startsWith('pro') || role === 'vip' || role === 'admin';
+  const isAdmin = role === 'admin';
 
   const handleClearCache = async () => {
     if (!confirm('Anda yakin ingin menghapus semua konten offline? Ini tidak dapat diurungkan.')) {
@@ -94,7 +99,7 @@ const AuthSection = () => {
                 {userProfile.email}
               </p>
             </div>
-             <Badge variant={userProfile.role.startsWith('pro') || userProfile.role === 'vip' || userProfile.role === 'admin' ? 'default' : 'secondary'} className="uppercase mt-2">
+             <Badge variant={isPro ? 'default' : 'secondary'} className="uppercase mt-2">
                 {userProfile.role}
             </Badge>
           </DropdownMenuLabel>
@@ -105,7 +110,7 @@ const AuthSection = () => {
                 <span>Profil</span>
               </Link>
             </DropdownMenuItem>
-           {userProfile.role === 'admin' && (
+           {isAdmin && (
              <>
                 <DropdownMenuItem asChild>
                   <Link href="/admin">
@@ -115,7 +120,7 @@ const AuthSection = () => {
                 </DropdownMenuItem>
              </>
            )}
-            {userProfile.role !== 'free' && (
+            {isPro && (
              <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleClearCache}>
@@ -155,13 +160,11 @@ export default function HomeClient() {
         setIsLoading(true);
         try {
             const [locsData, settingsData] = await Promise.all([
-                getLocations(true), // Fetch all locations including inactive ones
+                getLocations(false), // Fetch only active locations for public view
                 getKioskSettings(),
             ]);
-
-            const activeLocations = locsData.filter(loc => loc.isActive);
             
-            setLocations(activeLocations);
+            setLocations(locsData);
             setSettings(settingsData);
             
             // This part for placeholder images is commented out as it's not being used.
@@ -282,3 +285,5 @@ export default function HomeClient() {
     </FirebaseClientProvider>
   );
 }
+
+    
