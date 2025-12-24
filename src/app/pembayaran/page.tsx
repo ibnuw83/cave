@@ -7,11 +7,22 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, CheckCircle, ArrowLeft } from 'lucide-react';
 import { useUser, useAuth } from '@/firebase';
-import { getPricingTiers, updateUserRole } from '@/lib/firestore-client';
-import { PricingTier, UserProfile } from '@/lib/types';
+import { getPricingTiers } from '@/lib/firestore-client';
+import { PricingTier } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
+
+function parsePriceToNumber(price: string): number {
+  if (!price) return 0;
+  return Number(price.replace(/[^0-9k]/gi, '').replace('k', '000'));
+}
+
+declare global {
+  interface Window {
+    gtag?: (event: string, action: string, params: object) => void;
+  }
+}
 
 function PembayaranComponent() {
   const router = useRouter();
@@ -100,6 +111,13 @@ function PembayaranComponent() {
 
       // 3. Refresh local user profile state from Firestore
       await refreshUserProfile();
+      
+      // 4. Fire conversion event
+      window.gtag?.('event', 'purchase', {
+        value: parsePriceToNumber(tier.price),
+        currency: 'IDR',
+        item_name: tier.name,
+      });
 
       toast({
         title: 'Pembayaran Berhasil!',

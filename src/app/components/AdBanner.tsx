@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 declare global {
   interface Window {
     adsbygoogle: any;
+    gtag?: (event: string, action: string, params: object) => void;
   }
 }
 

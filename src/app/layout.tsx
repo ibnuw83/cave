@@ -7,6 +7,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const adSenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
+
   return (
     <html lang="en" className="dark">
       <head>
@@ -17,6 +19,22 @@ export default function RootLayout({
         <meta name="theme-color" content="#2A2B32" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
+        
+        {adSenseClientId && (
+          <Script
+            async
+            src={`https://www.googletagmanager.com/gtag/js?id=${adSenseClientId}`}
+            strategy="afterInteractive"
+          />
+        )}
+        <Script id="gtag-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${adSenseClientId}');
+          `}
+        </Script>
       </head>
       <body className="font-body antialiased">
         <FirebaseClientProvider>
