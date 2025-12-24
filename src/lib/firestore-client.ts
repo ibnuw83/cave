@@ -21,9 +21,10 @@ import { initializeFirebase } from '@/firebase/init';
 import type { UserProfile, Location, Spot, KioskSettings, PricingTier } from '../types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { getAuth } from 'firebase/auth';
 
 // HANYA MENGGUNAKAN SATU INSTANCE DB DARI INISIALISASI PUSAT
-const { firestore: db } = initializeFirebase();
+const { firestore: db, auth } = initializeFirebase();
 
 // --- User Profile Functions (Client-Side) ---
 
@@ -109,23 +110,27 @@ export async function updateUserProfile(uid: string, data: Partial<Pick<UserProf
 }
 
 export async function updateUserRole(uid: string, role: UserProfile['role']) {
-  const userRef = doc(db, 'users', uid);
-  const dataToUpdate = { role, updatedAt: serverTimestamp() };
+  const currentUser = auth.currentUser;
+  if (!currentUser) throw new Error("Authentication required.");
+  
+  const token = await currentUser.getIdToken();
+  
+  const response = await fetch('/api/admin/users/role', {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ uid, role })
+  });
 
-  try {
-    await updateDoc(userRef, dataToUpdate);
-  } catch (error: any) {
-    if (error.code === 'permission-denied') {
-        const permissionError = new FirestorePermissionError({
-            path: `/users/${uid}`,
-            operation: 'update',
-            requestResourceData: { role },
-        });
-        errorEmitter.emit('permission-error', permissionError);
-    }
-    // Re-throw the error so the calling function knows it failed
-    throw error;
+  if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to update user role.');
   }
+
+  // After a successful server update, the client should refresh its token
+  // to get the new claims. This is handled in the component calling this function.
 }
 
 // --- Location Functions (Client-Side for Admin Panel & Public View) ---

@@ -59,15 +59,28 @@ function PembayaranComponent() {
   }, [tierId, router, toast, user, isUserLoading]);
 
   const handleSimulatePayment = async () => {
-    if (!user || !tier) return;
+    if (!user || !tier || !auth.currentUser) return;
 
     setIsProcessing(true);
     try {
-      // 1. Update role in Firestore
-      await updateUserRole(user.uid, tier.id as UserProfile['role']);
+      const token = await auth.currentUser.getIdToken();
+
+      // 1. Call the secure API route to update the role
+      const response = await fetch('/api/upgrade', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ tierId: tier.id })
+      });
+
+      if (!response.ok) {
+          throw new Error('Gagal memperbarui peran di server.');
+      }
       
       // 2. Force refresh the auth token to get the new custom claims (PENTING!)
-      await auth.currentUser?.getIdToken(true);
+      await auth.currentUser.getIdToken(true);
 
       // 3. Refresh local user profile state from Firestore
       await refreshUserProfile();
@@ -77,11 +90,11 @@ function PembayaranComponent() {
         description: `Anda sekarang adalah pengguna ${tier.name}.`,
       });
       router.push('/profile');
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Pembayaran Gagal',
-        description: 'Terjadi kesalahan saat memperbarui status akun Anda.',
+        description: error.message || 'Terjadi kesalahan saat memperbarui status akun Anda.',
       });
     } finally {
       setIsProcessing(false);

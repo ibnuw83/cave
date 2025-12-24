@@ -115,7 +115,7 @@ export default function UsersClient() {
         
         // Force token refresh for the current admin user if they change their own role (though disallowed)
         // More importantly, this pattern is needed if we were to allow users to change their own role elsewhere
-        if (currentUser?.uid === uid) {
+        if (auth.currentUser?.uid === uid) {
             await auth.currentUser?.getIdToken(true);
             await refreshUserProfile();
         }
