@@ -19,7 +19,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useUser } from "@/firebase";
+import { useUser, useAuth } from "@/firebase";
 
 export default function LocationsClient({ 
     initialLocations, 
@@ -33,6 +33,7 @@ export default function LocationsClient({
     onAdd: () => void,
  }) {
   const { userProfile } = useUser();
+  const auth = useAuth();
   const { toast } = useToast();
 
   const sortedLocations = useMemo(() => {
@@ -40,8 +41,16 @@ export default function LocationsClient({
   }, [initialLocations]);
 
   const handleDelete = async (id: string) => {
+    if (!auth.currentUser) {
+        toast({ variant: 'destructive', title: 'Gagal', description: 'Anda harus login untuk menghapus lokasi.' });
+        return;
+    }
     try {
-        const response = await fetch(`/api/admin/locations/${id}`, { method: 'DELETE' });
+        const token = await auth.currentUser.getIdToken();
+        const response = await fetch(`/api/admin/locations/${id}`, { 
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || 'Gagal menghapus lokasi.');

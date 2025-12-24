@@ -12,55 +12,38 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { SpotForm } from "./spot-form";
 import { useUser, useAuth } from '@/firebase';
-import { Skeleton } from '@/components/ui/skeleton';
 
-export default function SpotsClient() {
+export default function SpotsClient({ 
+    initialLocations, 
+    initialSpots,
+    onDataChange
+}: {
+    initialLocations: Location[],
+    initialSpots: Spot[],
+    onDataChange: () => void,
+}) {
   const { userProfile } = useUser();
   const auth = useAuth();
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [spots, setSpots] = useState<Spot[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState<Spot | null>(null);
   const [filterLocationId, setFilterLocationId] = useState<string>('all');
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   
-  const fetchData = useCallback(async () => {
-    if (!auth.currentUser) return;
-    setLoading(true);
-    try {
-      const token = await auth.currentUser.getIdToken();
-      const headers = { 'Authorization': `Bearer ${token}` };
-
-      const [locsRes, spotsRes] = await Promise.all([
-        fetch('/api/admin/locations', { headers }),
-        fetch('/api/admin/spots', { headers })
-      ]);
-      if (!locsRes.ok || !spotsRes.ok) throw new Error("Failed to fetch initial data");
-      
-      const locsData = await locsRes.json();
-      const spotsData = await spotsRes.json();
-
-      setLocations(locsData);
-      setSpots(spotsData);
-    } catch (e) {
-      toast({ variant: 'destructive', title: 'Gagal', description: 'Gagal memuat ulang data.' });
-    } finally {
-      setLoading(false);
-    }
-  }, [auth.currentUser, toast]);
+  // The component now receives data as props, so no internal loading state is needed.
+  // The parent (spots/page.tsx) handles fetching.
 
   useEffect(() => {
+    // If the form is closed, we tell the parent to refetch data.
     if (!isFormOpen) {
-        fetchData();
+        onDataChange();
     }
-  }, [isFormOpen, fetchData]);
+  }, [isFormOpen, onDataChange]);
 
   const handleFormSuccess = () => {
     toast({ title: "Berhasil", description: `Spot telah ${selectedSpot ? 'diperbarui' : 'ditambahkan'}.` });
     setIsFormOpen(false);
     setSelectedSpot(null);
-    fetchData(); // Refresh data
+    // onDataChange is called by the useEffect above when isFormOpen becomes false
   };
 
   const openForm = (spot: Spot | null) => {
@@ -81,24 +64,24 @@ export default function SpotsClient() {
         throw new Error(errorData.error || 'Gagal menghapus spot.');
       }
       toast({ title: "Berhasil", description: "Spot berhasil dihapus." });
-      fetchData(); // Refresh data
+      onDataChange(); // Refresh data
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Gagal', description: error.message });
     }
   };
 
   const filteredSpots = useMemo(() => {
-    const spotsToSort = [...spots];
+    const spotsToSort = [...initialSpots];
     if (filterLocationId === 'all') {
       return spotsToSort.sort((a, b) => a.order - b.order);
     }
     const filtered = spotsToSort.filter((spot) => spot.locationId === filterLocationId);
     return filtered.sort((a, b) => a.order - b.order);
-  }, [spots, filterLocationId]);
+  }, [initialSpots, filterLocationId]);
 
 
   const getLocationName = (locationId: string) => {
-    return locations.find(l => l.id === locationId)?.name || 'Lokasi tidak ditemukan';
+    return initialLocations.find(l => l.id === locationId)?.name || 'Lokasi tidak ditemukan';
   };
 
   if (userProfile?.role !== 'admin') {
@@ -110,7 +93,7 @@ export default function SpotsClient() {
   }
 
   if (isFormOpen) {
-    return <SpotForm spot={selectedSpot} locations={locations} allSpots={spots || []} onSave={handleFormSuccess} onCancel={() => { setIsFormOpen(false); setSelectedSpot(null); }} />;
+    return <SpotForm spot={selectedSpot} locations={initialLocations} allSpots={initialSpots || []} onSave={handleFormSuccess} onCancel={() => { setIsFormOpen(false); setSelectedSpot(null); }} />;
   }
 
   return (
@@ -122,7 +105,7 @@ export default function SpotsClient() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Semua Lokasi</SelectItem>
-            {locations.map((location) => (
+            {initialLocations.map((location) => (
               <SelectItem key={location.id} value={location.id}>{location.name}</SelectItem>
             ))}
           </SelectContent>
@@ -133,13 +116,6 @@ export default function SpotsClient() {
         </Button>
       </div>
 
-      {loading ? (
-        <div className="space-y-4">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-        </div>
-      ) : (
       <div className="space-y-4">
         {filteredSpots.map((spot) => (
           <Card key={spot.id}>
@@ -182,7 +158,6 @@ export default function SpotsClient() {
         ))}
          {filteredSpots.length === 0 && <p className="text-center text-muted-foreground pt-8">Belum ada spot untuk lokasi ini.</p>}
       </div>
-      )}
     </div>
   );
 }

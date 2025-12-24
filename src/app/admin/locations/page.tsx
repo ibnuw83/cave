@@ -3,7 +3,7 @@
 
 import LocationsClient from "./client";
 import { Location } from "@/lib/types";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
@@ -16,8 +16,9 @@ export default function LocationsPage() {
   const router = useRouter();
   const auth = useAuth();
 
-  const refreshLocations = async () => {
+  const refreshLocations = useCallback(async () => {
     if (!auth.currentUser) {
+        // This case is handled by the layout, but as a safeguard:
         toast({ variant: 'destructive', title: 'Gagal', description: 'Anda harus login untuk memuat lokasi.' });
         setLoading(false);
         return;
@@ -29,21 +30,22 @@ export default function LocationsPage() {
         const response = await fetch('/api/admin/locations', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!response.ok) throw new Error('Failed to fetch locations');
+        if (!response.ok) throw new Error('Gagal mengambil data lokasi dari server.');
         const data = await response.json();
         setLocations(data);
-    } catch (error) {
-        toast({ variant: 'destructive', title: 'Gagal', description: 'Gagal memuat data lokasi.' });
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Gagal Memuat', description: error.message });
     } finally {
         setLoading(false);
     }
-  }
+  }, [auth.currentUser, toast]);
 
   useEffect(() => {
+    // Fetch data only when user is available
     if (auth.currentUser) {
         refreshLocations();
     }
-  }, [auth.currentUser]);
+  }, [auth.currentUser, refreshLocations]);
 
   const handleEdit = (location: Location) => {
     router.push(`/admin/locations/${location.id}`);
@@ -53,33 +55,29 @@ export default function LocationsPage() {
     router.push('/admin/locations/new');
   }
 
-  if (loading) {
-    return (
-      <div className="p-4 md:p-8">
-         <header className="mb-8">
-            <h1 className="text-2xl md:text-3xl font-bold">Manajemen Lokasi</h1>
-            <p className="text-muted-foreground">Kelola semua data lokasi seperti gua dan situs sejarah.</p>
-        </header>
-        <div className="space-y-4">
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-24 w-full" />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="p-4 md:p-8">
        <header className="mb-8">
         <h1 className="text-2xl md:text-3xl font-bold">Manajemen Lokasi</h1>
         <p className="text-muted-foreground">Kelola semua data lokasi seperti gua dan situs sejarah.</p>
       </header>
-       <LocationsClient 
-        initialLocations={locations} 
-        onDataChange={refreshLocations} 
-        onEdit={handleEdit}
-        onAdd={handleAdd}
+       {loading ? (
+         <div className="space-y-4">
+            <div className="flex justify-end mb-4">
+                <Skeleton className="h-10 w-32" />
+            </div>
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+        </div>
+       ) : (
+        <LocationsClient 
+            initialLocations={locations} 
+            onDataChange={refreshLocations} 
+            onEdit={handleEdit}
+            onAdd={handleAdd}
         />
+       )}
     </div>
   );
 }
