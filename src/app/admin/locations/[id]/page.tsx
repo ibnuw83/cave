@@ -7,6 +7,7 @@ import { Location } from '@/lib/types';
 import { LocationForm } from '../location-form';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/firebase';
 
 export default function LocationEditPage() {
   const router = useRouter();
@@ -14,6 +15,7 @@ export default function LocationEditPage() {
   const { toast } = useToast();
   const [location, setLocation] = useState<Location | null>(null);
   const [loading, setLoading] = useState(true);
+  const auth = useAuth();
 
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const isNew = id === 'new';
@@ -23,11 +25,15 @@ export default function LocationEditPage() {
       setLoading(false);
       return;
     }
+    
+    if (!auth.currentUser) return;
 
     async function fetchLocation() {
       try {
-        // Fetch a single location by its ID
-        const response = await fetch(`/api/admin/locations/${id}`);
+        const token = await auth.currentUser!.getIdToken();
+        const response = await fetch(`/api/admin/locations/${id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
         if (!response.ok) {
             if (response.status === 404) {
                 toast({ variant: 'destructive', title: 'Tidak Ditemukan', description: `Lokasi dengan ID ${id} tidak ada.` });
@@ -47,7 +53,7 @@ export default function LocationEditPage() {
     }
 
     fetchLocation();
-  }, [id, isNew, router, toast]);
+  }, [id, isNew, router, toast, auth.currentUser]);
 
   const handleSave = () => {
     toast({ title: 'Berhasil', description: `Lokasi telah ${isNew ? 'dibuat' : 'diperbarui'}.` });

@@ -1,19 +1,25 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { adminAuth, adminDb } from '@/firebase/admin';
 import * as admin from 'firebase-admin';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 
-async function verifyAdmin(req: NextRequest) {
-    const sessionCookie = cookies().get('__session')?.value;
-    if (!sessionCookie) return null;
-    try {
-        const decoded = await adminAuth.verifySessionCookie(sessionCookie, true);
-        const userDoc = await adminDb.collection('users').doc(decoded.uid).get();
-        return userDoc.exists && userDoc.data()?.role === 'admin' ? decoded : null;
-    } catch (e) {
+async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
+    const authorization = req.headers.get('Authorization');
+    if (authorization?.startsWith('Bearer ')) {
+      const idToken = authorization.split('Bearer ')[1];
+      try {
+        const decodedToken = await adminAuth.verifyIdToken(idToken);
+        const userDoc = await adminDb.collection('users').doc(decodedToken.uid).get();
+        if (userDoc.exists && userDoc.data()?.role === 'admin') {
+            return decodedToken;
+        }
+      } catch (error) {
+        console.error("Error verifying token:", error);
         return null;
+      }
     }
+    return null;
 }
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {

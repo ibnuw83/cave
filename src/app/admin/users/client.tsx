@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -8,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Trash2, UserPlus } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useUser } from '@/firebase';
+import { useUser, useAuth } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -22,14 +23,19 @@ export default function UsersClient() {
   const [loading, setLoading] = useState(true);
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
+  const auth = useAuth();
   const { user: currentUser, userProfile, isProfileLoading } = useUser();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
 
   const fetchUsers = useCallback(async () => {
+    if (!auth.currentUser) return;
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/users');
+      const token = await auth.currentUser.getIdToken();
+      const response = await fetch('/api/admin/users', {
+          headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (!response.ok) {
         throw new Error('Gagal mengambil data pengguna.');
       }
@@ -45,7 +51,7 @@ export default function UsersClient() {
     } finally {
         setLoading(false);
     }
-  }, [toast]);
+  }, [auth.currentUser, toast]);
   
   const sortedUsers = useMemo(() => {
     return [...users].sort((a, b) => (a.displayName || a.email || '').localeCompare(b.displayName || b.email || ''));
@@ -122,12 +128,17 @@ export default function UsersClient() {
       toast({ variant: 'destructive', title: 'Aksi Ditolak', description: 'Anda tidak dapat menonaktifkan akun sendiri.' });
       return;
     }
+    if (!auth.currentUser) return;
 
     setLoadingStates(prev => ({ ...prev, [uid]: true }));
     try {
+      const token = await auth.currentUser.getIdToken();
       const response = await fetch(`/api/admin/users/${uid}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` 
+        },
         body: JSON.stringify({ disabled: isDisabled }),
       });
 
@@ -153,9 +164,13 @@ export default function UsersClient() {
        toast({ variant: 'destructive', title: 'Aksi Ditolak', description: 'Anda tidak bisa menghapus akun Anda sendiri.' });
        return;
     }
+    if (!auth.currentUser) return;
+
     try {
+      const token = await auth.currentUser.getIdToken();
       const response = await fetch(`/api/admin/users/${userToDelete.id}`, {
         method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) {
         const errorData = await response.json();

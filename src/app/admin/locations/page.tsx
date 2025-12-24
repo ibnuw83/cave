@@ -7,17 +7,28 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/firebase";
 
 export default function LocationsPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const router = useRouter();
+  const auth = useAuth();
 
   const refreshLocations = async () => {
+    if (!auth.currentUser) {
+        toast({ variant: 'destructive', title: 'Gagal', description: 'Anda harus login untuk memuat lokasi.' });
+        setLoading(false);
+        return;
+    }
+
     setLoading(true);
     try {
-        const response = await fetch('/api/admin/locations');
+        const token = await auth.currentUser.getIdToken();
+        const response = await fetch('/api/admin/locations', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
         if (!response.ok) throw new Error('Failed to fetch locations');
         const data = await response.json();
         setLocations(data);
@@ -29,8 +40,10 @@ export default function LocationsPage() {
   }
 
   useEffect(() => {
-    refreshLocations();
-  }, []);
+    if (auth.currentUser) {
+        refreshLocations();
+    }
+  }, [auth.currentUser]);
 
   const handleEdit = (location: Location) => {
     router.push(`/admin/locations/${location.id}`);

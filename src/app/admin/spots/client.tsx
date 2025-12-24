@@ -11,11 +11,12 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { SpotForm } from "./spot-form";
-import { useUser } from '@/firebase';
+import { useUser, useAuth } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SpotsClient() {
   const { userProfile } = useUser();
+  const auth = useAuth();
   const [locations, setLocations] = useState<Location[]>([]);
   const [spots, setSpots] = useState<Spot[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -25,11 +26,15 @@ export default function SpotsClient() {
   const { toast } = useToast();
   
   const fetchData = useCallback(async () => {
+    if (!auth.currentUser) return;
     setLoading(true);
     try {
+      const token = await auth.currentUser.getIdToken();
+      const headers = { 'Authorization': `Bearer ${token}` };
+
       const [locsRes, spotsRes] = await Promise.all([
-        fetch('/api/admin/locations'),
-        fetch('/api/admin/spots')
+        fetch('/api/admin/locations', { headers }),
+        fetch('/api/admin/spots', { headers })
       ]);
       if (!locsRes.ok || !spotsRes.ok) throw new Error("Failed to fetch initial data");
       
@@ -43,7 +48,7 @@ export default function SpotsClient() {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [auth.currentUser, toast]);
 
   useEffect(() => {
     if (!isFormOpen) {
@@ -64,8 +69,13 @@ export default function SpotsClient() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!auth.currentUser) return;
     try {
-      const response = await fetch(`/api/admin/spots/${id}`, { method: 'DELETE' });
+      const token = await auth.currentUser.getIdToken();
+      const response = await fetch(`/api/admin/spots/${id}`, { 
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Gagal menghapus spot.');

@@ -10,21 +10,21 @@ import type { DecodedIdToken } from 'firebase-admin/auth';
  * @returns A promise that resolves to the admin's DecodedIdToken or null if not an admin.
  */
 async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
-    const sessionCookie = cookies().get('__session')?.value;
-    if (!sessionCookie) {
-      return null;
-    }
-  
-    try {
-      const decoded = await adminAuth.verifySessionCookie(sessionCookie, true);
-      const userDoc = await adminDb.collection('users').doc(decoded.uid).get();
-      if (userDoc.exists && userDoc.data()?.role === 'admin') {
-        return decoded;
+    const authorization = req.headers.get('Authorization');
+    if (authorization?.startsWith('Bearer ')) {
+      const idToken = authorization.split('Bearer ')[1];
+      try {
+        const decodedToken = await adminAuth.verifyIdToken(idToken);
+        const userDoc = await adminDb.collection('users').doc(decodedToken.uid).get();
+        if (userDoc.exists && userDoc.data()?.role === 'admin') {
+            return decodedToken;
+        }
+      } catch (error) {
+        console.error("Error verifying token:", error);
+        return null;
       }
-      return null;
-    } catch (err) {
-      return null;
     }
+    return null;
 }
 
 // Handler for PUT /api/admin/users/[id] to update user status
