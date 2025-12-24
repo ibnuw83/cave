@@ -6,7 +6,6 @@ import { Mountain, MapPin, Users, Info } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { AdminSeedButton } from './admin-seed-button';
 import { useEffect, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useAuth } from '@/firebase';
@@ -92,7 +91,7 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
+      <div className="mt-8 grid gap-4">
          <Card>
            <CardHeader>
              <CardTitle>Pintasan Cepat</CardTitle>
@@ -103,23 +102,7 @@ export default function AdminDashboard() {
              <Button asChild><Link href="/admin/spots">Kelola Spot</Link></Button>
              <Button asChild><Link href="/admin/users">Kelola Pengguna</Link></Button>
              <Button asChild><Link href="/admin/pricing">Kelola Paket</Link></Button>
-             <Button asChild><Link href="/admin/kiosk">Pengaturan Kios</Link></Button>
-           </CardContent>
-         </Card>
-         <Card>
-           <CardHeader>
-             <CardTitle>Data Awal (Seeding)</CardTitle>
-             <p className="text-muted-foreground pt-2">Isi database dengan data contoh untuk pengembangan atau reset.</p>
-           </CardHeader>
-           <CardContent>
-             <AdminSeedButton />
-             <Alert variant="destructive" className="mt-4">
-                <Info className="h-4 w-4" />
-                <AlertTitle>Peringatan!</AlertTitle>
-                <AlertDescription>
-                    Fitur ini akan **MENGHAPUS SEMUA** lokasi dan spot yang ada, lalu menggantinya dengan data contoh. Gunakan hanya untuk development.
-                </AlertDescription>
-            </Alert>
+             <Button asChild><Link href="/admin/kiosk">Pengaturan Aplikasi</Link></Button>
            </CardContent>
          </Card>
       </div>
