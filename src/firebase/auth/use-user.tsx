@@ -8,22 +8,6 @@ import { getUserProfileClient, createUserProfile } from '@/lib/firestore-client'
 import { useToast } from '@/hooks/use-toast';
 import { Timestamp } from 'firebase/firestore';
 
-async function handleTokenChange(user: User | null) {
-  if (user) {
-    const token = await user.getIdToken();
-    await fetch('/api/login', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-  } else {
-    await fetch('/api/logout', {
-      method: 'POST',
-    });
-  }
-}
-
 export function useUser() {
     const auth = useAuth();
     const { toast } = useToast();
@@ -56,8 +40,6 @@ export function useUser() {
         const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
             setUser(firebaseUser);
             setIsUserLoading(false);
-
-            await handleTokenChange(firebaseUser);
             
             if (firebaseUser) {
                 setIsProfileLoading(true);
