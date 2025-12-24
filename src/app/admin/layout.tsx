@@ -1,3 +1,4 @@
+
 'use client';
 
 import { ReactNode, useEffect } from 'react';
@@ -12,6 +13,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   
   const isLoading = isUserLoading || isProfileLoading;
+  const role = userProfile?.role ?? 'free';
+  const isAdmin = role === 'admin';
 
   useEffect(() => {
     if (isLoading) return; // Wait until loading is complete
@@ -21,13 +24,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (userProfile?.role !== 'admin') {
+    if (!isAdmin) {
       router.replace('/');
     }
-  }, [user, userProfile, isLoading, router]);
+  }, [user, isAdmin, isLoading, router]);
 
 
-  if (isLoading || !user || !userProfile || userProfile.role !== 'admin') {
+  if (isLoading || !user || !userProfile || !isAdmin) {
      return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

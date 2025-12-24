@@ -194,13 +194,30 @@ export default function ProfilePage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-muted-foreground">
-                        Di sini Anda dapat melihat ringkasan akun Anda. Untuk saat ini, belum ada detail lebih lanjut.
-                    </p>
-                    {isPro && (
-                        <Button asChild variant="default" className="mt-4">
-                            <Link href="/pricing">Kelola Langganan</Link>
-                        </Button>
+                    {!isPro ? (
+                        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between rounded-lg border bg-card p-4">
+                          <div>
+                            <h3 className="font-semibold text-foreground">Upgrade ke PRO</h3>
+                            <p className="text-muted-foreground text-sm mt-1">
+                                Buka semua fitur eksklusif, termasuk semua spot, mode offline, dan bebas iklan.
+                            </p>
+                          </div>
+                          <Button asChild className="sm:ml-4 flex-shrink-0">
+                            <Link href="/pricing">Lihat Paket</Link>
+                          </Button>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between rounded-lg border bg-card p-4">
+                            <div>
+                                <h3 className="font-semibold text-foreground">Kelola Langganan Anda</h3>
+                                <p className="text-muted-foreground text-sm mt-1">
+                                   Anda saat ini menggunakan paket {roleInfo.label}. Ubah atau perbarui paket Anda.
+                                </p>
+                            </div>
+                            <Button asChild variant="outline" className="sm:ml-4 flex-shrink-0">
+                                <Link href="/pricing">Lihat Paket Lain</Link>
+                            </Button>
+                        </div>
                     )}
                 </CardContent>
            </Card>

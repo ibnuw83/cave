@@ -110,6 +110,7 @@ export default function CavePage() {
 
   const role = userProfile?.role ?? 'free';
   const isPro = role.startsWith('pro') || role === 'vip' || role === 'admin';
+  const isAdmin = role === 'admin';
 
   useEffect(() => {
     if (!id) {
@@ -258,7 +259,7 @@ export default function CavePage() {
               <p className="text-muted-foreground text-sm">Jelajahi setiap sudut di lokasi ini.</p>
             </div>
             <div className='flex items-center gap-2 flex-wrap'>
-                <Button onClick={handleStartMission} size="lg" disabled={(!location.isActive && role !== 'admin') || sortedSpots.length === 0}>
+                <Button onClick={handleStartMission} size="lg" disabled={(!location.isActive && !isAdmin) || sortedSpots.length === 0}>
                   <Sparkles className="mr-2 h-4 w-4" />
                   Mulai Misi
                 </Button>

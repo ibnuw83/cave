@@ -28,7 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { clearOfflineCache } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { useUser, useAuth, FirebaseClientProvider } from '@/firebase';
+import { useUser, useAuth } from '@/firebase';
 import { signOut as firebaseSignOut } from 'firebase/auth';
 import { getLocations, getKioskSettings } from '@/lib/firestore-client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -184,106 +184,106 @@ export default function HomeClient() {
   }, []);
   
   return (
-    <FirebaseClientProvider>
-        <div className="min-h-screen bg-background text-foreground flex flex-col">
-        <header className="relative flex h-[70vh] w-full flex-col items-center justify-center text-center text-white overflow-hidden">
-            <div className="absolute inset-0 z-0">
-            <Image
-                src={heroImage}
-                alt="Pemandangan dramatis di dalam gua"
-                fill
-                className="object-cover"
-                priority
-                data-ai-hint="dramatic cave"
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black" />
-            </div>
-
-            <div className="relative z-10 flex h-full flex-col justify-center p-4 md:p-8 w-full">
-            <div className="absolute top-4 right-4">
-                    <AuthSection />
-                </div>
-
-                <div className="flex flex-col items-center">
-                    <div className="flex items-center gap-4 mb-4">
-                        {settings?.logoUrl ? (
-                            <Image src={settings.logoUrl} alt="App Logo" width={48} height={48} className="h-12 w-12" />
-                        ) : (
-                            <Mountain className="h-12 w-12" />
-                        )}
-                        <h1 className="text-4xl font-bold tracking-tight md:text-5xl font-headline bg-gradient-to-r from-accent to-white bg-clip-text text-transparent">
-                            {settings?.mainTitle || 'Penjelajah Gua'}
-                        </h1>
-                    </div>
-                    <h2 className="text-4xl md:text-6xl font-bold font-headline drop-shadow-2xl animate-wave">{settings?.heroTitle || 'Masuki Dunia Bawah Tanah'}</h2>
-                    <p className="mt-4 max-w-xl text-lg md:text-xl text-white/80">
-                        {settings?.heroSubtitle || 'Rasakan pengalaman 4D menjelajahi keindahan gua-gua paling eksotis di Indonesia.'}
-                    </p>
-                    <Button size="lg" className="mt-8 animate-glow text-lg" asChild>
-                        <Link href="#cave-list">
-                            Mulai Menjelajah
-                            <ArrowRight className="ml-2 h-5 w-5" />
-                        </Link>
-                    </Button>
-                </div>
-            </div>
-        </header>
-
-        <main id="cave-list" className="bg-black flex-grow pb-16">
-            <div className="container mx-auto max-w-5xl px-4 md:px-8">
-                <h2 className="mb-8 text-center text-3xl font-semibold text-white/90 md:text-4xl">Lokasi Tersedia</h2>
-                {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    <Skeleton className="h-56 w-full rounded-lg" />
-                    <Skeleton className="h-56 w-full rounded-lg" />
-                    <Skeleton className="h-56 w-full rounded-lg" />
-                </div>
-                ) : locations.length > 0 ? (
-                <Carousel
-                opts={{
-                    align: "start",
-                }}
-                className="w-full"
-                >
-                <CarouselContent>
-                    {locations.map((location) => (
-                    <CarouselItem key={location.id} className="md:basis-1/2 lg:basis-1/3">
-                        <div className="p-1">
-                        <Link href={`/cave/${location.id}`} className="group">
-                            <Card className="h-full overflow-hidden transition-all duration-300 hover:shadow-primary/20 hover:shadow-2xl hover:border-primary/50 hover:-translate-y-2 bg-card border-border/50">
-                            <CardHeader className="p-0">
-                                <div className="relative h-56 w-full">
-                                <Image
-                                    src={location.coverImage}
-                                    alt={`Gambar ${location.name}`}
-                                    fill
-                                    className="object-cover transition-transform duration-300 group-hover:scale-110"
-                                    data-ai-hint="cave entrance"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-4">
-                                    <CardTitle className="text-lg font-bold font-headline text-white transition-transform duration-300 group-hover:translate-y-[-4px]">{location.name}</CardTitle>
-                                </div>
-                                </div>
-                            </CardHeader>
-                            </Card>
-                        </Link>
-                        </div>
-                    </CarouselItem>
-                    ))}
-                </CarouselContent>
-                <CarouselPrevious className="hidden sm:flex" />
-                <CarouselNext className="hidden sm:flex" />
-                </Carousel>
-                ) : (
-                <p className="text-center text-muted-foreground">Tidak ada lokasi yang tersedia saat ini. Silakan tambahkan melalui Panel Admin.</p>
-                )}
-            </div>
-        </main>
-        <Footer />
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <header className="relative flex h-[70vh] w-full flex-col items-center justify-center text-center text-white overflow-hidden">
+        <div className="absolute inset-0 z-0">
+        <Image
+            src={heroImage}
+            alt="Pemandangan dramatis di dalam gua"
+            fill
+            className="object-cover"
+            priority
+            data-ai-hint="dramatic cave"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black" />
         </div>
-        <Toaster />
-    </FirebaseClientProvider>
+
+        <div className="relative z-10 flex h-full flex-col justify-center p-4 md:p-8 w-full">
+        <div className="absolute top-4 right-4">
+                <AuthSection />
+            </div>
+
+            <div className="flex flex-col items-center">
+                <div className="flex items-center gap-4 mb-4">
+                    {settings?.logoUrl ? (
+                        <Image src={settings.logoUrl} alt="App Logo" width={48} height={48} className="h-12 w-12" />
+                    ) : (
+                        <Mountain className="h-12 w-12" />
+                    )}
+                    <h1 className="text-4xl font-bold tracking-tight md:text-5xl font-headline bg-gradient-to-r from-accent to-white bg-clip-text text-transparent">
+                        {settings?.mainTitle || 'Penjelajah Gua'}
+                    </h1>
+                </div>
+                <h2 className="text-4xl md:text-6xl font-bold font-headline drop-shadow-2xl animate-wave">{settings?.heroTitle || 'Masuki Dunia Bawah Tanah'}</h2>
+                <p className="mt-4 max-w-xl text-lg md:text-xl text-white/80">
+                    {settings?.heroSubtitle || 'Rasakan pengalaman 4D menjelajahi keindahan gua-gua paling eksotis di Indonesia.'}
+                </p>
+                <Button size="lg" className="mt-8 animate-glow text-lg" asChild>
+                    <Link href="#cave-list">
+                        Mulai Menjelajah
+                        <ArrowRight className="ml-2 h-5 w-5" />
+                    </Link>
+                </Button>
+            </div>
+        </div>
+    </header>
+
+    <main id="cave-list" className="bg-black flex-grow pb-16">
+        <div className="container mx-auto max-w-5xl px-4 md:px-8">
+            <h2 className="mb-8 text-center text-3xl font-semibold text-white/90 md:text-4xl">Lokasi Tersedia</h2>
+            {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <Skeleton className="h-56 w-full rounded-lg" />
+                <Skeleton className="h-56 w-full rounded-lg" />
+                <Skeleton className="h-56 w-full rounded-lg" />
+            </div>
+            ) : locations.length > 0 ? (
+            <Carousel
+            opts={{
+                align: "start",
+            }}
+            className="w-full"
+            >
+            <CarouselContent>
+                {locations.map((location) => (
+                <CarouselItem key={location.id} className="md:basis-1/2 lg:basis-1/3">
+                    <div className="p-1">
+                    <Link href={`/cave/${location.id}`} className="group">
+                        <Card className="h-full overflow-hidden transition-all duration-300 hover:shadow-primary/20 hover:shadow-2xl hover:border-primary/50 hover:-translate-y-2 bg-card border-border/50">
+                        <CardHeader className="p-0">
+                            <div className="relative h-56 w-full">
+                            <Image
+                                src={location.coverImage}
+                                alt={`Gambar ${location.name}`}
+                                fill
+                                className="object-cover transition-transform duration-300 group-hover:scale-110"
+                                data-ai-hint="cave entrance"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-4">
+                                <CardTitle className="text-lg font-bold font-headline text-white transition-transform duration-300 group-hover:translate-y-[-4px]">{location.name}</CardTitle>
+                            </div>
+                            </div>
+                        </CardHeader>
+                        </Card>
+                    </Link>
+                    </div>
+                </CarouselItem>
+                ))}
+            </CarouselContent>
+            <CarouselPrevious className="hidden sm:flex" />
+            <CarouselNext className="hidden sm:flex" />
+            </Carousel>
+            ) : (
+            <p className="text-center text-muted-foreground">Tidak ada lokasi yang tersedia saat ini. Silakan tambahkan melalui Panel Admin.</p>
+            )}
+        </div>
+    </main>
+    <Footer />
+    <Toaster />
+</div>
   );
 }
+
+    
 
     
