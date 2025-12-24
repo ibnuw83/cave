@@ -329,7 +329,7 @@ export default function CavePage() {
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {sortedSpots.map((spot, index) => {
             const isLocked = spot.isPro && !isPro;
-            const lockedMessage = userProfile ? "Upgrade untuk mengakses spot PRO ini" : "Login untuk akses konten PRO";
+            const lockedMessage = userProfile ? "Buka jalur eksplorasi eksklusif (PRO)" : "Login untuk akses konten PRO";
             return <SpotCard 
                       key={spot.id} 
                       spot={spot}
@@ -349,3 +349,4 @@ export default function CavePage() {
     
 
     
+
