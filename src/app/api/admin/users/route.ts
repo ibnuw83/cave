@@ -109,10 +109,10 @@ export async function POST(req: NextRequest) {
         
         return NextResponse.json({ uid: userRecord.uid, email: userRecord.email }, { status: 201 });
     } catch (error: any) {
-        console.error('[API] Gagal membuat pengguna:', error);
          if (error.code === 'auth/email-already-exists') {
             return NextResponse.json({ error: 'Email ini sudah terdaftar.' }, { status: 409 });
         }
+        console.error('[API] Gagal membuat pengguna:', error);
         return NextResponse.json({ error: error.message || 'Gagal membuat pengguna baru.' }, { status: 500 });
     }
 }
