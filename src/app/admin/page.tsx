@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { AdminSeedButton } from './admin-seed-button';
 import { useEffect, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useAuth } from '@/firebase';
 
 interface Stat {
   title: string;
@@ -18,17 +20,28 @@ interface Stat {
 }
 
 export default function AdminDashboard() {
+  const auth = useAuth();
   const [counts, setCounts] = useState({ locations: '...', spots: '...', users: '...' });
 
   useEffect(() => {
-    // Fetch counts on the client side
     const fetchCounts = async () => {
       try {
+        if (!auth.currentUser) {
+          throw new Error("Pengguna tidak terautentikasi.");
+        }
+        
+        const token = await auth.currentUser.getIdToken();
+        const headers = { 'Authorization': `Bearer ${token}` };
+
         const [locationsRes, spotsRes, usersRes] = await Promise.all([
-          fetch('/api/admin/locations'),
-          fetch('/api/admin/spots'),
-          fetch('/api/admin/users'),
+          fetch('/api/admin/locations', { headers }),
+          fetch('/api/admin/spots', { headers }),
+          fetch('/api/admin/users', { headers }),
         ]);
+
+        if (!locationsRes.ok || !spotsRes.ok || !usersRes.ok) {
+            throw new Error("Gagal mengambil sebagian atau semua data dasbor.");
+        }
 
         const locations = await locationsRes.json();
         const spots = await spotsRes.json();
@@ -39,14 +52,16 @@ export default function AdminDashboard() {
           spots: spots.length.toString(),
           users: users.length.toString(),
         });
-      } catch (error) {
-        console.error("Failed to fetch admin dashboard counts:", error);
+      } catch (error: any) {
+        console.error("Gagal mengambil jumlah dasbor admin:", error);
         setCounts({ locations: 'N/A', spots: 'N/A', users: 'N/A' });
       }
     };
 
-    fetchCounts();
-  }, []);
+    if (auth.currentUser) {
+        fetchCounts();
+    }
+  }, [auth.currentUser]);
 
   const stats: Stat[] = [
     { title: 'Total Lokasi', value: counts.locations, icon: <Mountain className="h-6 w-6" />, href: '/admin/locations', color: 'bg-blue-900/50 text-blue-100' },
