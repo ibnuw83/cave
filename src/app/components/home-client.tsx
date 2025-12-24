@@ -155,7 +155,7 @@ export default function HomeClient() {
         setIsLoading(true);
         try {
             const [locsData, settingsData, imagesData] = await Promise.all([
-                getLocations(),
+                getLocations(true),
                 getKioskSettings(),
                 fetch('/placeholder-images.json').then(res => res.json())
             ]);
