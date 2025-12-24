@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Location, KioskSettings } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -155,33 +155,27 @@ export default function HomeClient() {
   const [isLoading, setIsLoading] = useState(true);
   const [heroImage, setHeroImage] = useState('/placeholder.jpg');
   
-  useEffect(() => {
-    async function fetchData() {
-        setIsLoading(true);
-        try {
-            const [locsData, settingsData] = await Promise.all([
-                getLocations(false), // Fetch only active locations for public view
-                getKioskSettings(),
-            ]);
-            
-            setLocations(locsData);
-            setSettings(settingsData);
-            
-            // This part for placeholder images is commented out as it's not being used.
-            // const imagesData = await fetch('/placeholder-images.json').then(res => res.json())
-            // const heroImg = imagesData.placeholderImages.find((img: any) => img.id === 'hero-background');
-            // if (heroImg) {
-            //     setHeroImage(heroImg.imageUrl);
-            // }
-
-        } catch (err) {
-            console.error("Failed to fetch initial data on client:", err);
-        } finally {
-            setIsLoading(false);
-        }
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+        const [locsData, settingsData] = await Promise.all([
+            getLocations(false), // Fetch only active locations for public view
+            getKioskSettings(),
+        ]);
+        
+        setLocations(locsData);
+        setSettings(settingsData);
+        
+    } catch (err) {
+        console.error("Failed to fetch initial data on client:", err);
+    } finally {
+        setIsLoading(false);
     }
-    fetchData();
   }, []);
+  
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
   
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -283,7 +277,3 @@ export default function HomeClient() {
 </div>
   );
 }
-
-    
-
-    

@@ -37,6 +37,8 @@ export default function SpotsPage() {
       setSpots(spotsData);
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Gagal Memuat', description: e.message });
+      setLocations([]);
+      setSpots([]);
     } finally {
       setLoading(false);
     }

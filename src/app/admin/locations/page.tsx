@@ -19,7 +19,6 @@ export default function LocationsPage() {
   const refreshLocations = useCallback(async () => {
     if (!auth.currentUser) {
         // This case is handled by the layout, but as a safeguard:
-        toast({ variant: 'destructive', title: 'Gagal', description: 'Anda harus login untuk memuat lokasi.' });
         setLoading(false);
         return;
     }
@@ -35,6 +34,7 @@ export default function LocationsPage() {
         setLocations(data);
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Gagal Memuat', description: error.message });
+        setLocations([]); // Clear locations on error
     } finally {
         setLoading(false);
     }
