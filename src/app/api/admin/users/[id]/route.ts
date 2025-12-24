@@ -1,8 +1,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { adminAuth, adminDb } from '@/firebase/admin';
+import { safeGetAdminApp } from '@/firebase/admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
+import * as admin from 'firebase-admin';
+
+const adminApp = safeGetAdminApp();
+const adminAuth = admin.auth(adminApp);
+const adminDb = admin.firestore(adminApp);
 
 /**
  * Verifies if the request comes from an authenticated admin user.

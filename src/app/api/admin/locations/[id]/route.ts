@@ -1,8 +1,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth, adminDb } from '@/firebase/admin';
+import { safeGetAdminApp } from '@/firebase/admin';
 import * as admin from 'firebase-admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
+
+const adminApp = safeGetAdminApp();
+const adminAuth = admin.auth(adminApp);
+const adminDb = admin.firestore(adminApp);
 
 async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
     const authorization = req.headers.get('Authorization');

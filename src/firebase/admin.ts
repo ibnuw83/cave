@@ -1,33 +1,38 @@
 
 import * as admin from 'firebase-admin';
 
-// Explicitly unset the emulator host environment variable.
-// This is a robust way to ensure that in a production environment,
-// the Admin SDK does NOT try to connect to a local emulator,
-// even if the build environment had the variable set.
-delete process.env.FIRESTORE_EMULATOR_HOST;
+/**
+ * Ensures that the Firebase Admin SDK is initialized only once.
+ * This function is the single entry point for accessing the admin app instance.
+ * @returns The initialized Firebase Admin App instance.
+ */
+export function safeGetAdminApp(): admin.app.App {
+  // If the app is already initialized, return it.
+  if (admin.apps.length > 0) {
+    return admin.app();
+  }
 
-// This logic ensures we initialize the app only once.
-if (!admin.apps.length) {
+  // Otherwise, initialize the app.
   try {
     const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 
     if (!projectId) {
       throw new Error("NEXT_PUBLIC_FIREBASE_PROJECT_ID is not set in the environment variables.");
     }
-    
+
     // In a Google Cloud environment (like App Hosting), initializing without arguments
-    // automatically uses the project's service account credentials. This is the most robust method.
+    // automatically uses the project's service account credentials.
     admin.initializeApp();
+    
+    // Explicitly unset the emulator host environment variable after initialization.
+    // This prevents accidental connections to an emulator in production.
+    delete process.env.FIRESTORE_EMULATOR_HOST;
 
   } catch (error: any) {
     console.error('[Firebase Admin] CRITICAL: Failed to initialize Firebase Admin SDK.', error);
-    // This will cause the server to crash on startup if initialization fails,
-    // making it obvious that there is a fundamental configuration issue.
+    // Crash the process if initialization fails, as it's a fatal configuration error.
     process.exit(1);
   }
-}
 
-export const adminApp = admin.app();
-export const adminAuth = admin.auth(adminApp);
-export const adminDb = admin.firestore(adminApp);
+  return admin.app();
+}

@@ -1,7 +1,11 @@
 
-import { adminDb } from '@/firebase/admin';
+import { safeGetAdminApp } from '@/firebase/admin';
 import { collection, writeBatch, getDocs } from 'firebase/firestore';
 import type { Location, Spot } from './types';
+import * as admin from 'firebase-admin';
+
+const adminApp = safeGetAdminApp();
+const adminDb = admin.firestore(adminApp);
 
 const locationsData: Omit<Location, 'id'>[] = [
   {

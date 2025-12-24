@@ -1,6 +1,10 @@
 
-import { adminDb } from '@/firebase/admin';
+import { safeGetAdminApp } from '@/firebase/admin';
 import type { Location, Spot, KioskSettings } from './types';
+import * as admin from 'firebase-admin';
+
+const adminApp = safeGetAdminApp();
+const adminDb = admin.firestore(adminApp);
 
 export async function getSpot(spotId: string): Promise<Spot | null> {
   const spotRef = adminDb.collection('spots').doc(spotId);

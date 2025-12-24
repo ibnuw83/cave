@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { adminAuth } from '@/firebase/admin';
+import { safeGetAdminApp } from '@/firebase/admin';
+import * as admin from 'firebase-admin';
+
+const adminApp = safeGetAdminApp();
+const adminAuth = admin.auth(adminApp);
 
 export async function POST(req: NextRequest) {
   const authorization = req.headers.get('Authorization');
