@@ -129,6 +129,16 @@ export default function CavePage() {
                 setLoading(false);
                 return;
             }
+
+            // Optimization: If location is not active and user is not admin, stop here.
+            if (!locData.isActive && !isAdmin) {
+                setError("Lokasi ini tidak tersedia saat ini.");
+                setLocation(locData); // Still set location to show the inactive banner
+                setSpots([]);
+                setLoading(false);
+                return;
+            }
+
             const spotsData = await getSpotsForLocation(id);
             setLocation(locData);
             setSpots(spotsData);
@@ -141,7 +151,7 @@ export default function CavePage() {
     }
 
     fetchData();
-  }, [id]);
+  }, [id, isAdmin]);
 
   useEffect(() => {
     if (location) {
@@ -183,14 +193,14 @@ export default function CavePage() {
   
   if (loading) return <CavePageFallback />;
 
-  if (error) {
-    return (
+  if (!location) {
+     return (
       <div className="container mx-auto flex min-h-screen max-w-5xl items-center justify-center p-4">
         <Alert variant="destructive" className="w-full max-w-lg">
           <ServerCrash className="h-4 w-4" />
-          <AlertTitle>Gagal Memuat</AlertTitle>
+          <AlertTitle>Gagal Memuat atau Tidak Ditemukan</AlertTitle>
           <AlertDescription>
-            {error}
+            {error || 'Lokasi yang Anda cari tidak ada atau terjadi kesalahan.'}
             <Button variant="link" asChild className="mt-2 block p-0">
                 <Link href="/">Kembali ke Halaman Utama</Link>
             </Button>
@@ -200,22 +210,22 @@ export default function CavePage() {
     );
   }
 
-  if (!location) {
-    // This state is hit if fetchData sets error, but as a fallback.
+  // Handle case where location exists but there was an error fetching spots (e.g., inactive)
+  if (error && location) {
     return (
-       <div className="container mx-auto flex min-h-screen max-w-5xl items-center justify-center p-4">
-        <Alert className="w-full max-w-lg">
-          <Info className="h-4 w-4" />
-          <AlertTitle>Tidak Ditemukan</AlertTitle>
+      <div className="container mx-auto flex min-h-screen max-w-5xl items-center justify-center p-4">
+        <Alert variant="destructive" className="w-full max-w-lg">
+          <ServerCrash className="h-4 w-4" />
+          <AlertTitle>Lokasi Tidak Tersedia</AlertTitle>
           <AlertDescription>
-            Lokasi yang Anda cari tidak ada.
-             <Button variant="link" asChild className="mt-2 block p-0">
+            {error}
+            <Button variant="link" asChild className="mt-2 block p-0">
                 <Link href="/">Kembali ke Halaman Utama</Link>
             </Button>
           </AlertDescription>
         </Alert>
       </div>
-    )
+    );
   }
 
   return (
@@ -243,7 +253,7 @@ export default function CavePage() {
       </header>
 
       <main>
-        {!location.isActive && (
+        {!location.isActive && isAdmin && (
             <Alert variant="destructive" className="mb-8 bg-yellow-900/20 border-yellow-700/50 text-yellow-200">
                 <Info className="h-4 w-4 !text-yellow-400" />
                 <AlertTitle>Lokasi Tidak Aktif</AlertTitle>
