@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -18,10 +19,11 @@ export function useUser() {
   const [authError, setAuthError] = useState<Error | null>(null);
 
   const refreshUserProfile = useCallback(async () => {
-    if (!auth.currentUser) return;
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
     setIsProfileLoading(true);
     try {
-      const profile = await getUserProfileClient(auth.currentUser.uid);
+      const profile = await getUserProfileClient(currentUser.uid);
       setUserProfile(profile);
     } finally {
       setIsProfileLoading(false);
