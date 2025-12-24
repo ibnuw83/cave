@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -18,9 +19,24 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getLocationClient, getSpotsForLocation } from '@/lib/firestore-client';
 import { Skeleton } from '@/components/ui/skeleton';
 
-function SpotCard({ spot, isLocked, isOffline, lockedMessage }: { spot: Spot; isLocked: boolean; isOffline: boolean, lockedMessage: string; }) {
+declare global {
+  interface Window {
+    gtag?: (event: string, action: string, params: object) => void;
+  }
+}
+
+function SpotCard({ spot, locationId, isLocked, isOffline, lockedMessage }: { spot: Spot; locationId: string; isLocked: boolean; isOffline: boolean; lockedMessage: string; }) {
+  const handleClick = () => {
+    if (isLocked) {
+      window.gtag?.('event', 'locked_spot_click', {
+        location: locationId,
+        spot: spot.id,
+      });
+    }
+  };
+
   const content = (
-    <Card className={`overflow-hidden transition-all duration-300 ${isLocked ? 'bg-muted/30 border-dashed cursor-pointer hover:border-primary/50 hover:scale-105' : 'hover:shadow-lg hover:border-primary/50 hover:scale-105'}`}>
+    <Card onClick={handleClick} className={`overflow-hidden transition-all duration-300 ${isLocked ? 'bg-muted/30 border-dashed cursor-pointer hover:border-primary/50 hover:scale-105' : 'hover:shadow-lg hover:border-primary/50 hover:scale-105'}`}>
       <CardHeader className="p-0">
         <div className="relative h-40 w-full">
           <Image
@@ -316,7 +332,8 @@ export default function CavePage() {
             const lockedMessage = userProfile ? "Upgrade untuk mengakses spot PRO ini" : "Login untuk akses konten PRO";
             return <SpotCard 
                       key={spot.id} 
-                      spot={spot} 
+                      spot={spot}
+                      locationId={location.id} 
                       isLocked={isLocked} 
                       isOffline={isOffline && !isLocked}
                       lockedMessage={lockedMessage} 
