@@ -16,7 +16,7 @@ import Link from 'next/link';
 function PembayaranComponent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, userProfile, isUserLoading, refreshUserProfile } = useUser();
+  const { user, userProfile, isUserLoading, isProfileLoading, refreshUserProfile } = useUser();
   const auth = useAuth();
   const { toast } = useToast();
 
@@ -27,9 +27,17 @@ function PembayaranComponent() {
   const tierId = searchParams.get('tier');
 
   useEffect(() => {
-    if (isUserLoading) return;
+    const isLoading = isUserLoading || isProfileLoading;
+    if (isLoading) return;
+
     if (!user) {
       router.push('/login');
+      return;
+    }
+    
+    if (userProfile?.role === 'admin') {
+      toast({ title: 'Akses Admin', description: 'Admin tidak perlu melakukan pembayaran.' });
+      router.push('/profile');
       return;
     }
 
@@ -56,7 +64,7 @@ function PembayaranComponent() {
       })
       .finally(() => setLoading(false));
 
-  }, [tierId, router, toast, user, isUserLoading]);
+  }, [tierId, router, toast, user, isUserLoading, isProfileLoading, userProfile]);
 
   const handleSimulatePayment = async () => {
     if (!user || !tier || !auth.currentUser) return;
@@ -109,7 +117,9 @@ function PembayaranComponent() {
     }
   };
 
-  if (loading || isUserLoading) {
+  const isLoadingData = loading || isUserLoading || isProfileLoading;
+
+  if (isLoadingData) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="w-full max-w-md">
