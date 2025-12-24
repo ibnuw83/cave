@@ -54,6 +54,8 @@ export async function POST(req: NextRequest) {
         
         const dataToSave = {
           ...locationData,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
           miniMap: { nodes: [], edges: [] }
         };
 
