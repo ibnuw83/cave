@@ -66,7 +66,7 @@ function PembayaranComponent() {
       // 1. Update role in Firestore
       await updateUserRole(user.uid, tier.id as UserProfile['role']);
       
-      // 2. Force refresh the auth token to get the new custom claims
+      // 2. Force refresh the auth token to get the new custom claims (PENTING!)
       await auth.currentUser?.getIdToken(true);
 
       // 3. Refresh local user profile state from Firestore
