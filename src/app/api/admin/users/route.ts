@@ -44,15 +44,22 @@ export async function GET(req: NextRequest) {
             profiles[doc.id] = doc.data() as UserProfile;
         });
 
-        const users = userRecords.users.map(user => ({
-            id: user.uid,
-            email: user.email || null,
-            displayName: user.displayName || null,
-            photoURL: user.photoURL || null,
-            role: profiles[user.uid]?.role || 'free',
-            disabled: user.disabled,
-            updatedAt: profiles[user.uid]?.updatedAt || new Date(user.metadata.lastSignInTime || user.metadata.creationTime),
-        }));
+        const users = userRecords.users.map(user => {
+            const profile = profiles[user.uid];
+            // Provide safe fallbacks if a user exists in Auth but not in Firestore
+            const creationTime = user.metadata.creationTime ? new Date(user.metadata.creationTime) : new Date();
+            
+            return {
+                id: user.uid,
+                email: user.email || null,
+                displayName: user.displayName || null,
+                photoURL: user.photoURL || null,
+                role: profile?.role || 'free',
+                disabled: user.disabled,
+                // Ensure updatedAt is always a valid date
+                updatedAt: profile?.updatedAt || creationTime,
+            };
+        });
 
         return NextResponse.json(users);
     } catch (error: any) {

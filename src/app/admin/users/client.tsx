@@ -230,7 +230,7 @@ export default function UsersClient() {
              <div className="flex items-center space-x-4">
                 <Avatar>
                     <AvatarImage src={user.photoURL || undefined} />
-                    <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}</AvatarFallback>
+                    <AvatarFallback>{(user.displayName || user.email || 'U').charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-grow">
                   <CardTitle className="text-lg">{user.displayName || 'Tanpa Nama'}</CardTitle>
