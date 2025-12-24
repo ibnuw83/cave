@@ -5,11 +5,11 @@ import type { Spot } from '@/lib/types';
 import * as admin from 'firebase-admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
-const adminApp = safeGetAdminApp();
-const adminAuth = admin.auth(adminApp);
-const adminDb = admin.firestore(adminApp);
-
 async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
+    const adminApp = safeGetAdminApp();
+    const adminAuth = admin.auth(adminApp);
+    const adminDb = admin.firestore(adminApp);
+
     const authorization = req.headers.get('Authorization');
     if (authorization?.startsWith('Bearer ')) {
       const idToken = authorization.split('Bearer ')[1];
@@ -34,6 +34,8 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Akses ditolak.' }, { status: 403 });
     }
     try {
+        const adminApp = safeGetAdminApp();
+        const adminDb = admin.firestore(adminApp);
         const spotsRef = adminDb.collection('spots');
         const snapshot = await spotsRef.get();
         const spots = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Spot));
@@ -51,6 +53,8 @@ export async function POST(req: NextRequest) {
     }
 
     try {
+        const adminApp = safeGetAdminApp();
+        const adminDb = admin.firestore(adminApp);
         const spotData = await req.json();
         const docRef = await adminDb.collection('spots').add({
             ...spotData,

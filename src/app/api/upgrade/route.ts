@@ -5,16 +5,14 @@ import * as admin from 'firebase-admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 import type { UserProfile } from '@/lib/types';
 
-const adminApp = safeGetAdminApp();
-const adminAuth = admin.auth(adminApp);
-const adminDb = admin.firestore(adminApp);
-
 /**
  * Verifies the user's ID token from the Authorization header.
  * @param req The NextRequest object.
  * @returns A promise that resolves to the user's DecodedIdToken or null.
  */
 async function verifyUser(req: NextRequest): Promise<DecodedIdToken | null> {
+    const adminApp = safeGetAdminApp();
+    const adminAuth = admin.auth(adminApp);
     const authorization = req.headers.get('Authorization');
     if (authorization?.startsWith('Bearer ')) {
       const idToken = authorization.split('Bearer ')[1];
@@ -37,6 +35,9 @@ export async function POST(req: NextRequest) {
     }
 
     try {
+        const adminApp = safeGetAdminApp();
+        const adminAuth = admin.auth(adminApp);
+        const adminDb = admin.firestore(adminApp);
         const body = await req.json();
         const { tierId } = body;
 

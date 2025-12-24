@@ -4,11 +4,11 @@ import { safeGetAdminApp } from '@/firebase/admin';
 import * as admin from 'firebase-admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
-const adminApp = safeGetAdminApp();
-const adminAuth = admin.auth(adminApp);
-const adminDb = admin.firestore(adminApp);
-
 async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
+    const adminApp = safeGetAdminApp();
+    const adminAuth = admin.auth(adminApp);
+    const adminDb = admin.firestore(adminApp);
+
     const authorization = req.headers.get('Authorization');
     if (authorization?.startsWith('Bearer ')) {
       const idToken = authorization.split('Bearer ')[1];
@@ -33,6 +33,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }
 
     try {
+        const adminApp = safeGetAdminApp();
+        const adminDb = admin.firestore(adminApp);
         const { id } = params;
         const docRef = adminDb.collection('locations').doc(id);
         const docSnap = await docRef.get();
@@ -56,6 +58,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
 
     try {
+        const adminApp = safeGetAdminApp();
+        const adminDb = admin.firestore(adminApp);
         const { id } = params;
         const locationData = await req.json();
         const docRef = adminDb.collection('locations').doc(id);
@@ -80,6 +84,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
 
     try {
+        const adminApp = safeGetAdminApp();
+        const adminDb = admin.firestore(adminApp);
         const { id } = params;
         const batch = adminDb.batch();
         const locationRef = adminDb.collection('locations').doc(id);

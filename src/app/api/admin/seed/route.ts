@@ -5,11 +5,11 @@ import { seedInitialData } from '@/lib/seed-dev-data';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 import * as admin from 'firebase-admin';
 
-const adminApp = safeGetAdminApp();
-const adminAuth = admin.auth(adminApp);
-const adminDb = admin.firestore(adminApp);
-
 async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
+    const adminApp = safeGetAdminApp();
+    const adminAuth = admin.auth(adminApp);
+    const adminDb = admin.firestore(adminApp);
+
     const authorization = req.headers.get('Authorization');
     if (authorization?.startsWith('Bearer ')) {
       const idToken = authorization.split('Bearer ')[1];

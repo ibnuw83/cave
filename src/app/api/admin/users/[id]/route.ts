@@ -5,16 +5,16 @@ import { safeGetAdminApp } from '@/firebase/admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 import * as admin from 'firebase-admin';
 
-const adminApp = safeGetAdminApp();
-const adminAuth = admin.auth(adminApp);
-const adminDb = admin.firestore(adminApp);
-
 /**
  * Verifies if the request comes from an authenticated admin user.
  * @param req The NextRequest object.
  * @returns A promise that resolves to the admin's DecodedIdToken or null if not an admin.
  */
 async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
+    const adminApp = safeGetAdminApp();
+    const adminAuth = admin.auth(adminApp);
+    const adminDb = admin.firestore(adminApp);
+
     const authorization = req.headers.get('Authorization');
     if (authorization?.startsWith('Bearer ')) {
       const idToken = authorization.split('Bearer ')[1];
@@ -55,6 +55,9 @@ export async function PUT(
     }
 
     try {
+        const adminApp = safeGetAdminApp();
+        const adminAuth = admin.auth(adminApp);
+        const adminDb = admin.firestore(adminApp);
         const body = await req.json();
         const { disabled } = body;
 
@@ -97,6 +100,9 @@ export async function DELETE(
     }
 
     try {
+        const adminApp = safeGetAdminApp();
+        const adminAuth = admin.auth(adminApp);
+        const adminDb = admin.firestore(adminApp);
         const batch = adminDb.batch();
         batch.delete(adminDb.collection('users').doc(userId));
         await adminAuth.deleteUser(userId);

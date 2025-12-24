@@ -3,10 +3,9 @@ import { cookies } from 'next/headers';
 import { safeGetAdminApp } from '@/firebase/admin';
 import * as admin from 'firebase-admin';
 
-const adminApp = safeGetAdminApp();
-const adminAuth = admin.auth(adminApp);
-
 export async function POST(req: NextRequest) {
+  const adminApp = safeGetAdminApp();
+  const adminAuth = admin.auth(adminApp);
   const authorization = req.headers.get('Authorization');
   if (authorization?.startsWith('Bearer ')) {
     const idToken = authorization.split('Bearer ')[1];

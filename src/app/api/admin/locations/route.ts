@@ -5,11 +5,11 @@ import type { Location } from '@/lib/types';
 import * as admin from 'firebase-admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
-const adminApp = safeGetAdminApp();
-const adminAuth = admin.auth(adminApp);
-const adminDb = admin.firestore(adminApp);
-
 async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
+    const adminApp = safeGetAdminApp();
+    const adminAuth = admin.auth(adminApp);
+    const adminDb = admin.firestore(adminApp);
+
     const authorization = req.headers.get('Authorization');
     if (authorization?.startsWith('Bearer ')) {
       const idToken = authorization.split('Bearer ')[1];
@@ -33,6 +33,8 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Akses ditolak.' }, { status: 403 });
     }
     try {
+        const adminApp = safeGetAdminApp();
+        const adminDb = admin.firestore(adminApp);
         const locationsRef = adminDb.collection('locations');
         const querySnapshot = await locationsRef.get();
         const locations = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Location));
@@ -50,6 +52,8 @@ export async function POST(req: NextRequest) {
     }
 
     try {
+        const adminApp = safeGetAdminApp();
+        const adminDb = admin.firestore(adminApp);
         const locationData: Omit<Location, 'id' | 'miniMap'> = await req.json();
         
         const dataToSave = {
