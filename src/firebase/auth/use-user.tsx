@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -40,41 +41,39 @@ export function useUser() {
             setUser(firebaseUser);
             setIsUserLoading(false);
             
-            if (firebaseUser) {
-                setIsProfileLoading(true);
-                try {
-                    let profile = await getUserProfileClient(firebaseUser.uid);
-
-                    if (!profile) {
-                         // This is a new user, create their profile in Firestore
-                        try {
-                            profile = await createUserProfile(firebaseUser);
-                            toast({ title: "Selamat Datang!", description: "Akun Anda berhasil dibuat." });
-                        } catch (creationError) {
-                             console.error("Failed to create user profile:", creationError);
-                             toast({
-                                title: "Gagal Membuat Profil",
-                                description: "Terjadi kesalahan saat menyiapkan akun Anda. Silakan coba login lagi.",
-                                variant: "destructive"
-                            });
-                             // Log out the user if profile creation fails to prevent an inconsistent state
-                            await auth.signOut();
-                            setUser(null);
-                            setUserProfile(null);
-                            return;
-                        }
-                    }
-                    setUserProfile(profile);
-                } catch (error) {
-                    console.error("Error fetching user profile:", error);
-                    setAuthError(error as Error);
-                    setUserProfile(null);
-                } finally {
-                    setIsProfileLoading(false);
-                }
-            } else {
-                // User is signed out
+            if (!firebaseUser) {
                 setUserProfile(null);
+                setIsProfileLoading(false);
+                return;
+            }
+
+            setIsProfileLoading(true);
+            try {
+                let profile = await getUserProfileClient(firebaseUser.uid);
+
+                if (!profile) {
+                     // This is a new user, create their profile in Firestore
+                    try {
+                        profile = await createUserProfile(firebaseUser);
+                        toast({ title: "Selamat Datang!", description: "Akun Anda berhasil dibuat." });
+                    } catch (creationError) {
+                         console.error("Failed to create user profile:", creationError);
+                         toast({
+                            title: "Gagal Membuat Profil",
+                            description: "Terjadi kesalahan saat menyiapkan akun Anda. Silakan coba login lagi.",
+                            variant: "destructive"
+                        });
+                         // Log out the user if profile creation fails to prevent an inconsistent state
+                        await auth.signOut();
+                        return; // Exit early
+                    }
+                }
+                setUserProfile(profile);
+            } catch (error) {
+                console.error("Error fetching user profile:", error);
+                setAuthError(error as Error);
+                setUserProfile(null);
+            } finally {
                 setIsProfileLoading(false);
             }
         }, (error) => {
