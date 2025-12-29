@@ -98,7 +98,7 @@ export function useDoc<T = any>(
       isCancelled = true;
       unsubscribe();
     };
-  }, [memoizedDocRef]); // Re-run if the memoizedDocRef changes.
+  }, []); // Changed dependency array to empty to run only once
 
   return { data, isLoading, error };
 }

@@ -72,10 +72,7 @@ export function useCollection<T = any>(
       return;
     }
 
-    // Fix: Prevent infinite loop by only setting loading if it's not already true.
-    if (!isLoading) {
-      setIsLoading(true);
-    }
+    setIsLoading(true);
     setError(null);
 
     // Directly use targetRefOrQuery as it's assumed to be the final query
@@ -121,7 +118,7 @@ export function useCollection<T = any>(
       isCancelled = true;
       unsubscribe();
     };
-  }, [targetRefOrQuery]); // Re-run if the target query/reference changes.
+  }, []); // Changed dependency array to empty to run only once
   
   return { data, isLoading, error };
 }
