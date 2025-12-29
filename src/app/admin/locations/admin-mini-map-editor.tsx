@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Location } from '@/lib/types';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
@@ -23,24 +23,23 @@ export function AdminMiniMapEditor({
   );
   const [dragId, setDragId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-
-  // Update internal state if the initialMap prop changes from parent
-  useEffect(() => {
-    setMap(initialMap ?? { nodes: [], edges: [] });
-  }, [initialMap]);
+  
+  // Use a ref to hold the latest map state for the debounced function
+  const mapRef = useRef(map);
+  mapRef.current = map;
 
   // Debounced save function
   const debouncedSave = useCallback(
-    debounce(async (newMap: Location['miniMap']) => {
+    debounce(async () => {
       setIsSaving(true);
       try {
-        // Add a check to ensure newMap is not undefined
-        if (!newMap) {
-          throw new Error("Cannot save an undefined map.");
+        const currentMap = mapRef.current;
+        if (!currentMap) {
+            throw new Error("Cannot save an undefined map.");
         }
         await updateDoc(doc(db, 'locations', locationId), {
-          'miniMap.nodes': newMap.nodes,
-          'miniMap.edges': newMap.edges,
+          'miniMap.nodes': currentMap.nodes,
+          'miniMap.edges': currentMap.edges,
           updatedAt: serverTimestamp(),
         });
         toast({ title: 'Tersimpan Otomatis', description: 'Tata letak peta mini telah diperbarui.' });
@@ -53,17 +52,28 @@ export function AdminMiniMapEditor({
     }, 1500),
     [locationId, db, toast]
   );
+  
+  // Update internal state if the initialMap prop changes from parent
+  useEffect(() => {
+    setMap(initialMap ?? { nodes: [], edges: [] });
+  }, [initialMap]);
+
 
   function updateNodePosition(id: string, x: number, y: number) {
     if (!map) return;
-    const newMap = {
-      ...map,
-      nodes: map.nodes.map(n =>
-        n.id === id ? { ...n, x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) } : n
-      ),
-    };
-    setMap(newMap);
-    debouncedSave(newMap);
+    
+    setMap(currentMap => {
+        if (!currentMap) return { nodes: [], edges: [] };
+        const newMap = {
+          ...currentMap,
+          nodes: currentMap.nodes.map(n =>
+            n.id === id ? { ...n, x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) } : n
+          ),
+        };
+        return newMap;
+    });
+
+    debouncedSave();
   }
 
   if (!map || map.nodes.length === 0) {
