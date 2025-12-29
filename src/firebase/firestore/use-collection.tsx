@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Query,
   onSnapshot,
@@ -10,6 +10,9 @@ import {
   FirestoreError,
   QuerySnapshot,
   CollectionReference,
+  getDocs,
+  collection,
+  query,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -35,7 +38,13 @@ export interface InternalQuery extends Query<DocumentData> {
     path: {
       canonicalString(): string;
       toString(): string;
-    }
+    },
+    filters: {
+        toString(): string;
+    }[];
+    orderBy: {
+        toString(): string;
+    }[];
   }
 }
 
@@ -63,13 +72,24 @@ export function useCollection<T = any>(
   const [isLoading, setIsLoading] = useState<boolean>(true); // Start as true
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
+  const previousQueryPath = useRef<string | null>(null);
+
   useEffect(() => {
     if (!targetRefOrQuery) {
       setData(null);
       setIsLoading(false);
       setError(null);
+      previousQueryPath.current = null;
       return;
     }
+
+    const currentQueryPath = (targetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
+    if (previousQueryPath.current === currentQueryPath) {
+      // The query itself hasn't changed, so don't re-subscribe.
+      return;
+    }
+    previousQueryPath.current = currentQueryPath;
+
 
     setIsLoading(true);
     setError(null);
@@ -107,8 +127,7 @@ export function useCollection<T = any>(
     );
 
     return () => unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetRefOrQuery?.toString()]);
+  }, [targetRefOrQuery]);
   
   return { data, isLoading, error };
 }

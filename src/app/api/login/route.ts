@@ -1,10 +1,11 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { safeGetAdminApp } from '@/firebase/admin';
 
 export async function POST(req: NextRequest) {
   const services = safeGetAdminApp();
-  if (!services) return NextResponse.json({ error: 'Konfigurasi server tidak tersedia.' }, { status: 500 });
+  if (!services) return NextResponse.json({ error: 'Konfigurasi server tidak tersedia. Pastikan FIREBASE_SERVICE_ACCOUNT_KEY sudah diatur.' }, { status: 503 });
   const { auth, db } = services;
 
   const authorization = req.headers.get('Authorization');

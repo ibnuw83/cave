@@ -24,14 +24,14 @@ function getServiceAccount(): ServiceAccount | null {
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
   if (!serviceAccountJson) {
     console.warn(
-      'FIREBASE_SERVICE_ACCOUNT_KEY is not set. Admin operations will fail.'
+      'WARNING: FIREBASE_SERVICE_ACCOUNT_KEY is not set. Server-side admin operations will fail.'
     );
     return null;
   }
   try {
     return JSON.parse(serviceAccountJson);
   } catch (e) {
-    console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:', e);
+    console.error('ERROR: Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY. Make sure it is a valid JSON string.', e);
     return null;
   }
 }
@@ -43,7 +43,8 @@ function getServiceAccount(): ServiceAccount | null {
  */
 export function safeGetAdminApp() {
   const serviceAccount = getServiceAccount();
-  if (!serviceAccount) {
+  if (!serviceAccount?.project_id) {
+    // If service account is null or doesn't have a project_id, initialization is not possible.
     return null;
   }
 

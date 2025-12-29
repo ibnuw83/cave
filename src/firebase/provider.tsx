@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, ReactNode, useEffect, useMemo } from 'react';
@@ -36,28 +37,30 @@ interface FirebaseServices {
   firebaseApp: FirebaseApp;
   firestore: Firestore;
   auth: Auth;
+  isConfigured: boolean;
 }
 
 export const FirebaseContext = createContext<FirebaseServices | null>(null);
 
 export const FirebaseClientProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Memoize the initialization to ensure it runs only once.
-  const firebaseServices = useMemo(() => initializeFirebase(), []);
+  const services = useMemo(() => initializeFirebase(), []);
 
-  if (!firebaseServices) {
+  if (!services.isConfigured) {
     // If initialization failed, render a helpful message instead of the app.
     return (
       <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#2A2B32', color: '#ACB9C9', minHeight: '100vh' }}>
-        <h1 style={{ fontSize: '24px', color: '#E6B81C' }}>Konfigurasi Firebase Tidak Lengkap</h1>
-        <p>Aplikasi tidak dapat terhubung ke Firebase.</p>
-        <p>Silakan salin file `.env.example` menjadi `.env.local` dan isi semua variabel yang diperlukan.</p>
+        <h1 style={{ fontSize: '24px', color: '#E6B81C' }}>Konfigurasi Firebase Tidak Ditemukan</h1>
+        <p>Aplikasi berjalan, tetapi tidak dapat terhubung ke Firebase.</p>
+        <p>Untuk menggunakan fitur yang memerlukan database (seperti login, melihat lokasi, dll.), harap buat file <strong>.env.local</strong> di folder utama proyek Anda.</p>
+        <p>Salin konten dari <strong>.env.example</strong> ke dalam <strong>.env.local</strong> dan isi semua variabel yang diperlukan dengan kredensial Firebase Anda.</p>
         <p>Setelah itu, Anda perlu me-restart server pengembangan (`next dev`).</p>
       </div>
     );
   }
 
   return (
-    <FirebaseContext.Provider value={firebaseServices}>
+    <FirebaseContext.Provider value={services}>
       <FirebaseErrorListener />
       {children}
     </FirebaseContext.Provider>
@@ -67,12 +70,8 @@ export const FirebaseClientProvider: React.FC<{ children: ReactNode }> = ({ chil
 export const useFirebase = (): FirebaseServices => {
   const context = useContext(FirebaseContext);
 
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useFirebase must be used within a FirebaseClientProvider.');
-  }
-
-  if (context === null) {
-    throw new Error('Firebase has not been initialized. Check your .env.local file.');
   }
   
   return context;

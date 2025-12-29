@@ -32,7 +32,7 @@ async function verifyUser(req: NextRequest): Promise<DecodedIdToken | null> {
 // Handler for POST /api/upgrade
 export async function POST(req: NextRequest) {
     const services = safeGetAdminApp();
-    if (!services) return NextResponse.json({ error: 'Konfigurasi server tidak tersedia.' }, { status: 500 });
+    if (!services) return NextResponse.json({ error: 'Konfigurasi server tidak tersedia. Pastikan FIREBASE_SERVICE_ACCOUNT_KEY sudah diatur.' }, { status: 503 });
     const { auth, db } = services;
     
     const decodedToken = await verifyUser(req);

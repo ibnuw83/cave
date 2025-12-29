@@ -36,14 +36,14 @@ async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
 }
 
 export async function POST(req: NextRequest) {
+    const services = safeGetAdminApp();
+    if (!services) {
+      return NextResponse.json({ error: 'Konfigurasi server tidak tersedia. Pastikan FIREBASE_SERVICE_ACCOUNT_KEY sudah diatur.' }, { status: 500 });
+    }
+
     const adminUser = await verifyAdmin(req);
     if (!adminUser) {
         return NextResponse.json({ error: 'Akses ditolak.' }, { status: 403 });
-    }
-  
-    const services = safeGetAdminApp();
-    if (!services) {
-      return NextResponse.json({ error: 'Admin SDK tidak dikonfigurasi.' }, { status: 500 });
     }
   
     try {
