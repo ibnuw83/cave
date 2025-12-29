@@ -35,6 +35,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster } from '@/components/ui/toaster';
 import Footer from './footer';
 
+type PlaceholderImage = {
+    id: string;
+    imageUrl: string;
+    alt: string;
+    "data-ai-hint": string;
+}
+
 const AuthSection = () => {
   const { user, userProfile, isUserLoading, isProfileLoading } = useUser();
   const auth = useAuth();
@@ -153,18 +160,27 @@ export default function HomeClient() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [settings, setSettings] = useState<KioskSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [heroImage, setHeroImage] = useState('/placeholder.jpg');
+  const [heroImage, setHeroImage] = useState<PlaceholderImage | null>(null);
   
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-        const [locsData, settingsData] = await Promise.all([
+        const [locsData, settingsData, placeholdersRes] = await Promise.all([
             getLocations(false), // Fetch only active locations for public view
             getKioskSettings(),
+            fetch('/placeholder-images.json'),
         ]);
         
         setLocations(locsData);
         setSettings(settingsData);
+        
+        if (placeholdersRes.ok) {
+            const placeholderData = await placeholdersRes.json();
+            const mainHero = placeholderData.placeholderImages.find((img: PlaceholderImage) => img.id === 'hero-main');
+            if (mainHero) {
+                setHeroImage(mainHero);
+            }
+        }
         
     } catch (err) {
         console.error("Failed to fetch initial data on client:", err);
@@ -181,14 +197,18 @@ export default function HomeClient() {
     <div className="min-h-screen bg-background text-foreground flex flex-col">
     <header className="relative flex h-[70vh] w-full flex-col items-center justify-center text-center text-white overflow-hidden">
         <div className="absolute inset-0 z-0">
-        <Image
-            src={heroImage}
-            alt="Pemandangan dramatis di dalam gua"
-            fill
-            className="object-cover"
-            priority
-            data-ai-hint="dramatic cave"
-        />
+        {heroImage ? (
+            <Image
+                src={heroImage.imageUrl}
+                alt={heroImage.alt}
+                fill
+                className="object-cover"
+                priority
+                data-ai-hint={heroImage['data-ai-hint']}
+            />
+        ) : (
+             <Skeleton className="h-full w-full" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black" />
         </div>
 
