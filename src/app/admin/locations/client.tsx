@@ -19,15 +19,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth, useCollection, useUser } from "@/firebase";
+import { useAuth, useCollection, useUser } from '@/firebase';
 import { collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
+import { deleteDoc, doc } from 'firebase/firestore';
 
 export default function LocationsClient() {
   const { userProfile } = useUser();
-  const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
@@ -41,21 +41,9 @@ export default function LocationsClient() {
   }, [locations]);
 
   const handleDelete = async (id: string) => {
-    if (!auth.currentUser) {
-        toast({ variant: 'destructive', title: 'Gagal', description: 'Anda harus login untuk menghapus lokasi.' });
-        return;
-    }
     try {
-        const token = await auth.currentUser.getIdToken();
-        const response = await fetch(`/api/admin/locations/${id}`, { 
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Gagal menghapus lokasi.');
-        }
-        toast({ title: "Berhasil", description: "Lokasi dan semua spot di dalamnya berhasil dihapus." });
+        await deleteDoc(doc(firestore, 'locations', id));
+        toast({ title: "Berhasil", description: "Lokasi berhasil dihapus." });
         // The useCollection hook will automatically update the UI
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Gagal', description: error.message });

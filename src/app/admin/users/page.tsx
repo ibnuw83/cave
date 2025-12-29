@@ -11,7 +11,6 @@ export default function UsersPage() {
           Kelola peran (role) pengguna.
         </p>
       </header>
-      {/* The client component will now handle its own data fetching */}
       <UsersClient />
     </div>
   );

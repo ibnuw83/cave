@@ -12,13 +12,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { SpotForm } from "./spot-form";
 import { useUser, useAuth, useCollection } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, deleteDoc, doc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SpotsClient() {
   const { userProfile } = useUser();
-  const auth = useAuth();
   const firestore = useFirestore();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState<Spot | null>(null);
@@ -43,17 +42,8 @@ export default function SpotsClient() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!auth.currentUser) return;
     try {
-      const token = await auth.currentUser.getIdToken();
-      const response = await fetch(`/api/admin/spots/${id}`, { 
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Gagal menghapus spot.');
-      }
+      await deleteDoc(doc(firestore, 'spots', id));
       toast({ title: "Berhasil", description: "Spot berhasil dihapus." });
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Gagal', description: error.message });

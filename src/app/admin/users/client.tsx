@@ -9,63 +9,123 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Trash2, UserPlus } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useCollection, useFirestore } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { UserForm } from './user-form';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { collection, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 
 export default function UsersClient() {
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [loading, setLoading] = useState(true);
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { user: currentUser, userProfile, isProfileLoading, refreshUserProfile } = useUser();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
 
-  const fetchUsers = useCallback(async () => {
-    if (!auth.currentUser) return;
-    setLoading(true);
-    try {
-      const token = await auth.currentUser.getIdToken();
-      const response = await fetch('/api/admin/users', {
-          headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!response.ok) {
-        throw new Error('Gagal mengambil data pengguna.');
-      }
-      const data = await response.json();
-      setUsers(data);
-    } catch (error: any) {
-        toast({
-            variant: 'destructive',
-            title: 'Gagal Memuat',
-            description: error.message || 'Tidak dapat mengambil daftar pengguna.',
-        });
-        setUsers([]); // Set to empty array on error
-    } finally {
-        setLoading(false);
-    }
-  }, [auth.currentUser, toast]);
-  
+  const usersRef = userProfile?.role === 'admin' ? collection(firestore, 'users') : null;
+  const { data: users, isLoading: usersLoading, error } = useCollection<UserProfile>(usersRef);
+
   const sortedUsers = useMemo(() => {
+    if (!users) return [];
     return [...users].sort((a, b) => (a.displayName || a.email || '').localeCompare(b.displayName || b.email || ''));
   }, [users]);
   
   useEffect(() => {
-    if (!isProfileLoading && userProfile?.role === 'admin') {
-      if (!isFormOpen) {
-        fetchUsers();
-      }
+    if(!isFormOpen) {
+      // Data is refreshed by useCollection, but we can force a refresh if needed
     }
-  }, [isFormOpen, userProfile, isProfileLoading, fetchUsers]);
+  }, [isFormOpen]);
 
-  if (isProfileLoading) {
+  const handleRoleChange = async (uid: string, newRole: UserProfile['role']) => {
+    const userToChange = users?.find(u => u.id === uid);
+    
+    if (currentUser?.uid === uid) {
+      toast({
+        variant: 'destructive',
+        title: 'Ditolak',
+        description: 'Anda tidak dapat mengubah peran akun sendiri.',
+      });
+      return;
+    }
+    
+    if (!userToChange || userToChange.role === newRole) {
+      return;
+    }
+    
+    if (newRole === 'admin') {
+        const ok = confirm('Yakin ingin menjadikan pengguna ini sebagai ADMIN? Tindakan ini memberikan akses penuh ke panel admin.');
+        if (!ok) {
+            return;
+        }
+    }
+
+    setLoadingStates((prev) => ({ ...prev, [uid]: true }));
+    
+    try {
+        await updateUserRole(uid, newRole);
+        toast({ title: "Berhasil", description: `Peran untuk ${userToChange.displayName || userToChange.email} telah diubah.` });
+    } catch (error) {
+       // Error is handled by global emitter in firestore-client
+    } finally {
+        setLoadingStates((prev) => ({ ...prev, [uid]: false }));
+    }
+  };
+  
+  const handleStatusChange = async (uid: string, isDisabled: boolean) => {
+    if (currentUser?.uid === uid) {
+      toast({ variant: 'destructive', title: 'Aksi Ditolak', description: 'Anda tidak dapat menonaktifkan akun sendiri.' });
+      return;
+    }
+
+    setLoadingStates(prev => ({ ...prev, [uid]: true }));
+    try {
+        await updateDoc(doc(firestore, 'users', uid), { disabled: isDisabled });
+        toast({ title: 'Berhasil', description: `Pengguna telah ${isDisabled ? 'dinonaktifkan' : 'diaktifkan'}.` });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Gagal', description: error.message });
+    } finally {
+      setLoadingStates(prev => ({ ...prev, [uid]: false }));
+    }
+  };
+
+  const handleDelete = async (userToDelete: UserProfile) => {
+    if (currentUser?.uid === userToDelete.id) {
+       toast({ variant: 'destructive', title: 'Aksi Ditolak', description: 'Anda tidak bisa menghapus akun Anda sendiri.' });
+       return;
+    }
+    if (!auth.currentUser) return;
+
+    try {
+      // The API route is still the safest way to delete a user from Auth
+      const token = await auth.currentUser.getIdToken();
+      const response = await fetch(`/api/admin/users/${userToDelete.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Gagal menghapus pengguna.');
+      }
+      toast({ title: 'Berhasil', description: `Pengguna ${userToDelete.displayName} telah dihapus.` });
+      // Firestore document is deleted by API, useCollection will update the list
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Gagal', description: error.message });
+    }
+  };
+
+  const handleFormSave = () => {
+    setIsFormOpen(false);
+    setSelectedUser(null);
+    // useCollection will handle the refresh
+  };
+  
+  if (isProfileLoading || usersLoading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-20 w-full" />
@@ -80,130 +140,6 @@ export default function UsersClient() {
       <p className="text-center text-muted-foreground py-12">
         Anda tidak memiliki akses ke halaman ini.
       </p>
-    );
-  }
-
-  const handleRoleChange = async (uid: string, newRole: UserProfile['role']) => {
-    const userToChange = users.find(u => u.id === uid);
-    
-    if (currentUser?.uid === uid) {
-      toast({
-        variant: 'destructive',
-        title: 'Ditolak',
-        description: 'Anda tidak dapat mengubah peran akun sendiri.',
-      });
-      setTimeout(() => setUsers([...users]), 100);
-      return;
-    }
-    
-    if (!userToChange || userToChange.role === newRole) {
-      return;
-    }
-    
-    if (newRole === 'admin') {
-        const ok = confirm('Yakin ingin menjadikan pengguna ini sebagai ADMIN? Tindakan ini memberikan akses penuh ke panel admin.');
-        if (!ok) {
-            setUsers([...users]); 
-            return;
-        }
-    }
-
-    setLoadingStates((prev) => ({ ...prev, [uid]: true }));
-    
-    try {
-        await updateUserRole(uid, newRole);
-        
-        // Force token refresh for the current admin user if they change their own role (though disallowed)
-        // More importantly, this pattern is needed if we were to allow users to change their own role elsewhere
-        if (auth.currentUser?.uid === uid) {
-            await auth.currentUser?.getIdToken(true);
-            await refreshUserProfile();
-        }
-
-        setUsers(currentUsers => 
-            currentUsers.map(u => u.id === uid ? { ...u, role: newRole } : u)
-        );
-        toast({ title: "Berhasil", description: `Peran untuk ${userToChange.displayName || userToChange.email} telah diubah.` });
-    } catch (error) {
-       // Error is handled by global emitter
-    } finally {
-        setLoadingStates((prev) => ({ ...prev, [uid]: false }));
-    }
-  };
-  
-  const handleStatusChange = async (uid: string, isDisabled: boolean) => {
-    if (currentUser?.uid === uid) {
-      toast({ variant: 'destructive', title: 'Aksi Ditolak', description: 'Anda tidak dapat menonaktifkan akun sendiri.' });
-      return;
-    }
-    if (!auth.currentUser) return;
-
-    setLoadingStates(prev => ({ ...prev, [uid]: true }));
-    try {
-      const token = await auth.currentUser.getIdToken();
-      const response = await fetch(`/api/admin/users/${uid}`, {
-        method: 'PUT',
-        headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}` 
-        },
-        body: JSON.stringify({ disabled: isDisabled }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Gagal mengubah status pengguna.');
-      }
-      
-      setUsers(currentUsers =>
-        currentUsers.map(u => u.id === uid ? { ...u, disabled: isDisabled } : u)
-      );
-      toast({ title: 'Berhasil', description: `Pengguna telah ${isDisabled ? 'dinonaktifkan' : 'diaktifkan'}.` });
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Gagal', description: error.message });
-      setUsers([...users]);
-    } finally {
-      setLoadingStates(prev => ({ ...prev, [uid]: false }));
-    }
-  };
-
-  const handleDelete = async (userToDelete: UserProfile) => {
-    if (currentUser?.uid === userToDelete.id) {
-       toast({ variant: 'destructive', title: 'Aksi Ditolak', description: 'Anda tidak bisa menghapus akun Anda sendiri.' });
-       return;
-    }
-    if (!auth.currentUser) return;
-
-    try {
-      const token = await auth.currentUser.getIdToken();
-      const response = await fetch(`/api/admin/users/${userToDelete.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Gagal menghapus pengguna.');
-      }
-      toast({ title: 'Berhasil', description: `Pengguna ${userToDelete.displayName} telah dihapus.` });
-      fetchUsers();
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Gagal', description: error.message });
-    }
-  };
-
-  const handleFormSave = () => {
-    setIsFormOpen(false);
-    setSelectedUser(null);
-    fetchUsers();
-  };
-  
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-20 w-full" />
-      </div>
     );
   }
 
@@ -302,7 +238,7 @@ export default function UsersClient() {
           </CardContent>
         </Card>
       ))}
-       {sortedUsers.length === 0 && !loading && (
+       {sortedUsers.length === 0 && !usersLoading && (
         <div className="text-muted-foreground text-sm text-center py-10">
           Tidak ada pengguna untuk ditampilkan.
         </div>
