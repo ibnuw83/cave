@@ -48,16 +48,24 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'tierId diperlukan.' }, { status: 400 });
         }
         
+        // Exclude admin from direct upgrade via this endpoint
         const validRoles: UserProfile['role'][] = ['free', 'pro1', 'pro2', 'pro3', 'vip'];
-        if (!validRoles.includes(tierId)) {
+        if (!validRoles.includes(tierId as UserProfile['role'])) {
             return NextResponse.json({ error: 'Tier ID tidak valid.' }, { status: 400 });
         }
 
         const userRef = db.collection('users').doc(decodedToken.uid);
 
-        await userRef.update({
-            role: tierId,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        await db.runTransaction(async (transaction) => {
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists) {
+                throw new Error("Profil pengguna tidak ditemukan.");
+            }
+            
+            transaction.update(userRef, {
+                role: tierId,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
         });
         
         // This is important to ensure the client gets the new role claim quickly.

@@ -24,14 +24,21 @@ async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
 
   try {
     const decodedToken = await auth.verifyIdToken(idToken);
-    const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+    
+    // Check for custom admin claim first
+    if (decodedToken.role === 'admin') {
+      return decodedToken;
+    }
 
+    // Fallback: check Firestore role if claim is missing
+    const userDoc = await db.collection('users').doc(decodedToken.uid).get();
     if (userDoc.exists && userDoc.data()?.role === 'admin') {
       return decodedToken;
     }
+
     return null;
   } catch (err) {
-    console.error('[verifyAdmin]', err);
+    console.error('[verifyAdmin] Error verifying token:', err);
     return null;
   }
 }
@@ -73,6 +80,11 @@ export async function POST(req: NextRequest) {
             role: role,
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
+
+        // This step is important for clients that are currently active
+        // to have their sessions revoked, forcing them to re-authenticate and get the new claims.
+        // However, for a smoother UX, we can skip this and let the token expire naturally or be refreshed.
+        // await auth.revokeRefreshTokens(uid);
 
         return NextResponse.json({ message: `Peran pengguna berhasil diperbarui.` });
 

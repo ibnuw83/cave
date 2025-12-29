@@ -25,14 +25,21 @@ async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
 
   try {
     const decodedToken = await auth.verifyIdToken(idToken);
-    const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+    
+    // Check for custom admin claim first
+    if (decodedToken.role === 'admin') {
+      return decodedToken;
+    }
 
+    // Fallback: check Firestore role if claim is missing
+    const userDoc = await db.collection('users').doc(decodedToken.uid).get();
     if (userDoc.exists && userDoc.data()?.role === 'admin') {
       return decodedToken;
     }
+
     return null;
   } catch (err) {
-    console.error('[verifyAdmin]', err);
+    console.error('[verifyAdmin] Error verifying token:', err);
     return null;
   }
 }
@@ -98,5 +105,3 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: error.message || 'Gagal membuat pengguna.' }, { status: 500 });
     }
 }
-
-    

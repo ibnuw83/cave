@@ -3,6 +3,10 @@ import * as admin from 'firebase-admin';
 
 let services: { auth: admin.auth.Auth; db: admin.firestore.Firestore; } | null = null;
 
+const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+  ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
+  : null;
+
 /**
  * Ensures that the Firebase Admin SDK is initialized only once and returns auth/db services.
  * This function is the single entry point for accessing the admin services.
@@ -30,7 +34,10 @@ export function safeGetAdminApp(): { auth: admin.auth.Auth; db: admin.firestore.
     
     // In a Google Cloud environment (like App Hosting), initializing without arguments
     // automatically uses the project's service account credentials.
-    const app = admin.initializeApp();
+    // For local dev, it needs the service account key.
+    const app = admin.initializeApp(
+        serviceAccount ? { credential: admin.credential.cert(serviceAccount) } : {}
+    );
     
     services = { auth: admin.auth(app), db: admin.firestore(app) };
     return services;

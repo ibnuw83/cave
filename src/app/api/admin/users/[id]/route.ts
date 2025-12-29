@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { safeGetAdminApp } from '@/firebase/admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
@@ -20,14 +21,21 @@ async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
 
   try {
     const decodedToken = await auth.verifyIdToken(idToken);
-    const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+    
+    // Check for custom admin claim first
+    if (decodedToken.role === 'admin') {
+      return decodedToken;
+    }
 
+    // Fallback: check Firestore role if claim is missing (for legacy or flexibility)
+    const userDoc = await db.collection('users').doc(decodedToken.uid).get();
     if (userDoc.exists && userDoc.data()?.role === 'admin') {
       return decodedToken;
     }
+    
     return null;
   } catch (err) {
-    console.error('[verifyAdmin]', err);
+    console.error('[verifyAdmin] Error verifying token:', err);
     return null;
   }
 }
