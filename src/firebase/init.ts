@@ -20,7 +20,15 @@ interface FirebaseServices {
   auth: Auth;
 }
 
+// A memoized instance of the Firebase services
+let firebaseServices: FirebaseServices | null = null;
+
 export function initializeFirebase(): FirebaseServices | null {
+  // If already initialized, return the existing instance.
+  if (firebaseServices) {
+    return firebaseServices;
+  }
+  
   // Validate that all required environment variables are present.
   const requiredConfigValues = [
     firebaseConfig.apiKey,
@@ -29,15 +37,17 @@ export function initializeFirebase(): FirebaseServices | null {
   ];
 
   if (requiredConfigValues.some(value => !value)) {
-    console.error('CRITICAL: Firebase config is missing or incomplete. Check your .env.local file.');
+    // This will be caught by the FirebaseClientProvider to show a helpful error message.
     return null;
   }
 
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-  return {
+  firebaseServices = {
     firebaseApp: app,
     firestore: getFirestore(app),
     auth: getAuth(app),
   };
+  
+  return firebaseServices;
 }
