@@ -4,7 +4,7 @@ import { safeGetAdminApp } from '@/firebase/admin';
 
 export async function POST(req: NextRequest) {
   const services = safeGetAdminApp();
-  if (!services) return NextResponse.json({ error: 'Admin SDK tidak tersedia.' }, { status: 500 });
+  if (!services) return NextResponse.json({ error: 'Konfigurasi server tidak tersedia.' }, { status: 500 });
   const { auth } = services;
 
   const authorization = req.headers.get('Authorization');
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
 
     try {
       const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
-      cookies().set('__session', sessionCookie, { maxAge: expiresIn, httpOnly: true, secure: true });
+      cookies().set('__session', sessionCookie, { maxAge: expiresIn, httpOnly: true, secure: true, path: '/' });
       return NextResponse.json({ status: 'success' });
     } catch (error) {
       console.error('Failed to create session cookie:', error);

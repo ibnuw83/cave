@@ -34,7 +34,7 @@ export function safeGetAdminApp(): { auth: admin.auth.Auth; db: admin.firestore.
     
     // In a Google Cloud environment (like App Hosting), initializing without arguments
     // automatically uses the project's service account credentials.
-    // For local dev, it needs the service account key.
+    // For local dev or other deployment environments (Vercel, Netlify), it needs the service account key.
     const app = admin.initializeApp(
         serviceAccount ? { credential: admin.credential.cert(serviceAccount) } : {}
     );
