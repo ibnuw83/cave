@@ -203,18 +203,40 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
     }
   };
 
-  const playAudioFromUrl = async (url: string, vibrationPattern?: number[]) => {
-      stopSpeaking(); 
+  const playAudioFromBase64 = async (base64String: string, vibrationPattern?: number[]) => {
+      stopSpeaking();
       
-      const audio = new Audio(url);
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const binaryString = window.atob(base64String);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      // Assuming raw PCM data, s16le, 1 channel, 24000 sample rate
+      const audioBuffer = audioContext.createBuffer(1, bytes.length / 2, 24000);
+      const pcmData = new Float32Array(audioBuffer.length);
       
-      audio.onended = () => {
-          handlePlaybackEnd();
+      for (let i = 0; i < pcmData.length; i++) {
+        let val = (bytes[i*2+1] << 8) | bytes[i*2];
+        if (val >= 0x8000) val |= ~0xFFFF;
+        pcmData[i] = val / 0x8000;
+      }
+      audioBuffer.copyToChannel(pcmData, 0);
+
+      const source = audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(audioContext.destination);
+      source.onended = () => {
+        handlePlaybackEnd();
+        audioContext.close();
       };
-      
-      audioRef.current = audio;
-      await audio.play();
-      
+      source.start();
+
+      // For stopping it, we need to manage the source node
+      audioRef.current = { stop: () => source.stop(), ...source } as any;
+
       setIsPlaying(true);
       if (vibrationPattern && vibrationPattern.length > 0) {
           vibrate(vibrationPattern);
@@ -227,6 +249,9 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
 
     if (isPlaying) {
       stopSpeaking();
+      if (audioRef.current && (audioRef.current as any).stop) {
+        (audioRef.current as any).stop();
+      }
       setIsPlaying(false);
       if (canVibrate()) vibrate(0);
       return;
@@ -262,10 +287,13 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
             throw new Error(`AI narration failed (status: ${response.status})`);
         }
         
-        const audioBlob = await response.blob();
-        const audioUrl = URL.createObjectURL(audioBlob);
+        const { audioContent } = await response.json();
         
-        await playAudioFromUrl(audioUrl, spot.effects?.vibrationPattern);
+        if (!audioContent) {
+           throw new Error("No audio content received from server.");
+        }
+        
+        await playAudioFromBase64(audioContent, spot.effects?.vibrationPattern);
 
     } catch (error) {
         console.warn("Failed to play AI narration, falling back to browser TTS:", error);
@@ -378,5 +406,3 @@ export default function SpotPlayerUI({ spot, userRole, allSpots, vrMode = false,
     </>
   );
 }
-
-    

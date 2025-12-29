@@ -3,37 +3,11 @@ import { getSpot } from '@/lib/firestore-admin';
 import { narrateSpot } from '@/ai/flows/narrate-spot-flow';
 import { textToSpeech } from '@/ai/flows/tts-flow';
 import {NextRequest} from 'next/server';
-import wav from 'wav';
+
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120; // Set timeout to 120 seconds
 
-async function toWav(
-    pcmData: Buffer,
-    channels = 1,
-    rate = 24000,
-    sampleWidth = 2
-  ): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-      const writer = new wav.Writer({
-        channels,
-        sampleRate: rate,
-        bitDepth: sampleWidth * 8,
-      });
-  
-      let bufs = [] as any[];
-      writer.on('error', reject);
-      writer.on('data', function (d) {
-        bufs.push(d);
-      });
-      writer.on('end', function () {
-        resolve(Buffer.concat(bufs));
-      });
-  
-      writer.write(pcmData);
-      writer.end();
-    });
-}
 
 // This endpoint now returns a complete, playable WAV audio file.
 export async function POST(req: NextRequest) {
@@ -65,15 +39,11 @@ export async function POST(req: NextRequest) {
         return new Response(JSON.stringify({ error: 'Failed to generate audio' }), { status: 500 });
     }
     
-    // 3. Convert PCM to WAV on the server
-    const pcmBuffer = Buffer.from(base64Pcm, 'base64');
-    const wavBuffer = await toWav(pcmBuffer);
-    
-    // 4. Return the raw audio file as a blob
-    return new Response(wavBuffer, {
+    // 3. Return the base64 audio data directly. The client will handle it.
+    // We send it as JSON so the client can easily parse it.
+    return new Response(JSON.stringify({ audioContent: base64Pcm }), {
       headers: { 
-        'Content-Type': 'audio/wav',
-        'Content-Length': String(wavBuffer.length),
+        'Content-Type': 'application/json',
        },
     });
 
