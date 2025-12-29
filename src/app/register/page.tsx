@@ -11,7 +11,7 @@ import { Loader2, Mountain, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
-import { getKioskSettings } from '@/lib/firestore-client';
+import { getKioskSettings, createUserProfile } from '@/lib/firestore-client';
 import { KioskSettings } from '@/lib/types';
 import Image from 'next/image';
 import { 
@@ -54,21 +54,29 @@ export default function RegisterPage() {
 
   const signUpWithEmail = async (data: RegisterFormValues) => {
     try {
+      // 1. Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      const newUser = userCredential.user;
       
-      // After creating the user, update their profile with the display name
-      await updateProfile(userCredential.user, {
+      // 2. Update their Auth profile with the display name
+      await updateProfile(newUser, {
         displayName: data.displayName,
       });
 
-      // Send email verification
-      await sendEmailVerification(userCredential.user);
+      // 3. **Crucially**, create their profile document in Firestore immediately.
+      // This ensures the 'role' and other details exist before they are needed.
+      await createUserProfile(newUser);
+
+      // 4. Send verification email (optional but good practice)
+      await sendEmailVerification(newUser);
       
-      // The onAuthStateChanged listener in FirebaseProvider will handle profile creation in Firestore and redirect.
+      // The onAuthStateChanged listener will now find a fully formed user and profile.
       toast({
         title: 'Pendaftaran Berhasil',
-        description: 'Silakan periksa email Anda untuk verifikasi.',
+        description: 'Akun Anda telah dibuat. Silakan periksa email untuk verifikasi.',
       });
+      // The useUser hook will handle redirection automatically upon auth state change.
+
     } catch (error: any) {
        if (error.code === 'auth/email-already-in-use') {
         toast({

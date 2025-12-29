@@ -5,12 +5,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/firebase/provider';
 import { User, onIdTokenChanged } from 'firebase/auth';
 import { UserProfile } from '@/lib/types';
-import { getUserProfileClient, createUserProfile } from '@/lib/firestore-client';
-import { useToast } from '@/hooks/use-toast';
+import { getUserProfileClient } from '@/lib/firestore-client';
 
 export function useUser() {
   const auth = useAuth();
-  const { toast } = useToast();
 
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -21,23 +19,25 @@ export function useUser() {
   const fetchUserProfile = useCallback(async (firebaseUser: User) => {
     setIsProfileLoading(true);
     try {
-      let profile = await getUserProfileClient(firebaseUser.uid);
-
-      if (!profile) {
-        // This likely means it's a brand new user.
-        profile = await createUserProfile(firebaseUser);
-        toast({ title: "Selamat Datang 👋", description: "Akun Anda telah berhasil dibuat." });
+      const profile = await getUserProfileClient(firebaseUser.uid);
+      if (profile) {
+        setUserProfile(profile);
+      } else {
+        // This case should ideally not happen for logged-in users
+        // as profile should be created on registration.
+        // Logging out prevents being in a broken state.
+        console.error(`Profile not found for UID: ${firebaseUser.uid}. Logging out.`);
+        setAuthError(new Error("User profile does not exist."));
+        await auth.signOut();
       }
-
-      setUserProfile(profile);
     } catch (err) {
-      console.error("Failed to fetch or create user profile:", err);
+      console.error("Failed to fetch user profile:", err);
       setAuthError(err as Error);
       await auth.signOut(); // Log out on critical profile error
     } finally {
       setIsProfileLoading(false);
     }
-  }, [auth, toast]);
+  }, [auth]);
 
 
   useEffect(() => {
@@ -52,8 +52,6 @@ export function useUser() {
       }
       
       setUser(firebaseUser);
-      // Fetch profile immediately. The claims might be stale, but we get basic info.
-      // The crucial part is what happens next.
       await fetchUserProfile(firebaseUser);
 
     });
@@ -66,7 +64,7 @@ export function useUser() {
     const currentUser = auth.currentUser;
     if (!currentUser) return;
     
-    // This is the key: force refresh the token to get latest custom claims
+    // Force refresh the token to get latest custom claims
     await currentUser.getIdToken(true);
     
     // After token is refreshed, re-fetch the profile from Firestore

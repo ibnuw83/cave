@@ -34,7 +34,7 @@ export async function getUserProfileClient(uid: string): Promise<UserProfile | n
     const docSnap = await getDoc(userRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
-      // Convert Firestore Timestamp to Date for client-side usage
+      // Convert Firestore Timestamp to Date for client-side usage if it exists
       if (data.updatedAt instanceof Timestamp) {
         data.updatedAt = data.updatedAt.toDate();
       }
@@ -54,17 +54,25 @@ export async function getUserProfileClient(uid: string): Promise<UserProfile | n
 }
 
 export async function createUserProfile(user: User): Promise<UserProfile> {
+    const userRef = doc(db, 'users', user.uid);
+
+    // Check if a profile already exists to prevent overwriting
+    const existingProfile = await getDoc(userRef);
+    if (existingProfile.exists()) {
+      return { id: user.uid, ...existingProfile.data() } as UserProfile;
+    }
+    
+    // Profile doesn't exist, create it.
     const userProfileData: Omit<UserProfile, 'id' | 'updatedAt'> = {
       displayName: user.displayName || user.email?.split('@')[0] || 'Pengguna Baru',
       email: user.email,
       photoURL: user.photoURL,
-      role: 'free' as const,
+      role: 'free' as const, // All new users start as 'free'
       disabled: false,
     };
-    const userRef = doc(db, 'users', user.uid);
 
     try {
-        await setDoc(userRef, { ...userProfileData, updatedAt: serverTimestamp() }, { merge: true });
+        await setDoc(userRef, { ...userProfileData, updatedAt: serverTimestamp() });
         
         // After setting, we return a client-side object with a local date
         const createdProfile: UserProfile = {
@@ -345,6 +353,3 @@ export async function trackKioskSpotView(locationId: string, spotId: string): Pr
         console.warn(`Failed to track kiosk view for spot ${spotId}:`, error.message);
     }
 }
-
-
-    
