@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { safeGetAdminApp } from '@/firebase/admin';
 import type { DecodedIdToken } from 'firebase-admin/auth';
@@ -120,5 +119,3 @@ export async function DELETE(
         return NextResponse.json({ error: error.message || 'Gagal menghapus pengguna.' }, { status: 500 });
     }
 }
-
-    

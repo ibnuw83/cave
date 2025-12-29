@@ -15,6 +15,8 @@ import { Loader2, Trash2, PlusCircle, Sparkles, CheckCircle, AlertTriangle, Mess
 import { Separator } from '@/components/ui/separator';
 import { useMemo, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useFirestore } from '@/firebase';
+import { collection, addDoc, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const hotspotSchema = z.object({
   id: z.string().min(1),
@@ -41,7 +43,7 @@ const spotSchema = z.object({
   hotspots: z.array(hotspotSchema).optional(),
 });
 
-type SpotFormValues = Omit<z.infer<typeof spotSchema>, 'vibrationPattern'> & {vibrationPattern?: string};
+type SpotFormValues = z.infer<typeof spotSchema>;
 
 interface SpotFormProps {
   spot: Spot | null;
@@ -53,6 +55,7 @@ interface SpotFormProps {
 
 export function SpotForm({ spot, locations, allSpots, onSave, onCancel }: SpotFormProps) {
   const { toast } = useToast();
+  const firestore = useFirestore();
   const [isSuggestingImage, setIsSuggestingImage] = useState(false);
   const [uniquenessResult, setUniquenessResult] = useState<{ isUnique: boolean; feedback: string } | null>(null);
   const [isCheckingUniqueness, setIsCheckingUniqueness] = useState(false);
@@ -92,35 +95,37 @@ export function SpotForm({ spot, locations, allSpots, onSave, onCancel }: SpotFo
 
 
   const onSubmit = async (values: SpotFormValues) => {
-    const spotData: Omit<Spot, 'id'> = {
-      ...values,
-      effects: {
-        vibrationPattern: values.vibrationPattern ? values.vibrationPattern.split(',').map(Number) : [],
-      },
-      hotspots: values.hotspots || [],
+    const spotPayload: Omit<Spot, 'id'> & { createdAt?: any; updatedAt: any } = {
+        locationId: values.locationId,
+        order: values.order,
+        title: values.title,
+        description: values.description,
+        imageUrl: values.imageUrl,
+        isPro: values.isPro,
+        viewType: values.viewType,
+        effects: {
+            vibrationPattern: values.vibrationPattern ? values.vibrationPattern.split(',').map(Number) : [],
+        },
+        hotspots: values.hotspots || [],
+        updatedAt: serverTimestamp(),
     };
-    // remove vibrationPattern from top level
-    delete (spotData as any).vibrationPattern;
-
-    const url = spot ? `/api/admin/spots/${spot.id}` : '/api/admin/spots';
-    const method = spot ? 'PUT' : 'POST';
 
     try {
-        const response = await fetch(url, {
-            method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(spotData),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Gagal menyimpan spot.');
+        let savedSpot: Spot;
+        if (spot) {
+            // Update existing spot
+            const spotRef = doc(firestore, 'spots', spot.id);
+            await setDoc(spotRef, spotPayload, { merge: true });
+            savedSpot = { ...spot, ...values, effects: spotPayload.effects, hotspots: spotPayload.hotspots };
+        } else {
+            // Create new spot
+            spotPayload.createdAt = serverTimestamp();
+            const spotRef = await addDoc(collection(firestore, 'spots'), spotPayload);
+            savedSpot = { id: spotRef.id, ...spotPayload } as Spot;
         }
-
-        const savedSpot = await response.json();
         onSave(savedSpot);
     } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Gagal', description: error.message });
+        toast({ variant: 'destructive', title: 'Gagal', description: error.message || 'Gagal menyimpan spot.' });
     }
   };
 

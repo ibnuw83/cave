@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { safeGetAdminApp } from '@/firebase/admin';
 import * as admin from 'firebase-admin';
@@ -27,34 +26,6 @@ async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
     console.error('[verifyAdmin]', err);
     return null;
   }
-}
-
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-    const adminUser = await verifyAdmin(req);
-    if (!adminUser) {
-        return NextResponse.json({ error: 'Akses ditolak.' }, { status: 403 });
-    }
-    
-    const services = safeGetAdminApp();
-    if (!services) return NextResponse.json({ error: 'Admin SDK tidak tersedia.' }, { status: 500 });
-    const { db } = services;
-
-    try {
-        const { id } = params;
-        const spotData = await req.json();
-        const docRef = db.collection('spots').doc(id);
-        
-        await docRef.update({
-            ...spotData,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-
-        const updatedDoc = await docRef.get();
-        return NextResponse.json({ id: updatedDoc.id, ...updatedDoc.data() });
-    } catch (error: any) {
-        console.error(`Error updating spot ${params.id}:`, error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
-    }
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {

@@ -32,10 +32,6 @@ export function safeGetAdminApp(): { auth: admin.auth.Auth; db: admin.firestore.
     // automatically uses the project's service account credentials.
     const app = admin.initializeApp();
     
-    // Explicitly unset the emulator host environment variable after initialization.
-    // This prevents accidental connections to an emulator in production.
-    delete process.env.FIRESTORE_EMULATOR_HOST;
-
     services = { auth: admin.auth(app), db: admin.firestore(app) };
     return services;
 
