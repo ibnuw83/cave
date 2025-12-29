@@ -1,8 +1,8 @@
 
 'use client';
 
-// Export everything from the central provider
-export * from './provider';
+// Export everything from the layout file now
+export { useAuth, useFirestore, useFirebaseApp, useFirebase } from '@/app/layout';
 
 // Export hooks and utilities
 export * from './errors';
