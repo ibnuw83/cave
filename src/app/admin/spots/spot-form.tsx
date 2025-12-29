@@ -16,7 +16,7 @@ import { Loader2, Trash2, PlusCircle, Sparkles, CheckCircle, AlertTriangle, Mess
 import { Separator } from '@/components/ui/separator';
 import { useMemo, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useFirestore } from '@/firebase';
+import { useFirestore } from '@/app/layout';
 import { collection, addDoc, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { updateLocationMiniMapWithSpot } from '@/lib/firestore-client';
 

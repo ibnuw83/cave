@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth, useFirestore } from '@/app/layout';
 import { createUserProfile } from '@/lib/firestore-client';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 

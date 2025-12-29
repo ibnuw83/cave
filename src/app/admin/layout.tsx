@@ -1,9 +1,9 @@
 
 'use client';
 
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useContext } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/firebase';
+import { useUser } from '@/app/layout'; // Diperbarui untuk menggunakan hook dari layout
 import AdminSidebar from './admin-sidebar';
 import { Loader2 } from 'lucide-react';
 import { User } from 'firebase/auth';

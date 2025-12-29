@@ -28,7 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { clearOfflineCache } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { useUser, useAuth, useFirestore } from '@/firebase';
+import { useUser, useAuth, useFirestore } from '@/app/layout';
 import { signOut as firebaseSignOut } from 'firebase/auth';
 import { getLocations, getKioskSettings } from '@/lib/firestore-client';
 import { Skeleton } from '@/components/ui/skeleton';

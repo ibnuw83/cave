@@ -18,7 +18,7 @@ import { getKioskSettings, saveKioskSettings, setKioskControl, getSpotsForLocati
 import Link from 'next/link';
 import { isLocationAvailableOffline, saveLocationForOffline } from '@/lib/offline';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore } from '@/app/layout';
 import { collection, doc, Timestamp, onSnapshot } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';

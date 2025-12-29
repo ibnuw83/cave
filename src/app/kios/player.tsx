@@ -4,7 +4,7 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Spot, KioskSettings } from '@/lib/types';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+import { useFirestore } from '@/app/layout';
 import { useKioskHeartbeat, useKioskControl } from '@/hooks/use-kiosk';
 import { Progress } from '@/components/ui/progress';
 import { doc } from 'firebase/firestore';
@@ -162,5 +162,3 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
     </div>
   );
 }
-
-    

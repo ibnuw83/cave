@@ -19,7 +19,7 @@ import {
   sendEmailVerification,
   updateProfile,
 } from 'firebase/auth';
-import { useAuth, useUser, useFirestore } from '@/firebase';
+import { useAuth, useUser, useFirestore } from '@/app/layout';
 import { useRouter } from 'next/navigation';
 
 const registerSchema = z.object({

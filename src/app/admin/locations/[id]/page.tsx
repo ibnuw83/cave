@@ -6,8 +6,7 @@ import { Location } from '@/lib/types';
 import { LocationForm } from '../location-form';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { doc, getDoc } from 'firebase/firestore';
-import { useFirestore, useUser } from '@/firebase';
+import { useFirestore, useUser } from '@/app/layout';
 import { useEffect, useState } from 'react';
 import { getLocationClient } from '@/lib/firestore-client';
 

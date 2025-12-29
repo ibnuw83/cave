@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Location } from '@/lib/types';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+import { useFirestore } from '@/app/layout';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import debounce from 'lodash.debounce';

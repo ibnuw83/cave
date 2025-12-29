@@ -6,7 +6,7 @@ import { Location } from "@/lib/types";
 import { useState, useEffect } from "react";
 import { getLocations } from "@/lib/firestore-client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useFirestore } from "@/firebase/provider";
+import { useFirestore } from "@/app/layout";
 
 
 export default function KioskSettingsPage() {

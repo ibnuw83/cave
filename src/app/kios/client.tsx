@@ -9,7 +9,7 @@ import { enterKioskLock, exitKioskLock } from '@/lib/kiosk';
 import KioskPlayer from './player';
 import { doc } from 'firebase/firestore';
 import { useKioskHeartbeat, useKioskControl } from '@/hooks/use-kiosk';
-import { useFirestore } from '@/firebase';
+import { useFirestore } from '@/app/layout';
 import { getKioskSettings } from '@/lib/firestore-client';
 
 type PlaylistSpot = Spot & { duration: number };
@@ -148,7 +148,7 @@ export default function KiosClient() {
       <div className="flex h-screen items-center justify-center bg-black text-white text-center p-8">
         <div>
             <h1 className="text-2xl font-bold mb-2">Gagal Memuat Kios</h1>
-            <p className="text-lg text-muted-foreground">{error}</p>
+            <p className="text-lg text-gray-300">{error}</p>
         </div>
       </div>
     );

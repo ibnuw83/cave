@@ -11,7 +11,7 @@ import PanoramaViewer from '@/components/viewer-panorama';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ServerCrash, Info } from 'lucide-react';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore } from '@/app/layout';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { getSpotClient, getSpotsForLocation } from '@/lib/firestore-client';

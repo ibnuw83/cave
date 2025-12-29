@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { getKioskSettings } from '@/lib/firestore-client';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useFirestore } from '@/firebase';
+import { useFirestore } from '@/app/layout';
 
 declare global {
   interface Window {

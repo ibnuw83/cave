@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Check, Star, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore } from '@/app/layout';
 import { getPricingTiers as getPricingTiersClient } from '@/lib/firestore-client';
 import { PricingTier } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';

@@ -22,7 +22,7 @@ import { deletePricingTier } from '@/lib/firestore-client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PricingTierForm } from './tier-form';
 import { Badge } from '@/components/ui/badge';
-import { useFirestore } from '@/firebase';
+import { useFirestore } from '@/app/layout';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 
 export default function AdminPricingPage() {

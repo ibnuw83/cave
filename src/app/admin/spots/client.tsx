@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -11,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { SpotForm } from "./spot-form";
 import { collection, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
-import { useFirestore } from '@/firebase/provider';
+import { useFirestore } from '@/app/layout';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getLocations } from '@/lib/firestore-client';
 

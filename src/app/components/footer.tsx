@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { getKioskSettings } from '@/lib/firestore-client';
 import { KioskSettings } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useFirestore } from '@/firebase';
+import { useFirestore } from '@/app/layout';
 
 export default function Footer() {
   const [settings, setSettings] = useState<KioskSettings | null>(null);

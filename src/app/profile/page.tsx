@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore } from '@/app/layout';
 import { UserProfile } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { Loader2, User as UserIcon, Gem, ShieldCheck, Mail, ArrowLeft, Edit, Crown } from 'lucide-react';

@@ -17,7 +17,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@/firebase';
+import { useUser } from '@/app/layout';
 import { stopSpeechSynthesis } from '@/lib/tts';
 import AdBanner from '@/app/components/AdBanner';
 

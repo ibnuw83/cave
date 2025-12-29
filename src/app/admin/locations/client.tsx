@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from "react";
@@ -19,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { collection, deleteDoc, doc, onSnapshot } from "firebase/firestore";
-import { useFirestore } from "@/firebase/provider";
+import { useFirestore } from "@/app/layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 

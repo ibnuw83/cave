@@ -3,16 +3,18 @@
 
 import './globals.css';
 import Script from 'next/script';
-import React, { createContext, useContext, ReactNode, useMemo, useEffect } from 'react';
+import React, { createContext, useContext, ReactNode, useMemo, useEffect, useState, useCallback } from 'react';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
-import { getAuth, Auth } from 'firebase/auth';
+import { getAuth, Auth, onIdTokenChanged, User } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
+import { UserProfile } from '@/lib/types';
+import { getUserProfileClient } from '@/lib/firestore-client';
 
-// --- Start of Consolidated Firebase Logic ---
+// --- Firebase Service Context ---
 
 interface FirebaseServices {
   firebaseApp: FirebaseApp;
@@ -23,71 +25,153 @@ interface FirebaseServices {
 
 const FirebaseContext = createContext<FirebaseServices | null>(null);
 
-function initializeFirebase(): FirebaseServices {
-  const firebaseConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
-  };
+export const useFirebase = (): FirebaseServices => {
+  const context = useContext(FirebaseContext);
+  if (!context) throw new Error('useFirebase must be used within a FirebaseProvider.');
+  return context;
+};
 
-  const isConfigured = !!(firebaseConfig.apiKey && firebaseConfig.authDomain && firebaseConfig.projectId);
+export const useAuth = (): Auth => useFirebase().auth;
+export const useFirestore = (): Firestore => useFirebase().firestore;
+export const useFirebaseApp = (): FirebaseApp => useFirebase().firebaseApp;
 
-  if (typeof window === 'undefined') {
-    return { isConfigured: false } as any;
-  }
+// --- User Context ---
 
-  if (!isConfigured) {
-    console.error("Firebase config is not valid. Check your environment variables.");
-    return { isConfigured: false } as any;
-  }
-
-  const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-
-  return {
-    firebaseApp: app,
-    firestore: getFirestore(app),
-    auth: getAuth(app),
-    isConfigured,
-  };
+interface UserContextValue {
+  user: User | null;
+  userProfile: UserProfile | null;
+  isUserLoading: boolean;
+  isProfileLoading: boolean;
+  authError: Error | null;
+  refreshUserProfile: () => Promise<void>;
 }
 
+const UserContext = createContext<UserContextValue | null>(null);
+
+export const useUser = (): UserContextValue => {
+  const context = useContext(UserContext);
+  if (!context) throw new Error('useUser must be used within a UserProvider');
+  return context;
+};
+
+const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const auth = useAuth();
+  const db = useFirestore();
+
+  const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isUserLoading, setIsUserLoading] = useState(true);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [authError, setAuthError] = useState<Error | null>(null);
+
+  const fetchUserProfile = useCallback(async (firebaseUser: User) => {
+    setIsProfileLoading(true);
+    try {
+      const profile = await getUserProfileClient(db, firebaseUser.uid);
+      if (profile) {
+        setUserProfile(profile);
+      } else {
+        console.error(`Profile not found for UID: ${firebaseUser.uid}. Logging out.`);
+        setAuthError(new Error("User profile does not exist."));
+        await auth.signOut();
+      }
+    } catch (err) {
+      console.error("Failed to fetch user profile:", err);
+      setAuthError(err as Error);
+      await auth.signOut();
+    } finally {
+      setIsProfileLoading(false);
+    }
+  }, [auth, db]);
+
+  useEffect(() => {
+    const unsub = onIdTokenChanged(auth, async (firebaseUser) => {
+      setIsUserLoading(false);
+      if (!firebaseUser) {
+        setUser(null);
+        setUserProfile(null);
+        setIsProfileLoading(false);
+      } else {
+        setUser(firebaseUser);
+        await fetchUserProfile(firebaseUser);
+      }
+    });
+    return () => unsub();
+  }, [auth, fetchUserProfile]);
+
+  const refreshUserProfile = useCallback(async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+    await currentUser.getIdToken(true);
+    await fetchUserProfile(currentUser);
+  }, [auth, fetchUserProfile]);
+
+  const value = useMemo(() => ({
+    user,
+    userProfile,
+    isUserLoading,
+    isProfileLoading,
+    authError,
+    refreshUserProfile,
+  }), [user, userProfile, isUserLoading, isProfileLoading, authError, refreshUserProfile]);
+
+  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
+};
+
+// --- Combined Provider & Root Layout ---
 
 function FirebaseErrorListener() {
   const { toast } = useToast();
   useEffect(() => {
     const handleError = (error: FirestorePermissionError) => {
-        if (error instanceof FirestorePermissionError) {
-          toast({
-            variant: 'destructive',
-            title: 'Akses Ditolak',
-            description: 'Anda tidak memiliki izin untuk melakukan tindakan ini.',
-          });
-          console.warn('[PERMISSION DENIED]', {
-            path: error.request,
-          });
-        }
+      if (error instanceof FirestorePermissionError) {
+        toast({
+          variant: 'destructive',
+          title: 'Akses Ditolak',
+          description: 'Anda tidak memiliki izin untuk melakukan tindakan ini.',
+        });
+        console.warn('[PERMISSION DENIED]', { path: error.request.path });
+      }
     };
     errorEmitter.on('permission-error', handleError);
-    return () => {
-      errorEmitter.off('permission-error', handleError);
-    };
+    return () => errorEmitter.off('permission-error', handleError);
   }, [toast]);
   return null;
 }
 
 const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const services = useMemo(() => initializeFirebase(), []);
+  const services = useMemo(() => {
+    const firebaseConfig = {
+      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+      measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+    };
+
+    const isConfigured = !!(firebaseConfig.apiKey && firebaseConfig.projectId);
+
+    if (typeof window === 'undefined' || !isConfigured) {
+      return { isConfigured: false } as any;
+    }
+
+    const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    return {
+      firebaseApp: app,
+      firestore: getFirestore(app),
+      auth: getAuth(app),
+      isConfigured: true,
+    };
+  }, []);
 
   if (!services.isConfigured) {
     return (
       <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#2A2B32', color: '#ACB9C9', minHeight: '100vh' }}>
         <h1 style={{ fontSize: '24px', color: '#E6B81C' }}>Konfigurasi Firebase Tidak Ditemukan</h1>
         <p>Aplikasi berjalan, tetapi tidak dapat terhubung ke Firebase.</p>
-        <p>Untuk menggunakan fitur yang memerlukan database (seperti login, melihat lokasi, dll.), harap atur variabel lingkungan (environment variables) di platform hosting Anda (misalnya, Vercel).</p>
+        <p>Untuk menggunakan fitur yang memerlukan database, harap atur variabel lingkungan di platform hosting Anda (misalnya, Vercel).</p>
         <p>Anda perlu mengatur semua variabel yang dimulai dengan `NEXT_PUBLIC_FIREBASE_`.</p>
         <p>Setelah itu, Anda perlu men-deploy ulang aplikasi agar perubahan tersebut terbaca.</p>
       </div>
@@ -96,44 +180,15 @@ const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
 
   return (
     <FirebaseContext.Provider value={services}>
-      <FirebaseErrorListener />
-      {children}
+      <UserProvider>
+        <FirebaseErrorListener />
+        {children}
+      </UserProvider>
     </FirebaseContext.Provider>
   );
 };
 
-// Export hooks for convenience
-export const useFirebase = (): FirebaseServices => {
-  const context = useContext(FirebaseContext);
-  if (!context) {
-    throw new Error('useFirebase must be used within a FirebaseProvider.');
-  }
-  return context;
-};
-
-export const useAuth = (): Auth => {
-  const { auth } = useFirebase();
-  return auth;
-};
-
-export const useFirestore = (): Firestore => {
-  const { firestore } = useFirebase();
-  return firestore;
-};
-
-export const useFirebaseApp = (): FirebaseApp => {
-  const { firebaseApp } = useFirebase();
-  return firebaseApp;
-};
-
-// --- End of Consolidated Firebase Logic ---
-
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode; }) {
   const adSenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
 
   return (
@@ -142,22 +197,14 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Rye&display=swap" rel="stylesheet" />
-        
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#2A2B32" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         <meta name="apple-mobile-web-app-status-bar" content="#2A2B32" />
-        
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
-        
         {adSenseClientId && (
-          <Script
-            async
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adSenseClientId}`}
-            crossOrigin="anonymous"
-            strategy="afterInteractive"
-          />
+          <Script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adSenseClientId}`} crossOrigin="anonymous" strategy="afterInteractive" />
         )}
       </head>
       <body className="font-body antialiased">

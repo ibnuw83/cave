@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useMemo, useState, useEffect } from 'react';
-import { useFirestore } from '@/firebase/provider';
+import { useFirestore } from '@/app/layout';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { Location, Spot, UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
