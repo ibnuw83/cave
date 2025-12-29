@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect, useMemo } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth } from 'firebase/auth';
@@ -38,12 +38,12 @@ interface FirebaseServices {
   auth: Auth;
 }
 
-// Initialize Firebase. This can return null if config is missing.
-const firebaseServices = initializeFirebase();
-
 export const FirebaseContext = createContext<FirebaseServices | null>(null);
 
 export const FirebaseClientProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // Memoize the initialization to ensure it runs only once.
+  const firebaseServices = useMemo(() => initializeFirebase(), []);
+
   if (!firebaseServices) {
     // If initialization failed, render a helpful message instead of the app.
     return (
