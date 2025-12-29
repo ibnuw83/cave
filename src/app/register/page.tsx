@@ -39,6 +39,7 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if(!isUserLoading && user) {
+        // User is logged in, redirect them to the home page.
         router.push('/');
     }
   }, [user, isUserLoading, router]);
@@ -70,12 +71,12 @@ export default function RegisterPage() {
       // 4. Send verification email (optional but good practice)
       await sendEmailVerification(newUser);
       
-      // The onAuthStateChanged listener will now find a fully formed user and profile.
       toast({
         title: 'Pendaftaran Berhasil',
         description: 'Akun Anda telah dibuat. Silakan periksa email untuk verifikasi.',
       });
-      // The useUser hook will handle redirection automatically upon auth state change.
+      // The `useUser` hook will now automatically handle redirection on auth state change.
+      // We don't need `router.push` here.
 
     } catch (error: any) {
        if (error.code === 'auth/email-already-in-use') {
@@ -95,6 +96,14 @@ export default function RegisterPage() {
   };
 
   const isSubmitting = form.formState.isSubmitting;
+
+  if(isUserLoading || user) {
+      return (
+         <div className="flex h-screen w-full items-center justify-center bg-background">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      )
+  }
 
   return (
     <div className="relative min-h-screen bg-background p-4">

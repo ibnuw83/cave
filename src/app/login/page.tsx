@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,18 +30,22 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const auth = useAuth();
-  const { user, isUserLoading } = useUser();
+  const { user, userProfile, isUserLoading, isProfileLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
   const [settings, setSettings] = useState<KioskSettings | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // This effect handles redirection after a user logs in.
-    if(!isUserLoading && user) {
-        router.push('/');
+    // This effect handles redirection after a user's role is confirmed.
+    if(!isUserLoading && !isProfileLoading && user && userProfile) {
+        if (userProfile.role === 'admin') {
+            router.push('/admin');
+        } else {
+            router.push('/');
+        }
     }
-  }, [user, isUserLoading, router]);
+  }, [user, userProfile, isUserLoading, isProfileLoading, router]);
 
   useEffect(() => {
     getKioskSettings().then(setSettings);
@@ -55,7 +60,8 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
-      // The useUser hook will detect the auth change and handle redirection.
+      // Let the useUser hook and useEffect handle redirection.
+      // Do not navigate manually here.
     } catch (error: any) {
        if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
         toast({
@@ -70,9 +76,9 @@ export default function LoginPage() {
             variant: "destructive",
           });
        }
-    } finally {
-        setIsSubmitting(false);
-    }
+       setIsSubmitting(false); // Only set submitting to false on error
+    } 
+    // Do not set isSubmitting to false on success, to prevent UI flicker before redirection.
   };
   
   const handleForgotPassword = () => {
@@ -97,15 +103,28 @@ export default function LoginPage() {
       });
   };
 
-  const isLoading = isSubmitting || isUserLoading;
+  const isLoading = isSubmitting || isUserLoading || isProfileLoading;
   
-  if (isUserLoading || user) {
+  // If user object exists but profile is still loading, show a loader.
+  // This prevents flashing the login page for an already logged-in user.
+  if (isUserLoading || (user && isProfileLoading)) {
       return (
          <div className="flex h-screen w-full items-center justify-center bg-background">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
       )
   }
+
+  // If after all loading, user exists, they are already logged in and being redirected by useEffect.
+  // We show a loader here as well to cover the brief period before redirection happens.
+  if(user) {
+      return (
+         <div className="flex h-screen w-full items-center justify-center bg-background">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      )
+  }
+
 
   return (
     <div className="relative min-h-screen bg-background p-4">
