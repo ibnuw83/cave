@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -8,25 +7,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Trash2, UserPlus } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useUser, useAuth, useCollection, useFirestore } from '@/firebase';
+import { useUser, useCollection, useFirestore } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { UserForm } from './user-form';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { collection } from 'firebase/firestore';
-
+import { collection, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 export default function UsersClient() {
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
-  const auth = useAuth();
   const firestore = useFirestore();
   const { user: currentUser } = useUser();
   const [isFormOpen, setIsFormOpen] = useState(false);
   
-  // This hook will only run after AdminLayout confirms the user is an admin.
   const usersRef = collection(firestore, 'users');
   const { data: users, isLoading } = useCollection<UserProfile>(usersRef);
 
@@ -36,57 +32,28 @@ export default function UsersClient() {
   }, [users]);
   
   const handleRoleChange = async (uid: string, newRole: UserProfile['role']) => {
-    const userToChange = users?.find(u => u.id === uid);
-    
     if (currentUser?.uid === uid) {
-      toast({
-        variant: 'destructive',
-        title: 'Ditolak',
-        description: 'Anda tidak dapat mengubah peran akun sendiri.',
-      });
+      toast({ variant: 'destructive', title: 'Ditolak', description: 'Anda tidak dapat mengubah peran akun sendiri.' });
       return;
-    }
-    
-    if (!userToChange || userToChange.role === newRole) {
-      return;
-    }
-    
-    if (newRole === 'admin') {
-        const ok = confirm('Yakin ingin menjadikan pengguna ini sebagai ADMIN? Tindakan ini memberikan akses penuh ke panel admin.');
-        if (!ok) {
-            // Re-fetch to revert visual state if user cancels confirm dialog
-            // Note: This is a simple way; a more robust solution might involve optimistic UI state management
-            return;
-        }
     }
 
-    setLoadingStates((prev) => ({ ...prev, [uid]: true }));
+    if (newRole === 'admin') {
+      const ok = confirm('Yakin ingin menjadikan pengguna ini sebagai ADMIN? Tindakan ini memberikan akses penuh ke panel admin.');
+      if (!ok) return;
+    }
+
+    setLoadingStates(prev => ({ ...prev, [uid]: true }));
     
     try {
-        const token = await auth.currentUser?.getIdToken();
-        if (!token) throw new Error("Otentikasi Gagal.");
-
-        const response = await fetch('/api/admin/users/role', {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ uid, role: newRole })
-        });
-      
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Gagal mengubah peran.');
-        }
-
-        toast({ title: "Berhasil", description: `Peran untuk ${userToChange.displayName || userToChange.email} telah diubah.` });
-        // The useCollection hook will automatically update the UI
+      const userDocRef = doc(firestore, 'users', uid);
+      await updateDoc(userDocRef, { role: newRole });
+      // Custom claims update should be handled by a Cloud Function for security.
+      // For this app, we rely on Firestore role and security rules.
+      toast({ title: "Berhasil", description: `Peran pengguna telah diubah.` });
     } catch (error: any) {
-       toast({ variant: 'destructive', title: 'Gagal', description: error.message });
-       // The hook will eventually get the correct state from Firestore, reverting the UI.
+       toast({ variant: 'destructive', title: 'Gagal', description: error.message || 'Gagal mengubah peran. Pastikan Anda memiliki izin.' });
     } finally {
-        setLoadingStates((prev) => ({ ...prev, [uid]: false }));
+        setLoadingStates(prev => ({ ...prev, [uid]: false }));
     }
   };
   
@@ -99,24 +66,13 @@ export default function UsersClient() {
 
     setLoadingStates(prev => ({ ...prev, [uid]: true }));
     try {
-        const token = await auth.currentUser?.getIdToken();
-        if (!token) throw new Error("Otentikasi Gagal.");
-
-        const response = await fetch(`/api/admin/users/${uid}`, {
-            method: 'PUT',
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ disabled: isDisabled }),
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Gagal mengubah status pengguna.');
-        }
-
-        toast({ title: 'Berhasil', description: `Pengguna telah ${isDisabled ? 'dinonaktifkan' : 'diaktifkan'}.` });
-        // Let useCollection handle the UI update
+      const userDocRef = doc(firestore, 'users', uid);
+      await updateDoc(userDocRef, { disabled: isDisabled });
+      // Auth user status update should be handled by a Cloud Function.
+      // Here we only update Firestore which should be used to control app access.
+      toast({ title: 'Berhasil', description: `Pengguna telah ${isDisabled ? 'dinonaktifkan' : 'diaktifkan'}.` });
     } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Gagal', description: error.message });
+      toast({ variant: 'destructive', title: 'Gagal', description: error.message || 'Gagal mengubah status. Pastikan Anda memiliki izin.' });
     } finally {
       setLoadingStates(prev => ({ ...prev, [uid]: false }));
     }
@@ -127,28 +83,23 @@ export default function UsersClient() {
        toast({ variant: 'destructive', title: 'Aksi Ditolak', description: 'Anda tidak bisa menghapus akun Anda sendiri.' });
        return;
     }
-    if (!auth.currentUser) return;
 
+    setLoadingStates(prev => ({ ...prev, [userToDelete.id]: true }));
     try {
-      const token = await auth.currentUser.getIdToken();
-      const response = await fetch(`/api/admin/users/${userToDelete.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Gagal menghapus pengguna.');
-      }
-      toast({ title: 'Berhasil', description: `Pengguna ${userToDelete.displayName} telah dihapus.` });
-      // Firestore document is deleted by API, useCollection will update the list
+      const userDocRef = doc(firestore, 'users', userToDelete.id);
+      await deleteDoc(userDocRef);
+      // Deleting the Firebase Auth user should be handled by a secure Cloud Function
+      // triggered by this Firestore deletion.
+      toast({ title: 'Berhasil', description: `Profil pengguna ${userToDelete.displayName} telah dihapus dari Firestore.` });
     } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Gagal', description: error.message });
+      toast({ variant: 'destructive', title: 'Gagal', description: error.message || 'Gagal menghapus profil pengguna. Pastikan Anda memiliki izin.' });
+    } finally {
+       setLoadingStates(prev => ({ ...prev, [userToDelete.id]: false }));
     }
   };
 
   const handleFormSave = () => {
     setIsFormOpen(false);
-    // useCollection will handle the refresh
   };
   
   if (isLoading) {
@@ -242,7 +193,7 @@ export default function UsersClient() {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Hapus Pengguna Ini?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Tindakan ini akan menghapus akun <strong>{user.displayName || user.email}</strong> secara permanen dari Authentication dan Firestore. Ini tidak dapat diurungkan.
+                          Tindakan ini akan menghapus profil pengguna <strong>{user.displayName || user.email}</strong> dari database. Tindakan ini tidak dapat diurungkan.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

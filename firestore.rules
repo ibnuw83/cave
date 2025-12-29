@@ -3,77 +3,75 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Aturan Sederhana: Baca publik, Tulis via server backend yang diautentikasi
+    // --- Helper Functions ---
+    function isAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
 
-    // Siapa pun dapat membaca data lokasi dan spot.
-    // Ini penting untuk pengguna anonim dan SEO.
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // --- Publicly Readable Collections ---
     match /locations/{locationId} {
       allow get, list: if true;
-      // HANYA admin yang bisa menulis (create, update, delete)
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow write: if isAdmin();
     }
     
     match /spots/{spotId} {
       allow get, list: if true;
-       // HANYA admin yang bisa menulis (create, update, delete)
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    // Aturan untuk profil pengguna.
-    match /users/{userId} {
-      // Siapa pun dapat membaca profil pengguna lain (jika diperlukan untuk fitur publik).
-      allow get: if true;
-      
-      // Hanya admin (melalui backend) yang dapat melihat daftar semua pengguna.
-      allow list: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-
-      // Pengguna dapat membuat dokumen mereka sendiri saat mendaftar.
-      // Admin (melalui backend) juga bisa membuat pengguna.
-      allow create: if request.auth != null;
-
-      // Pengguna dapat memperbarui dokumen mereka sendiri.
-      // Admin (melalui backend) juga bisa memperbarui dokumen apa pun.
-      allow update: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
-      
-      // Hanya admin (melalui backend) yang dapat menghapus pengguna.
-      allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    // Pengaturan kios hanya dapat ditulis dari backend admin.
-    match /kioskSettings/{settingId} {
-      allow get, list: if true;
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow write: if isAdmin();
     }
     
-    // Perangkat kios dapat menulis heartbeat-nya.
-    // Aturan ini permisif karena perangkat mungkin tidak diautentikasi.
-    match /kioskDevices/{deviceId} {
-      allow read: if true; // Diperlukan untuk dibaca oleh backend admin
-      allow write: if true;
-    }
-
-    // Perangkat kios membaca kontrol, admin menulisnya.
-    match /kioskControl/{controlId} {
-        allow read: if true;
-        allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    // Siapa pun (terutama kios) dapat membuat event.
-    match /kioskEvents/{eventId} {
-        allow create: if true;
-        allow read, update, delete: if false; // Event tidak dapat dibaca atau diubah
-    }
-
-    // Paket harga dapat dibaca publik, ditulis oleh backend admin.
     match /pricingTiers/{tierId} {
       allow get, list: if true;
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow write: if isAdmin();
     }
 
-    // Statistik Kios ditulis oleh kios.
+    // --- User Profiles ---
+    match /users/{userId} {
+      // Anyone can read a user's public profile data (name, photo)
+      allow get: if true;
+      
+      // Only admins can list all users
+      allow list: if isAdmin();
+
+      // Anyone authenticated can create their own profile document. Admins can create any.
+      allow create: if request.auth != null;
+
+      // Users can update their own document. Admins can update any.
+      allow update: if isOwner(userId) || isAdmin();
+      
+      // Only admins can delete user documents.
+      allow delete: if isAdmin();
+    }
+
+    // --- Kiosk-related Collections ---
+    match /kioskSettings/{settingId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /kioskDevices/{deviceId} {
+      // Allow any device to write its heartbeat.
+      allow read, write: if true;
+    }
+
+    match /kioskControl/{controlId} {
+      allow read: if true; // Kiosks can read control commands
+      allow write: if isAdmin(); // Admins can write commands
+    }
+
+    match /kioskEvents/{eventId} {
+      // Anyone (especially kiosks) can create events. Events are write-only.
+      allow create: if true;
+      allow read, update, delete: if false;
+    }
+
     match /kioskStats/{locationId} {
       allow read: if true;
-      allow write: if true; // Diperbarui oleh kios
+      // Allow any client to write stats (throttled on the client-side).
+      allow write: if true; 
     }
   }
 }

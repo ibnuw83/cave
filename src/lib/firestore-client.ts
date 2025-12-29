@@ -24,10 +24,9 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { getAuth } from 'firebase/auth';
 
-// HANYA MENGGUNAKAN SATU INSTANCE DB DARI INISIALISASI PUSAT
 const { firestore: db, auth } = initializeFirebase();
 
-// --- User Profile Functions (Client-Side) ---
+// --- User Profile Functions ---
 
 export async function getUserProfileClient(uid: string): Promise<UserProfile | null> {
   const userRef = doc(db, 'users', uid);
@@ -35,7 +34,6 @@ export async function getUserProfileClient(uid: string): Promise<UserProfile | n
     const docSnap = await getDoc(userRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
-      // Convert Firestore Timestamp to Date for client-side usage if it exists
       if (data.updatedAt instanceof Timestamp) {
         data.updatedAt = data.updatedAt.toDate();
       }
@@ -44,42 +42,35 @@ export async function getUserProfileClient(uid: string): Promise<UserProfile | n
     return null;
   } catch (error: any) {
      if (error.code === 'permission-denied') {
-        const permissionError = new FirestorePermissionError({
-            path: `/users/${uid}`,
-            operation: 'get',
-        });
+        const permissionError = new FirestorePermissionError({ path: `/users/${uid}`, operation: 'get' });
         errorEmitter.emit('permission-error', permissionError);
     }
     throw error;
   }
 }
 
-export async function createUserProfile(user: User): Promise<UserProfile> {
+export async function createUserProfile(user: User, role: UserProfile['role'] = 'free'): Promise<UserProfile> {
     const userRef = doc(db, 'users', user.uid);
 
-    // Check if a profile already exists to prevent overwriting
     const existingProfile = await getDoc(userRef);
     if (existingProfile.exists()) {
       return { id: user.uid, ...existingProfile.data() } as UserProfile;
     }
     
-    // Profile doesn't exist, create it.
     const userProfileData: Omit<UserProfile, 'id' | 'updatedAt'> = {
       displayName: user.displayName || user.email?.split('@')[0] || 'Pengguna Baru',
       email: user.email,
       photoURL: user.photoURL,
-      role: 'free' as const, // All new users start as 'free'
+      role: role,
       disabled: false,
     };
 
     try {
         await setDoc(userRef, { ...userProfileData, updatedAt: serverTimestamp() });
-        
-        // After setting, we return a client-side object with a local date
         const createdProfile: UserProfile = {
             id: user.uid,
             ...userProfileData,
-            updatedAt: new Date(), // Use local date for immediate feedback
+            updatedAt: new Date(),
         };
         return createdProfile;
     } catch (error: any) {
@@ -91,7 +82,6 @@ export async function createUserProfile(user: User): Promise<UserProfile> {
           });
           errorEmitter.emit('permission-error', permissionError);
         }
-        // Re-throw to be caught by the caller
         throw error;
     }
 }
@@ -115,31 +105,10 @@ export async function updateUserProfile(uid: string, data: Partial<Pick<UserProf
     }
 }
 
-export async function updateUserRole(uid: string, role: UserProfile['role']) {
-  const currentUser = auth.currentUser;
-  if (!currentUser) throw new Error("Authentication required.");
-  
-  const token = await currentUser.getIdToken();
-  
-  const response = await fetch('/api/admin/users/role', {
-      method: 'POST',
-      headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ uid, role })
-  });
+// This is now deprecated as we use direct client-side updates with rules.
+// export async function updateUserRole(uid: string, role: UserProfile['role']) { ... }
 
-  if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to update user role.');
-  }
-
-  // After a successful server update, the client should refresh its token
-  // to get the new claims. This is handled in the component calling this function.
-}
-
-// --- Location Functions (Client-Side for Admin Panel & Public View) ---
+// --- Location Functions ---
 
 export async function getLocations(includeInactive = false): Promise<Location[]> {
   const locationsRef = collection(db, 'locations');
@@ -150,10 +119,7 @@ export async function getLocations(includeInactive = false): Promise<Location[]>
     return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Location));
   } catch (error: any) {
      if (error.code === 'permission-denied') {
-        const permissionError = new FirestorePermissionError({
-            path: '/locations',
-            operation: 'list',
-        });
+        const permissionError = new FirestorePermissionError({ path: '/locations', operation: 'list' });
         errorEmitter.emit('permission-error', permissionError);
     }
     throw error;
@@ -170,17 +136,14 @@ export async function getLocationClient(id: string): Promise<Location | null> {
         return null;
     } catch (error: any) {
          if (error.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: `/locations/${id}`,
-                operation: 'get',
-            });
+            const permissionError = new FirestorePermissionError({ path: `/locations/${id}`, operation: 'get' });
             errorEmitter.emit('permission-error', permissionError);
         }
         throw error;
     }
 }
 
-// --- Spot Functions (Client-Side) ---
+// --- Spot Functions ---
 
 export async function getSpotsForLocation(locationId: string): Promise<Spot[]> {
   const spotsRef = collection(db, 'spots');
@@ -190,20 +153,13 @@ export async function getSpotsForLocation(locationId: string): Promise<Spot[]> {
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Spot));
   } catch (error: any) {
     if (error.code === 'permission-denied') {
-      const permissionError = new FirestorePermissionError({
-        path: `/spots`, // Simplified path for query
-        operation: 'list',
-      });
+      const permissionError = new FirestorePermissionError({ path: `/spots`, operation: 'list' });
       errorEmitter.emit('permission-error', permissionError);
     }
     throw error;
   }
 }
 
-/**
- * Automates updating the minimap when a spot is created or updated.
- * It ensures a node exists for the spot and tries to link it to the previous spot.
- */
 export async function updateLocationMiniMapWithSpot(spot: Spot, allSpotsInLocation: Spot[]) {
   const locationRef = doc(db, 'locations', spot.locationId);
 
@@ -214,17 +170,14 @@ export async function updateLocationMiniMapWithSpot(spot: Spot, allSpotsInLocati
     const locationData = locationSnap.data() as Location;
     const miniMap = locationData.miniMap ?? { nodes: [], edges: [] };
 
-    // Ensure node exists
     let nodeExists = miniMap.nodes.some(n => n.id === spot.id);
     if (!nodeExists) {
-      const newNode: CaveMapNode = { id: spot.id, label: spot.title, x: 50, y: 50 }; // Default position
+      const newNode: CaveMapNode = { id: spot.id, label: spot.title, x: 50, y: 50 };
       miniMap.nodes.push(newNode);
     } else {
-        // Update label if it has changed
         miniMap.nodes = miniMap.nodes.map(n => n.id === spot.id ? { ...n, label: spot.title } : n);
     }
 
-    // Try to create an edge to the previous spot based on order
     const sortedSpots = [...allSpotsInLocation.filter(s => s.id !== spot.id), spot].sort((a,b) => a.order - b.order);
     const currentIndex = sortedSpots.findIndex(s => s.id === spot.id);
     
@@ -240,7 +193,6 @@ export async function updateLocationMiniMapWithSpot(spot: Spot, allSpotsInLocati
 
   } catch (error) {
     console.error("Failed to update minimap:", error);
-    // We don't throw here to avoid failing the whole spot saving process
   }
 }
 
@@ -255,10 +207,7 @@ export async function getSpotClient(id: string): Promise<Spot | null> {
     return null;
   } catch(error: any) {
       if (error.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: `/spots/${id}`,
-                operation: 'get',
-            });
+            const permissionError = new FirestorePermissionError({ path: `/spots/${id}`, operation: 'get' });
             errorEmitter.emit('permission-error', permissionError);
       }
       throw error;
@@ -280,10 +229,7 @@ export async function getKioskSettings(): Promise<KioskSettings | null> {
     return null;
   } catch (error: any) {
     if (error.code === 'permission-denied') {
-        const permissionError = new FirestorePermissionError({
-            path: `/kioskSettings/${KIOSK_SETTINGS_ID}`,
-            operation: 'get',
-        });
+        const permissionError = new FirestorePermissionError({ path: `/kioskSettings/${KIOSK_SETTINGS_ID}`, operation: 'get' });
         errorEmitter.emit('permission-error', permissionError);
     }
     throw error;
@@ -296,11 +242,7 @@ export async function saveKioskSettings(settings: Partial<KioskSettings>) {
         await setDoc(docRef, settings, { merge: true });
     } catch (error: any) {
         if (error.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: '/kioskSettings/main',
-                operation: 'update',
-                requestResourceData: settings,
-            });
+            const permissionError = new FirestorePermissionError({ path: '/kioskSettings/main', operation: 'update', requestResourceData: settings });
             errorEmitter.emit('permission-error', permissionError);
         }
         throw error;
@@ -314,11 +256,7 @@ export async function setKioskControl(control: any) {
         await setDoc(docRef, control, { merge: true });
     } catch (error: any) {
         if (error.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: '/kioskControl/global',
-                operation: 'update',
-                requestResourceData: control,
-            });
+            const permissionError = new FirestorePermissionError({ path: '/kioskControl/global', operation: 'update', requestResourceData: control });
             errorEmitter.emit('permission-error', permissionError);
         }
         throw error;
@@ -335,10 +273,7 @@ export async function getPricingTiers(): Promise<PricingTier[]> {
         return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PricingTier));
     } catch (error: any) {
         if (error.code === 'permission-denied') {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: '/pricingTiers',
-                operation: 'list',
-            }));
+            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: '/pricingTiers', operation: 'list' }));
         }
         throw error;
     }
@@ -350,11 +285,7 @@ export async function setPricingTier(tier: PricingTier): Promise<void> {
         await setDoc(tierRef, tier, { merge: true });
     } catch (error: any) {
         if (error.code === 'permission-denied') {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: `/pricingTiers/${tier.id}`,
-                operation: 'update',
-                requestResourceData: tier,
-            }));
+            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `/pricingTiers/${tier.id}`, operation: 'update', requestResourceData: tier }));
         }
         throw error;
     }
@@ -366,10 +297,7 @@ export async function deletePricingTier(tierId: string): Promise<void> {
         await deleteDoc(tierRef);
     } catch (error: any) {
         if (error.code === 'permission-denied') {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: `/pricingTiers/${tierId}`,
-                operation: 'delete',
-            }));
+            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `/pricingTiers/${tierId}`, operation: 'delete' }));
         }
         throw error;
     }
@@ -379,22 +307,15 @@ export async function deletePricingTier(tierId: string): Promise<void> {
 export async function trackKioskSpotView(locationId: string, spotId: string): Promise<void> {
     const statRef = doc(db, 'kioskStats', locationId);
     const data = {
-        spots: {
-            [spotId]: increment(1)
-        },
+        spots: { [spotId]: increment(1) },
         updatedAt: serverTimestamp()
     };
     try {
         await setDoc(statRef, data, { merge: true });
     } catch (error: any) {
         if (error.code === 'permission-denied') {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: `/kioskStats/${locationId}`,
-                operation: 'update',
-                requestResourceData: data,
-            }));
+            errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `/kioskStats/${locationId}`, operation: 'update', requestResourceData: data }));
         }
-        // Don't re-throw, as this is a background task
         console.warn(`Failed to track kiosk view for spot ${spotId}:`, error.message);
     }
 }

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect } from 'react';
@@ -13,6 +12,9 @@ import { Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/firebase';
+import { createUserProfile } from '@/lib/firestore-client';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+
 
 // Schema for creating a new user. Password is required.
 const createUserSchema = z.object({
@@ -46,7 +48,6 @@ export function UserForm({ open, onOpenChange, onSave }: UserFormProps) {
   });
   
   useEffect(() => {
-    // Reset form when dialog opens
     if(open) {
         form.reset({
             displayName: '',
@@ -60,38 +61,30 @@ export function UserForm({ open, onOpenChange, onSave }: UserFormProps) {
   const isSubmitting = form.formState.isSubmitting;
 
   const onSubmit = async (values: UserFormValues) => {
-    const url = '/api/admin/users/create';
-    const method = 'POST';
-    
     try {
-      if (!auth.currentUser) throw new Error("Otentikasi admin diperlukan.");
-      const token = await auth.currentUser.getIdToken();
-
-      const response = await fetch(url, {
-        method,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(values),
+      // This creates the user in Firebase Auth but DOES NOT sign them in on the admin's browser.
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      
+      await updateProfile(userCredential.user, {
+          displayName: values.displayName
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Operasi gagal.');
-      }
+      
+      // Explicitly create the Firestore user profile with the selected role.
+      // This is now the single source of truth for user creation logic.
+      await createUserProfile(userCredential.user, values.role);
       
       toast({
         title: 'Berhasil!',
         description: `Pengguna baru telah dibuat.`,
       });
-      onSave();
+      onSave(); // This closes the dialog and refreshes the user list via the parent component.
+
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Gagal',
-        description: error.message,
-      });
+        if (error.code === 'auth/email-already-in-use') {
+            toast({ variant: 'destructive', title: 'Gagal', description: 'Email sudah terdaftar.' });
+        } else {
+            toast({ variant: 'destructive', title: 'Gagal', description: error.message || 'Gagal membuat pengguna.' });
+        }
     }
   };
 
