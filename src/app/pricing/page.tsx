@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Check, Star, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { getPricingTiers as getPricingTiersClient } from '@/lib/firestore-client';
 import { PricingTier } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,16 +17,17 @@ export default function PricingPage() {
     const { userProfile } = useUser();
     const [tiers, setTiers] = useState<PricingTier[]>([]);
     const [loading, setLoading] = useState(true);
+    const db = useFirestore();
 
     useEffect(() => {
-        getPricingTiersClient().then(data => {
+        getPricingTiersClient(db).then(data => {
             setTiers(data);
             setLoading(false);
         }).catch(err => {
             console.error("Failed to fetch pricing tiers:", err);
             setLoading(false);
         });
-    }, []);
+    }, [db]);
 
     const currentRole = userProfile?.role || 'free';
 

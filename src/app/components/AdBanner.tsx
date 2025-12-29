@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { getKioskSettings } from '@/lib/firestore-client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useFirestore } from '@/firebase';
 
 declare global {
   interface Window {
@@ -15,16 +16,17 @@ declare global {
 const AdBanner = () => {
   const [adConfig, setAdConfig] = useState<{ clientId?: string; adSlotId?: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const db = useFirestore();
 
   useEffect(() => {
-    getKioskSettings()
+    getKioskSettings(db)
       .then((settings) => {
         if (settings?.adsense) {
           setAdConfig(settings.adsense);
         }
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [db]);
 
   useEffect(() => {
     if (adConfig?.clientId && adConfig?.adSlotId) {

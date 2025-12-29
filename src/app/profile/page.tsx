@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { UserProfile } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { Loader2, User as UserIcon, Gem, ShieldCheck, Mail, ArrowLeft, Edit, Crown } from 'lucide-react';
@@ -31,6 +31,7 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 function EditProfileDialog({ userProfile, onOpenChange, open }: { userProfile: UserProfile, onOpenChange: (open: boolean) => void, open: boolean }) {
     const { toast } = useToast();
     const { user } = useUser();
+    const db = useFirestore();
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
         defaultValues: {
@@ -42,7 +43,7 @@ function EditProfileDialog({ userProfile, onOpenChange, open }: { userProfile: U
     const onSubmit = async (data: ProfileFormValues) => {
         if (!user) return;
         try {
-            await updateUserProfile(user.uid, {
+            await updateUserProfile(db, user.uid, {
                 displayName: data.displayName,
                 photoURL: data.photoURL,
             });
@@ -227,5 +228,3 @@ export default function ProfilePage() {
     </>
   );
 }
-
-    

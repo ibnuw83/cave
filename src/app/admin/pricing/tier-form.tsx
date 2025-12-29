@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -12,6 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, PlusCircle, Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useFirestore } from '@/firebase';
 
 const tierSchema = z.object({
   id: z.string().min(1, 'ID Paket (role) harus dipilih.'),
@@ -35,6 +37,7 @@ interface PricingTierFormProps {
 
 export function PricingTierForm({ tier, allRoles, onSave, onCancel }: PricingTierFormProps) {
   const { toast } = useToast();
+  const db = useFirestore();
 
   const form = useForm<TierFormValues>({
     resolver: zodResolver(tierSchema),
@@ -62,7 +65,7 @@ export function PricingTierForm({ tier, allRoles, onSave, onCancel }: PricingTie
       const newTierData: PricingTier = {
         ...values,
       };
-      await setPricingTier(newTierData);
+      await setPricingTier(db, newTierData);
       onSave(newTierData);
     } catch (error) {
       // Error is handled by the global error handler

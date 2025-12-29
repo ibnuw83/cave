@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect } from 'react';
@@ -11,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { createUserProfile } from '@/lib/firestore-client';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 
@@ -36,6 +37,7 @@ interface UserFormProps {
 export function UserForm({ open, onOpenChange, onSave }: UserFormProps) {
   const { toast } = useToast();
   const auth = useAuth();
+  const db = useFirestore();
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(createUserSchema),
@@ -71,7 +73,7 @@ export function UserForm({ open, onOpenChange, onSave }: UserFormProps) {
       
       // Explicitly create the Firestore user profile with the selected role.
       // This is now the single source of truth for user creation logic.
-      await createUserProfile(userCredential.user, values.role);
+      await createUserProfile(db, userCredential.user, values.role);
       
       toast({
         title: 'Berhasil!',

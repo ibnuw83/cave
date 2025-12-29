@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,17 +8,19 @@ import { Button } from '@/components/ui/button';
 import { getKioskSettings } from '@/lib/firestore-client';
 import { KioskSettings } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useFirestore } from '@/firebase';
 
 export default function Footer() {
   const [settings, setSettings] = useState<KioskSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const db = useFirestore();
 
   useEffect(() => {
-    getKioskSettings().then(s => {
+    getKioskSettings(db).then(s => {
       setSettings(s);
       setLoading(false);
     });
-  }, []);
+  }, [db]);
 
   const footerText = settings?.footerText
     ? settings.footerText.replace('{tahun}', new Date().getFullYear().toString())

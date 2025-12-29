@@ -2,13 +2,14 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/firebase/provider';
+import { useAuth, useFirestore } from '@/firebase/provider';
 import { User, onIdTokenChanged } from 'firebase/auth';
 import { UserProfile } from '@/lib/types';
 import { getUserProfileClient } from '@/lib/firestore-client';
 
 export function useUser() {
   const auth = useAuth();
+  const db = useFirestore();
 
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -19,7 +20,7 @@ export function useUser() {
   const fetchUserProfile = useCallback(async (firebaseUser: User) => {
     setIsProfileLoading(true);
     try {
-      const profile = await getUserProfileClient(firebaseUser.uid);
+      const profile = await getUserProfileClient(db, firebaseUser.uid);
       if (profile) {
         setUserProfile(profile);
       } else {
@@ -37,7 +38,7 @@ export function useUser() {
     } finally {
       setIsProfileLoading(false);
     }
-  }, [auth]);
+  }, [auth, db]);
 
 
   useEffect(() => {

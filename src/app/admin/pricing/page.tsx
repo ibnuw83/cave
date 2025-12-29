@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -17,14 +18,12 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { deletePricingTier, getPricingTiers } from '@/lib/firestore-client';
+import { deletePricingTier } from '@/lib/firestore-client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PricingTierForm } from './tier-form';
 import { Badge } from '@/components/ui/badge';
-import { useUser } from '@/firebase';
-import { useCollection } from '@/firebase/firestore/use-collection';
+import { useUser, useCollection, useFirestore } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
-import { useFirestore } from '@/firebase/provider';
 
 export default function AdminPricingPage() {
   const { userProfile } = useUser();
@@ -50,7 +49,7 @@ export default function AdminPricingPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await deletePricingTier(id);
+      await deletePricingTier(firestore, id);
       toast({ title: 'Berhasil', description: 'Paket harga berhasil dihapus.' });
     } catch (error) {
       // Error handled by global handler

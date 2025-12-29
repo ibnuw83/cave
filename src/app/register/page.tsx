@@ -19,7 +19,7 @@ import {
   sendEmailVerification,
   updateProfile,
 } from 'firebase/auth';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
 
 const registerSchema = z.object({
@@ -32,6 +32,7 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const auth = useAuth();
+  const db = useFirestore();
   const { user, userProfile, isUserLoading, isProfileLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
@@ -45,8 +46,8 @@ export default function RegisterPage() {
   }, [user, userProfile, isUserLoading, isProfileLoading, router]);
 
   useEffect(() => {
-    getKioskSettings().then(setSettings);
-  }, []);
+    getKioskSettings(db).then(setSettings);
+  }, [db]);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -66,7 +67,7 @@ export default function RegisterPage() {
 
       // 3. **Crucially**, create their profile document in Firestore immediately.
       // This ensures the 'role' and other details exist before they are needed.
-      await createUserProfile(newUser);
+      await createUserProfile(db, newUser);
 
       // 4. Send verification email (optional but good practice)
       await sendEmailVerification(newUser);

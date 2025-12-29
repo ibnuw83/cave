@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, CheckCircle, ArrowLeft } from 'lucide-react';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useFirestore } from '@/firebase';
 import { getPricingTiers } from '@/lib/firestore-client';
 import { PricingTier } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -29,6 +29,7 @@ function PembayaranComponent() {
   const searchParams = useSearchParams();
   const { user, userProfile, isUserLoading, isProfileLoading, refreshUserProfile } = useUser();
   const auth = useAuth();
+  const db = useFirestore();
   const { toast } = useToast();
 
   const [tier, setTier] = useState<PricingTier | null>(null);
@@ -59,7 +60,7 @@ function PembayaranComponent() {
     }
 
     setLoading(true);
-    getPricingTiers()
+    getPricingTiers(db)
       .then(tiers => {
         const selectedTier = tiers.find(t => t.id === tierId);
         if (selectedTier) {
@@ -75,7 +76,7 @@ function PembayaranComponent() {
       })
       .finally(() => setLoading(false));
 
-  }, [tierId, router, toast, user, isUserLoading, isProfileLoading, userProfile]);
+  }, [tierId, router, toast, user, isUserLoading, isProfileLoading, userProfile, db]);
 
   const handleSimulatePayment = async () => {
     if (!user || !tier || !auth.currentUser) return;
