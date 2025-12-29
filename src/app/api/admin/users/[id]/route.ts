@@ -67,6 +67,7 @@ export async function PUT(
             return NextResponse.json({ error: 'Properti `disabled` (boolean) diperlukan.' }, { status: 400 });
         }
 
+        // Update both Auth and Firestore
         await auth.updateUser(userId, { disabled });
         await db.collection('users').doc(userId).update({ disabled });
         
@@ -106,14 +107,18 @@ export async function DELETE(
     }
 
     try {
-        const batch = db.batch();
-        batch.delete(db.collection('users').doc(userId));
+        // It's safer to delete Auth user first. If this fails, we don't proceed.
         await auth.deleteUser(userId);
-        await batch.commit();
+        // Then delete the Firestore document.
+        await db.collection('users').doc(userId).delete();
 
         return NextResponse.json({ message: 'Pengguna berhasil dihapus.' });
     } catch (error: any) {
         console.error(`[API] Gagal menghapus pengguna ${userId}:`, error);
+        // If user was deleted from Auth but Firestore failed, we might have an orphan document.
+        // For this app, we accept this risk. For a production app, you might want more complex recovery logic.
         return NextResponse.json({ error: error.message || 'Gagal menghapus pengguna.' }, { status: 500 });
     }
 }
+
+    

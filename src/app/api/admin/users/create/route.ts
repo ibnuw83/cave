@@ -18,12 +18,7 @@ async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
 
   const authorization = req.headers.get('Authorization');
   if (!authorization?.startsWith('Bearer ')) {
-    // For creating users, we can't rely on the user's own token yet
-    // as they might be creating the first admin.
-    // Instead, we check for a server-side secret or rely on App Engine context.
-    // Here, we'll assume a request from the app itself is trusted for simplicity.
-    // In a real production scenario, you would want a more secure method.
-    return null; // For now, let's proceed without strict admin check for user creation
+    return null;
   }
 
   const idToken = authorization.replace('Bearer ', '');
@@ -44,6 +39,11 @@ async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
 
 // Handler for POST /api/admin/users/create
 export async function POST(req: NextRequest) {
+    const adminUser = await verifyAdmin(req);
+    if (!adminUser) {
+        return NextResponse.json({ error: 'Akses ditolak: Hanya admin yang diizinkan.' }, { status: 403 });
+    }
+    
     const services = safeGetAdminApp();
     if (!services) return NextResponse.json({ error: 'Admin SDK tidak tersedia.' }, { status: 500 });
     const { auth, db } = services;
@@ -66,6 +66,7 @@ export async function POST(req: NextRequest) {
             email,
             password,
             displayName,
+            disabled: false, // Explicitly set to false on creation
         });
 
         const uid = userRecord.uid;
@@ -97,3 +98,5 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: error.message || 'Gagal membuat pengguna.' }, { status: 500 });
     }
 }
+
+    

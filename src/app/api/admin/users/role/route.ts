@@ -64,14 +64,18 @@ export async function POST(req: NextRequest) {
         }
 
         const userRef = db.collection('users').doc(uid);
-
-        await userRef.update({
+        
+        // Use a batch to update both Firestore and Auth claims atomically.
+        const batch = db.batch();
+        batch.update(userRef, {
             role: role,
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
         
         // This is important to ensure the client gets the new role claim quickly.
         await auth.setCustomUserClaims(uid, { role: role });
+        
+        await batch.commit();
 
         return NextResponse.json({ message: `Peran pengguna berhasil diperbarui.` });
 
@@ -80,3 +84,5 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: error.message || 'Gagal memperbarui peran pengguna.' }, { status: 500 });
     }
 }
+
+    

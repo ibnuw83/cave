@@ -19,12 +19,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth, useCollection, useUser } from '@/firebase';
-import { collection } from "firebase/firestore";
+import { useCollection, useUser } from '@/firebase';
+import { collection, deleteDoc, doc } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
-import { deleteDoc, doc } from 'firebase/firestore';
 
 export default function LocationsClient() {
   const { userProfile } = useUser();
@@ -86,7 +85,7 @@ export default function LocationsClient() {
               <div className="flex justify-between items-start">
                   <div>
                   <CardTitle className="text-lg">{location.name}</CardTitle>
-                  <CardDescription>
+                  <CardDescription className="flex items-center flex-wrap gap-2 mt-1">
                       <Badge variant={location.isActive ? "default" : "secondary"}>
                           {location.isActive ? "Aktif" : "Nonaktif"}
                       </Badge>
@@ -126,3 +125,5 @@ export default function LocationsClient() {
     </div>
   );
 }
+
+    

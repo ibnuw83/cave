@@ -3,7 +3,6 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { UserProfile } from '@/lib/types';
-import { updateUserRole } from '@/lib/firestore-client';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -26,8 +25,7 @@ export default function UsersClient() {
   const firestore = useFirestore();
   const { user: currentUser, userProfile, isProfileLoading, refreshUserProfile } = useUser();
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
-
+  
   const usersRef = userProfile?.role === 'admin' ? collection(firestore, 'users') : null;
   const { data: users, isLoading: usersLoading } = useCollection<UserProfile>(usersRef);
 
@@ -36,12 +34,6 @@ export default function UsersClient() {
     return [...users].sort((a, b) => (a.displayName || a.email || '').localeCompare(b.displayName || b.email || ''));
   }, [users]);
   
-  useEffect(() => {
-    if(!isFormOpen) {
-      // Data is refreshed by useCollection, but we can force a refresh if needed
-    }
-  }, [isFormOpen]);
-
   const handleRoleChange = async (uid: string, newRole: UserProfile['role']) => {
     const userToChange = users?.find(u => u.id === uid);
     
@@ -63,7 +55,11 @@ export default function UsersClient() {
     if (newRole === 'admin') {
         const ok = confirm('Yakin ingin menjadikan pengguna ini sebagai ADMIN? Tindakan ini memberikan akses penuh ke panel admin.');
         if (!ok) {
-            setTimeout(() => refreshUserProfile(), 100);
+            // Revert dropdown if canceled
+            setTimeout(() => {
+              const selectTrigger = document.querySelector(`[data-uid="${uid}"]`) as HTMLElement | null;
+              if(selectTrigger) selectTrigger.click(); // Close the select
+            }, 100);
             return;
         }
     }
@@ -71,10 +67,27 @@ export default function UsersClient() {
     setLoadingStates((prev) => ({ ...prev, [uid]: true }));
     
     try {
-        await updateUserRole(uid, newRole);
+        const token = await auth.currentUser?.getIdToken();
+        if (!token) throw new Error("Otentikasi Gagal.");
+
+        const response = await fetch('/api/admin/users/role', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ uid, role: newRole })
+        });
+      
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Gagal mengubah peran.');
+        }
+
         toast({ title: "Berhasil", description: `Peran untuk ${userToChange.displayName || userToChange.email} telah diubah.` });
-    } catch (error) {
-       // Error is handled by global emitter in firestore-client
+        // The useCollection hook will automatically update the UI
+    } catch (error: any) {
+       toast({ variant: 'destructive', title: 'Gagal', description: error.message });
        // Re-fetch to revert visual state on error
        setTimeout(() => refreshUserProfile(), 100);
     } finally {
@@ -82,7 +95,8 @@ export default function UsersClient() {
     }
   };
   
-  const handleStatusChange = async (uid: string, isDisabled: boolean) => {
+  const handleStatusChange = async (userToUpdate: UserProfile, isDisabled: boolean) => {
+    const uid = userToUpdate.id;
     if (currentUser?.uid === uid) {
       toast({ variant: 'destructive', title: 'Aksi Ditolak', description: 'Anda tidak dapat menonaktifkan akun sendiri.' });
       return;
@@ -90,8 +104,22 @@ export default function UsersClient() {
 
     setLoadingStates(prev => ({ ...prev, [uid]: true }));
     try {
-        await updateDoc(doc(firestore, 'users', uid), { disabled: isDisabled });
+        const token = await auth.currentUser?.getIdToken();
+        if (!token) throw new Error("Otentikasi Gagal.");
+
+        const response = await fetch(`/api/admin/users/${uid}`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ disabled: isDisabled }),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Gagal mengubah status pengguna.');
+        }
+
         toast({ title: 'Berhasil', description: `Pengguna telah ${isDisabled ? 'dinonaktifkan' : 'diaktifkan'}.` });
+        // Let useCollection handle the UI update
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Gagal', description: error.message });
     } finally {
@@ -107,7 +135,6 @@ export default function UsersClient() {
     if (!auth.currentUser) return;
 
     try {
-      // The API route is still the safest way to delete a user from Auth
       const token = await auth.currentUser.getIdToken();
       const response = await fetch(`/api/admin/users/${userToDelete.id}`, {
         method: 'DELETE',
@@ -126,7 +153,6 @@ export default function UsersClient() {
 
   const handleFormSave = () => {
     setIsFormOpen(false);
-    setSelectedUser(null);
     // useCollection will handle the refresh
   };
   
@@ -162,7 +188,7 @@ export default function UsersClient() {
         onSave={handleFormSave}
       />
     <div className="flex justify-end mb-4">
-      <Button onClick={() => { setSelectedUser(null); setIsFormOpen(true); }}>
+      <Button onClick={() => { setIsFormOpen(true); }}>
         <UserPlus className="mr-2 h-4 w-4" />
         Tambah Pengguna
       </Button>
@@ -209,7 +235,7 @@ export default function UsersClient() {
                     <Switch
                         id={`status-${user.id}`}
                         checked={!user.disabled}
-                        onCheckedChange={(isChecked) => handleStatusChange(user.id, !isChecked)}
+                        onCheckedChange={(isChecked) => handleStatusChange(user, !isChecked)}
                         disabled={loadingStates[user.id] || currentUser?.uid === user.id}
                     />
                     <Label htmlFor={`status-${user.id}`} className={user.disabled ? 'text-muted-foreground' : ''}>
@@ -223,7 +249,7 @@ export default function UsersClient() {
                       <Button
                         variant="destructive"
                         size="sm"
-                        disabled={currentUser?.uid === user.id}
+                        disabled={currentUser?.uid === user.id || loadingStates[user.id]}
                       >
                         <Trash2 className="mr-2 h-4 w-4" /> Hapus
                       </Button>
@@ -256,3 +282,5 @@ export default function UsersClient() {
     </>
   );
 }
+
+    

@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAuth } from '@/firebase';
 
 // Schema for creating a new user. Password is required.
 const createUserSchema = z.object({
@@ -32,6 +33,7 @@ interface UserFormProps {
 
 export function UserForm({ open, onOpenChange, onSave }: UserFormProps) {
   const { toast } = useToast();
+  const auth = useAuth();
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(createUserSchema),
@@ -62,9 +64,15 @@ export function UserForm({ open, onOpenChange, onSave }: UserFormProps) {
     const method = 'POST';
     
     try {
+      if (!auth.currentUser) throw new Error("Otentikasi admin diperlukan.");
+      const token = await auth.currentUser.getIdToken();
+
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(values),
       });
 
@@ -177,3 +185,5 @@ export function UserForm({ open, onOpenChange, onSave }: UserFormProps) {
     </Dialog>
   );
 }
+
+    
