@@ -1,5 +1,4 @@
 
-
 import { NextRequest, NextResponse } from 'next/server';
 import { safeGetAdminApp } from '@/firebase/admin';
 import * as admin from 'firebase-admin';
@@ -80,11 +79,10 @@ export async function POST(req: NextRequest) {
             role: role,
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
-
-        // This step is important for clients that are currently active
-        // to have their sessions revoked, forcing them to re-authenticate and get the new claims.
-        // However, for a smoother UX, we can skip this and let the token expire naturally or be refreshed.
-        // await auth.revokeRefreshTokens(uid);
+        
+        // This step is important to force clients to re-authenticate and get the new claims.
+        // It invalidates all sessions for the user.
+        await auth.revokeRefreshTokens(uid);
 
         return NextResponse.json({ message: `Peran pengguna berhasil diperbarui.` });
 

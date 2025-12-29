@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 
         const uid = userRecord.uid;
         
-        // Set custom claims for role-based access
+        // CRITICAL: Set custom claims for role-based access immediately
         await auth.setCustomUserClaims(uid, { role });
 
         // Create user profile in Firestore
