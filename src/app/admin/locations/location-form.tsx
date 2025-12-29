@@ -16,6 +16,7 @@ import { useAuth } from '@/firebase';
 import { AdminMiniMapEditor } from './admin-mini-map-editor';
 import { doc, setDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
+import { getSpotsForLocation } from '@/lib/firestore-client';
 
 const locationSchema = z.object({
   name: z.string().min(1, { message: 'Nama lokasi tidak boleh kosong.' }),

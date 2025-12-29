@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -17,6 +18,7 @@ import { useMemo, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useFirestore } from '@/firebase';
 import { collection, addDoc, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { updateLocationMiniMapWithSpot } from '@/lib/firestore-client';
 
 const hotspotSchema = z.object({
   id: z.string().min(1),
@@ -123,7 +125,11 @@ export function SpotForm({ spot, locations, allSpots, onSave, onCancel }: SpotFo
             const spotRef = await addDoc(collection(firestore, 'spots'), spotPayload);
             savedSpot = { id: spotRef.id, ...spotPayload } as Spot;
         }
+
+        // After saving the spot, update the location's minimap
+        await updateLocationMiniMapWithSpot(savedSpot, spotsInSameLocation);
         onSave(savedSpot);
+
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Gagal', description: error.message || 'Gagal menyimpan spot.' });
     }

@@ -1,12 +1,13 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Location } from '@/lib/types';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import debounce from 'lodash.debounce';
 
 export function AdminMiniMapEditor({
   locationId,
@@ -23,45 +24,52 @@ export function AdminMiniMapEditor({
   const [dragId, setDragId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Update internal state if the initialMap prop changes from parent
   useEffect(() => {
-    // Debounced auto-save effect
-    const handler = setTimeout(() => {
-      // Don't save on initial render
-      if (JSON.stringify(map) !== JSON.stringify(initialMap ?? { nodes: [], edges: [] })) {
-        saveMap();
+    setMap(initialMap ?? { nodes: [], edges: [] });
+  }, [initialMap]);
+
+  // Debounced save function
+  const debouncedSave = useCallback(
+    debounce(async (newMap: Location['miniMap']) => {
+      setIsSaving(true);
+      try {
+        await updateDoc(doc(db, 'locations', locationId), {
+          'miniMap.nodes': newMap.nodes,
+          'miniMap.edges': newMap.edges,
+          updatedAt: serverTimestamp(),
+        });
+        toast({ title: 'Tersimpan Otomatis', description: 'Tata letak peta mini telah diperbarui.' });
+      } catch (e) {
+        console.error('Failed to auto-save minimap', e);
+        toast({ variant: 'destructive', title: 'Gagal Menyimpan', description: 'Gagal menyimpan peta mini.' });
+      } finally {
+        setIsSaving(false);
       }
-    }, 1500);
+    }, 1500),
+    [locationId, db, toast]
+  );
 
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [map, initialMap]);
-
-
-  function updateNode(id: string, x: number, y: number) {
-    setMap(prev => ({
-      ...prev,
-      nodes: prev.nodes.map(n =>
+  function updateNodePosition(id: string, x: number, y: number) {
+    const newMap = {
+      ...map,
+      nodes: map.nodes.map(n =>
         n.id === id ? { ...n, x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) } : n
       ),
-    }));
+    };
+    setMap(newMap);
+    debouncedSave(newMap);
   }
 
-  async function saveMap() {
-    setIsSaving(true);
-    try {
-        await updateDoc(doc(db, 'locations', locationId), {
-            'miniMap.nodes': map.nodes,
-            'miniMap.edges': map.edges,
-            updatedAt: serverTimestamp(),
-        });
-        toast({ title: "Tersimpan Otomatis", description: "Tata letak peta mini telah diperbarui." });
-    } catch(e) {
-        console.error("Failed to auto-save minimap", e);
-        toast({ variant: "destructive", title: "Gagal Menyimpan", description: "Gagal menyimpan peta mini." });
-    } finally {
-        setIsSaving(false);
-    }
+  if (!map || map.nodes.length === 0) {
+    return (
+       <div className="bg-card rounded-xl p-4 border mt-6">
+            <h3 className="font-bold">🗺️ Editor Mini-Map</h3>
+            <p className="text-sm text-muted-foreground mt-2 text-center py-8">
+                Belum ada spot yang ditambahkan untuk lokasi ini. Buat spot baru untuk memulai.
+            </p>
+       </div>
+    )
   }
 
   return (
@@ -87,7 +95,7 @@ export function AdminMiniMapEditor({
                 const rect = (e.currentTarget as SVGElement).getBoundingClientRect();
                 const x = ((e.clientX - rect.left) / rect.width) * 100;
                 const y = ((e.clientY - rect.top) / rect.height) * 100;
-                updateNode(dragId, x, y);
+                updateNodePosition(dragId, x, y);
             }}
             onTouchMove={e => {
               if (!dragId) return;
@@ -95,7 +103,7 @@ export function AdminMiniMapEditor({
               const rect = (e.currentTarget as SVGElement).getBoundingClientRect();
               const x = ((touch.clientX - rect.left) / rect.width) * 100;
               const y = ((touch.clientY - rect.top) / rect.height) * 100;
-              updateNode(dragId, x, y);
+              updateNodePosition(dragId, x, y);
             }}
             onTouchEnd={() => setDragId(null)}
         >

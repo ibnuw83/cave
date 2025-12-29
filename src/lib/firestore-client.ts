@@ -1,4 +1,5 @@
 
+
 import {
   doc,
   getDoc,
@@ -18,7 +19,7 @@ import {
 } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
 import { initializeFirebase } from '@/firebase/init';
-import type { UserProfile, Location, Spot, KioskSettings, PricingTier } from '../types';
+import type { UserProfile, Location, Spot, KioskSettings, PricingTier, CaveMapNode } from '../types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { getAuth } from 'firebase/auth';
@@ -183,7 +184,7 @@ export async function getLocationClient(id: string): Promise<Location | null> {
 
 export async function getSpotsForLocation(locationId: string): Promise<Spot[]> {
   const spotsRef = collection(db, 'spots');
-  const q = query(spotsRef, where('locationId', '==', locationId));
+  const q = query(spotsRef, where('locationId', '==', locationId), orderBy('order', 'asc'));
   try {
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Spot));
@@ -196,6 +197,50 @@ export async function getSpotsForLocation(locationId: string): Promise<Spot[]> {
       errorEmitter.emit('permission-error', permissionError);
     }
     throw error;
+  }
+}
+
+/**
+ * Automates updating the minimap when a spot is created or updated.
+ * It ensures a node exists for the spot and tries to link it to the previous spot.
+ */
+export async function updateLocationMiniMapWithSpot(spot: Spot, allSpotsInLocation: Spot[]) {
+  const locationRef = doc(db, 'locations', spot.locationId);
+
+  try {
+    const locationSnap = await getDoc(locationRef);
+    if (!locationSnap.exists()) throw new Error('Location not found');
+
+    const locationData = locationSnap.data() as Location;
+    const miniMap = locationData.miniMap ?? { nodes: [], edges: [] };
+
+    // Ensure node exists
+    let nodeExists = miniMap.nodes.some(n => n.id === spot.id);
+    if (!nodeExists) {
+      const newNode: CaveMapNode = { id: spot.id, label: spot.title, x: 50, y: 50 }; // Default position
+      miniMap.nodes.push(newNode);
+    } else {
+        // Update label if it has changed
+        miniMap.nodes = miniMap.nodes.map(n => n.id === spot.id ? { ...n, label: spot.title } : n);
+    }
+
+    // Try to create an edge to the previous spot based on order
+    const sortedSpots = [...allSpotsInLocation.filter(s => s.id !== spot.id), spot].sort((a,b) => a.order - b.order);
+    const currentIndex = sortedSpots.findIndex(s => s.id === spot.id);
+    
+    if (currentIndex > 0) {
+      const prevSpot = sortedSpots[currentIndex - 1];
+      const edgeExists = miniMap.edges.some(e => (e.from === prevSpot.id && e.to === spot.id) || (e.from === spot.id && e.to === prevSpot.id));
+      if (!edgeExists) {
+        miniMap.edges.push({ from: prevSpot.id, to: spot.id });
+      }
+    }
+
+    await updateDoc(locationRef, { miniMap });
+
+  } catch (error) {
+    console.error("Failed to update minimap:", error);
+    // We don't throw here to avoid failing the whole spot saving process
   }
 }
 

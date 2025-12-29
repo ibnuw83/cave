@@ -37,7 +37,7 @@ export interface Location {
   description: string;
   coverImage: string;
   isActive: boolean;
-  miniMap: CaveMiniMap;
+  miniMap?: CaveMiniMap;
 }
 
 export type Hotspot = {
@@ -60,6 +60,7 @@ export interface Spot {
     vibrationPattern?: number[];
   };
   hotspots?: Hotspot[];
+  createdAt?: Timestamp | Date;
 }
 
 export interface OfflineLocationData {

@@ -11,7 +11,6 @@ const locationsData: Omit<Location, 'id'>[] = [
     description: 'Gua vertikal dengan fenomena cahaya surga yang menakjubkan di Gunung Kidul, Yogyakarta.',
     coverImage: 'https://images.unsplash.com/photo-1531874993088-51b60dda4452?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjYXZlJTIwbGlnaHR8ZW58MHx8fHwxNzY1OTc3NTIyfDA&ixlib=rb-4.1.0&q=80&w=1080',
     isActive: true,
-    miniMap: { nodes: [], edges: [] },
   },
   {
     name: 'Gua Gong',
@@ -19,7 +18,6 @@ const locationsData: Omit<Location, 'id'>[] = [
     description: 'Salah satu gua terindah di Asia Tenggara yang terletak di Pacitan, Jawa Timur, dengan stalaktit dan stalagmit yang memukau.',
     coverImage: 'https://images.unsplash.com/photo-1528459142917-0b5678471b63?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjYWxpZm9ybmlhJTIwY2F2ZXxlbnwwfHx8fDE3MjE4OTYzNTZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
     isActive: true,
-    miniMap: { nodes: [], edges: [] },
   },
 ];
 
@@ -95,7 +93,13 @@ export async function seedInitialData() {
 
   for (const locData of locationsData) {
     const locRef = collection(db, 'locations').doc();
-    batch.set(locRef, locData);
+    const dataWithMiniMap = {
+        ...locData,
+        miniMap: { nodes: [], edges: [] },
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    batch.set(locRef, dataWithMiniMap);
     locationNameToId[locData.name] = locRef.id;
   }
 
@@ -105,7 +109,12 @@ export async function seedInitialData() {
     if (locationId) {
       for (const spotData of spotGroup.spots) {
         const spotRef = collection(db, 'spots').doc();
-        batch.set(spotRef, { ...spotData, locationId });
+        batch.set(spotRef, { 
+            ...spotData, 
+            locationId,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
       }
     }
   }
