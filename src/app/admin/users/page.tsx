@@ -8,7 +8,7 @@ export default function UsersPage() {
           Manajemen Pengguna
         </h1>
         <p className="text-muted-foreground">
-          Kelola peran (role) pengguna.
+          Kelola peran (role) dan status pengguna.
         </p>
       </header>
       <UsersClient />

@@ -5,7 +5,6 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { UserProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -22,24 +21,20 @@ const createUserSchema = z.object({
   role: z.enum(['free', 'pro1', 'pro2', 'pro3', 'vip', 'admin']),
 });
 
-// We only support creating users for now, not editing.
-const formSchema = createUserSchema;
 
-type UserFormValues = z.infer<typeof formSchema>;
+type UserFormValues = z.infer<typeof createUserSchema>;
 
 interface UserFormProps {
-  user: UserProfile | null; // Kept for future edit functionality
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: () => void;
 }
 
-export function UserForm({ user, open, onOpenChange, onSave }: UserFormProps) {
+export function UserForm({ open, onOpenChange, onSave }: UserFormProps) {
   const { toast } = useToast();
-  const isEditMode = !!user;
 
   const form = useForm<UserFormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(createUserSchema),
     defaultValues: {
       displayName: '',
       email: '',
@@ -49,19 +44,21 @@ export function UserForm({ user, open, onOpenChange, onSave }: UserFormProps) {
   });
   
   useEffect(() => {
-    form.reset({
-      displayName: user?.displayName || '',
-      email: user?.email || '',
-      password: '',
-      role: user?.role || 'free',
-    });
-  }, [open, user, form]);
+    // Reset form when dialog opens
+    if(open) {
+        form.reset({
+            displayName: '',
+            email: '',
+            password: '',
+            role: 'free',
+        });
+    }
+  }, [open, form]);
 
   const isSubmitting = form.formState.isSubmitting;
 
   const onSubmit = async (values: UserFormValues) => {
-    // Currently, only user creation is fully supported through this form.
-    const url = '/api/admin/users';
+    const url = '/api/admin/users/create';
     const method = 'POST';
     
     try {
@@ -94,9 +91,9 @@ export function UserForm({ user, open, onOpenChange, onSave }: UserFormProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{isEditMode ? 'Edit Pengguna (Tidak Didukung)' : 'Tambah Pengguna Baru'}</DialogTitle>
+          <DialogTitle>Tambah Pengguna Baru</DialogTitle>
           <DialogDescription>
-            {isEditMode ? 'Mengedit pengguna saat ini tidak didukung dari UI ini.' : 'Buat akun pengguna baru.'}
+            Buat akun pengguna baru. Akun akan dibuat dengan password yang Anda masukkan.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -108,7 +105,7 @@ export function UserForm({ user, open, onOpenChange, onSave }: UserFormProps) {
                 <FormItem>
                   <FormLabel>Nama Tampilan</FormLabel>
                   <FormControl>
-                    <Input placeholder="John Doe" {...field} disabled={isEditMode} />
+                    <Input placeholder="John Doe" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -121,7 +118,7 @@ export function UserForm({ user, open, onOpenChange, onSave }: UserFormProps) {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="user@example.com" {...field} disabled={isEditMode}/>
+                    <Input type="email" placeholder="user@example.com" {...field} />
                   </FormControl>
                    <FormMessage />
                 </FormItem>
@@ -134,7 +131,7 @@ export function UserForm({ user, open, onOpenChange, onSave }: UserFormProps) {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" {...field} placeholder={'Minimal 6 karakter'} disabled={isEditMode} />
+                    <Input type="password" {...field} placeholder={'Minimal 6 karakter'} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -146,7 +143,7 @@ export function UserForm({ user, open, onOpenChange, onSave }: UserFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Peran</FormLabel>
-                   <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isEditMode}>
+                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Pilih peran..." />
@@ -169,7 +166,7 @@ export function UserForm({ user, open, onOpenChange, onSave }: UserFormProps) {
                 <Button type="button" variant="secondary" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                     Batal
                 </Button>
-                <Button type="submit" disabled={isSubmitting || isEditMode}>
+                <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Simpan
                 </Button>

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { UserProfile } from '@/lib/types';
 import { updateUserRole } from '@/lib/firestore-client';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
@@ -16,7 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { UserForm } from './user-form';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { collection, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc } from 'firebase/firestore';
 
 
 export default function UsersClient() {
@@ -29,7 +29,7 @@ export default function UsersClient() {
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
 
   const usersRef = userProfile?.role === 'admin' ? collection(firestore, 'users') : null;
-  const { data: users, isLoading: usersLoading, error } = useCollection<UserProfile>(usersRef);
+  const { data: users, isLoading: usersLoading } = useCollection<UserProfile>(usersRef);
 
   const sortedUsers = useMemo(() => {
     if (!users) return [];
@@ -51,6 +51,8 @@ export default function UsersClient() {
         title: 'Ditolak',
         description: 'Anda tidak dapat mengubah peran akun sendiri.',
       });
+      // This is a visual rollback, the hook will eventually get the real data
+      setTimeout(() => refreshUserProfile(), 100);
       return;
     }
     
@@ -61,6 +63,7 @@ export default function UsersClient() {
     if (newRole === 'admin') {
         const ok = confirm('Yakin ingin menjadikan pengguna ini sebagai ADMIN? Tindakan ini memberikan akses penuh ke panel admin.');
         if (!ok) {
+            setTimeout(() => refreshUserProfile(), 100);
             return;
         }
     }
@@ -72,6 +75,8 @@ export default function UsersClient() {
         toast({ title: "Berhasil", description: `Peran untuk ${userToChange.displayName || userToChange.email} telah diubah.` });
     } catch (error) {
        // Error is handled by global emitter in firestore-client
+       // Re-fetch to revert visual state on error
+       setTimeout(() => refreshUserProfile(), 100);
     } finally {
         setLoadingStates((prev) => ({ ...prev, [uid]: false }));
     }
@@ -125,12 +130,17 @@ export default function UsersClient() {
     // useCollection will handle the refresh
   };
   
-  if (isProfileLoading || usersLoading) {
+  const isLoading = isProfileLoading || usersLoading;
+
+  if (isLoading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-20 w-full" />
+        <div className="flex justify-end mb-4">
+            <Skeleton className="h-10 w-36" />
+        </div>
+        <Skeleton className="h-28 w-full" />
+        <Skeleton className="h-28 w-full" />
+        <Skeleton className="h-28 w-full" />
       </div>
     );
   }
@@ -147,7 +157,6 @@ export default function UsersClient() {
   return (
     <>
      <UserForm
-        user={selectedUser}
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
         onSave={handleFormSave}
