@@ -14,8 +14,8 @@ interface FirebaseServices {
 let firebaseServices: FirebaseServices | null = null;
 
 export function initializeFirebase(): FirebaseServices {
-  // If already initialized, return the existing instance.
-  if (firebaseServices && typeof window !== 'undefined') {
+  // This check ensures that on the client side, initialization only happens once.
+  if (typeof window !== 'undefined' && firebaseServices) {
     return firebaseServices;
   }
   
@@ -35,21 +35,35 @@ export function initializeFirebase(): FirebaseServices {
     firebaseConfig.projectId
   );
 
-  // IMPORTANT: This block should only run on the client-side.
-  // We check for `window` to ensure we're not on the server.
+  // This function should only ever be called on the client,
+  // but we keep this check for absolute safety.
   if (typeof window !== 'undefined') {
+      if (!isConfigured) {
+        console.error("Firebase config is not valid. Check your environment variables.");
+        // Return a non-configured state to be handled by the provider
+        return {
+            firebaseApp: null as any,
+            firestore: null as any,
+            auth: null as any,
+            isConfigured: false,
+        };
+      }
+      
       const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+      
+      // Memoize the initialized services
       firebaseServices = {
         firebaseApp: app,
         firestore: getFirestore(app),
         auth: getAuth(app),
         isConfigured,
       };
+
       return firebaseServices;
   }
 
-  // On the server, we return a "not configured" state for the client-side app.
-  // The actual server-side admin logic is handled in `firebase/admin.ts`.
+  // This part should ideally not be reached if the provider is set up correctly.
+  // It acts as a fallback for server-side execution attempts.
   return {
     firebaseApp: null as any,
     firestore: null as any,

@@ -43,7 +43,7 @@ interface FirebaseServices {
 export const FirebaseContext = createContext<FirebaseServices | null>(null);
 
 export const FirebaseClientProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Memoize the initialization to ensure it runs only once.
+  // Memoize the initialization to ensure it runs only once on the client.
   const services = useMemo(() => initializeFirebase(), []);
 
   if (!services.isConfigured) {
@@ -52,9 +52,9 @@ export const FirebaseClientProvider: React.FC<{ children: ReactNode }> = ({ chil
       <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#2A2B32', color: '#ACB9C9', minHeight: '100vh' }}>
         <h1 style={{ fontSize: '24px', color: '#E6B81C' }}>Konfigurasi Firebase Tidak Ditemukan</h1>
         <p>Aplikasi berjalan, tetapi tidak dapat terhubung ke Firebase.</p>
-        <p>Untuk menggunakan fitur yang memerlukan database (seperti login, melihat lokasi, dll.), harap buat file <strong>.env.local</strong> di folder utama proyek Anda.</p>
-        <p>Salin konten dari <strong>.env.example</strong> ke dalam <strong>.env.local</strong> dan isi semua variabel yang diperlukan dengan kredensial Firebase Anda.</p>
-        <p>Setelah itu, Anda perlu me-restart server pengembangan (`next dev`).</p>
+        <p>Untuk menggunakan fitur yang memerlukan database (seperti login, melihat lokasi, dll.), harap atur variabel lingkungan (environment variables) di platform hosting Anda (misalnya, Vercel).</p>
+        <p>Anda perlu mengatur semua variabel yang dimulai dengan `NEXT_PUBLIC_FIREBASE_`.</p>
+        <p>Setelah itu, Anda perlu men-deploy ulang aplikasi agar perubahan tersebut terbaca.</p>
       </div>
     );
   }
