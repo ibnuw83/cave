@@ -34,6 +34,7 @@ import { getLocations, getKioskSettings } from '@/lib/firestore-client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster } from '@/components/ui/toaster';
 import Footer from './footer';
+import placeholderData from '@/app/lib/placeholder-images.json';
 
 type PlaceholderImage = {
     id: string;
@@ -160,38 +161,29 @@ export default function HomeClient() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [settings, setSettings] = useState<KioskSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [heroImage, setHeroImage] = useState<PlaceholderImage | null>(null);
   
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-        const [locsData, settingsData, placeholdersRes] = await Promise.all([
-            getLocations(false), // Fetch only active locations for public view
-            getKioskSettings(),
-            fetch('/placeholder-images.json'),
-        ]);
-        
-        setLocations(locsData);
-        setSettings(settingsData);
-        
-        if (placeholdersRes.ok) {
-            const placeholderData = await placeholdersRes.json();
-            const mainHero = placeholderData.placeholderImages.find((img: PlaceholderImage) => img.id === 'hero-main');
-            if (mainHero) {
-                setHeroImage(mainHero);
-            }
-        }
-        
-    } catch (err) {
-        console.error("Failed to fetch initial data on client:", err);
-    } finally {
-        setIsLoading(false);
-    }
-  }, []);
+  const [heroImage] = useState<PlaceholderImage | null>(() => {
+    return placeholderData.placeholderImages.find((img: PlaceholderImage) => img.id === 'hero-main') || null;
+  });
   
   useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+          const [locsData, settingsData] = await Promise.all([
+              getLocations(false), // Fetch only active locations for public view
+              getKioskSettings(),
+          ]);
+          setLocations(locsData);
+          setSettings(settingsData);
+      } catch (err) {
+          console.error("Failed to fetch initial data on client:", err);
+      } finally {
+          setIsLoading(false);
+      }
+    };
     fetchData();
-  }, [fetchData]);
+  }, []);
   
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">

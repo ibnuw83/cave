@@ -1,17 +1,17 @@
 
 {
-    "placeholderImages": [
-        {
-            "id": "hero-main",
-            "imageUrl": "https://picsum.photos/seed/hero/1920/1080",
-            "alt": "Pemandangan dramatis di dalam gua dengan seberkas cahaya yang masuk dari atas.",
-            "data-ai-hint": "dramatic cave"
-        },
-        {
-            "id": "locked-screen-background",
-            "imageUrl": "https://picsum.photos/seed/locked/1920/1080",
-            "alt": "Sebuah lorong gua yang gelap dan misterius, terlihat buram.",
-            "data-ai-hint": "blurry cave"
-        }
-    ]
+  "placeholderImages": [
+    {
+      "id": "hero-main",
+      "imageUrl": "https://picsum.photos/seed/1/1200/800",
+      "alt": "A majestic cave entrance with light streaming in.",
+      "data-ai-hint": "cave entrance"
+    },
+    {
+      "id": "locked-screen-background",
+      "imageUrl": "https://picsum.photos/seed/2/1200/800",
+      "alt": "A blurry, mysterious view from inside a dark cave.",
+      "data-ai-hint": "blurry cave"
+    }
+  ]
 }

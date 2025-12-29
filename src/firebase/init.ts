@@ -1,7 +1,7 @@
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
 
 // This is the client-side config, now sourced from environment variables.
 const firebaseConfig = {
@@ -14,8 +14,25 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
+interface FirebaseServices {
+  firebaseApp: FirebaseApp;
+  firestore: Firestore;
+  auth: Auth;
+}
 
-export function initializeFirebase() {
+export function initializeFirebase(): FirebaseServices | null {
+  // Validate that all required environment variables are present.
+  const requiredConfigValues = [
+    firebaseConfig.apiKey,
+    firebaseConfig.authDomain,
+    firebaseConfig.projectId,
+  ];
+
+  if (requiredConfigValues.some(value => !value)) {
+    console.error('CRITICAL: Firebase config is missing or incomplete. Check your .env.local file.');
+    return null;
+  }
+
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
   return {

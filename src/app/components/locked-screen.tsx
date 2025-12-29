@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Spot } from '@/lib/types';
@@ -6,19 +7,16 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Lock, ArrowLeft, Gem } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import placeholderData from '@/app/lib/placeholder-images.json';
 
 export default function LockedScreen({ spot }: { spot: Spot }) {
   const [bgImage, setBgImage] = useState(spot.imageUrl);
 
   useEffect(() => {
-    fetch('/placeholder-images.json')
-      .then(res => res.json())
-      .then(data => {
-        const lockedImg = data.placeholderImages.find((img: any) => img.id === 'locked-screen-background');
-        if (lockedImg) {
-          setBgImage(lockedImg.imageUrl);
-        }
-      });
+    const lockedImg = placeholderData.placeholderImages.find((img: any) => img.id === 'locked-screen-background');
+    if (lockedImg) {
+      setBgImage(lockedImg.imageUrl);
+    }
   }, []);
   
   return (

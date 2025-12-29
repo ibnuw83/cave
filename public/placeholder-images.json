@@ -1,58 +1,17 @@
+
 {
   "placeholderImages": [
     {
-      "id": "hero-background",
-      "description": "Dramatic view from inside a cave looking out.",
-      "imageUrl": "https://images.unsplash.com/photo-1531874993088-51b60dda4452?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjYXZlJTIwbGlnaHR8ZW58MHx8fHwxNzY1OTc3NTIyfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "dramatic cave"
-    },
-    {
-      "id": "cave-jomblang-cover",
-      "description": "Cover image for Jomblang Cave, showing the 'light from heaven'.",
-      "imageUrl": "https://images.unsplash.com/photo-1531874993088-51b60dda4452?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjYXZlJTIwbGlnaHR8ZW58MHx8fHwxNzY1OTc3NTIyfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "cave entrance"
-    },
-    {
-      "id": "cave-gong-cover",
-      "description": "Cover image for Gong Cave, showcasing its stalactites and stalagmites.",
-      "imageUrl": "https://images.unsplash.com/photo-1528459142917-0b5678471b63?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjYWxpZm9ybmlhJTIwY2F2ZXxlbnwwfHx8fDE3MjE4OTYzNTZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "stalactite cave"
-    },
-    {
-      "id": "cave-petruk-cover",
-      "description": "Cover image for Petruk Cave.",
-      "imageUrl": "https://images.unsplash.com/photo-1549692582-62a23bb8006b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYXZlJTIwZGFya25lc3N8ZW58MHx8fHwxNzIxODk2Mzg3fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "cave entrance"
-    },
-    {
-      "id": "spot-jomblang-light",
-      "description": "The famous 'light from heaven' in Jomblang Cave.",
-      "imageUrl": "https://images.unsplash.com/photo-1531874993088-51b60dda4452?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjYXZlJTIwbGlnaHR8ZW58MHx8fHwxNzY1OTc3NTIyfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "cave light"
-    },
-    {
-      "id": "spot-jomblang-mud",
-      "description": "The muddy path inside Jomblang Cave.",
-      "imageUrl": "https://images.unsplash.com/photo-1617482012115-325f6170094a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjYXZlcnxlbnwwfHx8fDE3MjE4OTYzMjZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "muddy path"
-    },
-    {
-      "id": "spot-gong-stalactite",
-      "description": "Close-up of a large stalactite in Gong Cave.",
-      "imageUrl": "https://images.unsplash.com/photo-1568809957712-6ae80d87e533?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxzdGFsYWN0aXRlJTIwY2F2ZXxlbnwwfHx8fDE3NjU5Nzc1MjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "stalactite closeup"
-    },
-    {
-      "id": "spot-gong-pool",
-      "description": "An underground pool inside Gong Cave.",
-      "imageUrl": "https://images.unsplash.com/photo-1506352943274-c817554039c1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHx1bmRlcmdyb3VuZCUyMGxha2V8ZW58MHx8fHwxNzIxODk2NDQxfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "underground pool"
+      "id": "hero-main",
+      "imageUrl": "https://picsum.photos/seed/1/1920/1080",
+      "alt": "A wide, dramatic view of a cave entrance with light streaming in.",
+      "data-ai-hint": "cave entrance"
     },
     {
       "id": "locked-screen-background",
-      "description": "A blurry, out-of-focus image of a cave interior for use on locked screens.",
-      "imageUrl": "https://images.unsplash.com/photo-1531874993088-51b60dda4452?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjYXZlJTIwbGlnaHR8ZW58MHx8fHwxNzY1OTc3NTIyfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "blurry cave"
+      "imageUrl": "https://picsum.photos/seed/2/1920/1080",
+      "alt": "A blurry, abstract view from inside a dark cave.",
+      "data-ai-hint": "blurry cave"
     }
   ]
 }
