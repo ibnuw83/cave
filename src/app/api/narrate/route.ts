@@ -1,12 +1,26 @@
 
-import { getSpot } from '@/lib/firestore-admin';
+import { safeGetAdminApp } from '@/firebase/admin';
 import { narrateSpot } from '@/ai/flows/narrate-spot-flow';
 import { textToSpeech } from '@/ai/flows/tts-flow';
-import {NextRequest} from 'next/server';
+import { NextRequest } from 'next/server';
+import type { Spot } from '@/lib/types';
 
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120; // Set timeout to 120 seconds
+
+async function getSpotAdmin(spotId: string): Promise<Spot | null> {
+  const services = safeGetAdminApp();
+  if (!services) return null;
+  const { db } = services;
+
+  const spotRef = db.collection('spots').doc(spotId);
+  const docSnap = await spotRef.get();
+  if (docSnap.exists) {
+    return { id: docSnap.id, ...docSnap.data() } as Spot;
+  }
+  return null;
+}
 
 
 // This endpoint now returns a complete, playable WAV audio file.
@@ -17,7 +31,7 @@ export async function POST(req: NextRequest) {
       return new Response(JSON.stringify({ error: 'spotId is required' }), { status: 400 });
     }
 
-    const spot = await getSpot(spotId);
+    const spot = await getSpotAdmin(spotId);
     if (!spot) {
       return new Response(JSON.stringify({ error: 'Spot not found' }), { status: 404 });
     }
