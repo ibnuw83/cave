@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Location } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -20,53 +20,25 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useUser, useAuth } from "@/firebase";
-import { Skeleton } from "@/components/ui/skeleton";
 
 export default function LocationsClient({ 
+    initialLocations,
     onEdit,
     onAdd,
+    onDataChange,
 }: { 
+    initialLocations: Location[],
     onEdit: (location: Location) => void,
     onAdd: () => void,
+    onDataChange: () => void,
  }) {
-  const { user, userProfile, isProfileLoading } = useUser();
+  const { userProfile } = useUser();
   const auth = useAuth();
   const { toast } = useToast();
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const refreshLocations = useCallback(async () => {
-    if (!user || userProfile?.role !== 'admin') {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const token = await user.getIdToken();
-      const response = await fetch('/api/admin/locations', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!response.ok) throw new Error('Gagal mengambil data lokasi dari server.');
-      const data = await response.json();
-      setLocations(data);
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Gagal Memuat', description: error.message });
-      setLocations([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [user, userProfile, toast]);
-
-  useEffect(() => {
-    if (!isProfileLoading) {
-      refreshLocations();
-    }
-  }, [isProfileLoading, refreshLocations]);
 
   const sortedLocations = useMemo(() => {
-    return [...locations].sort((a,b) => a.name.localeCompare(b.name));
-  }, [locations]);
+    return [...initialLocations].sort((a,b) => a.name.localeCompare(b.name));
+  }, [initialLocations]);
 
   const handleDelete = async (id: string) => {
     if (!auth.currentUser) {
@@ -84,24 +56,11 @@ export default function LocationsClient({
             throw new Error(errorData.error || 'Gagal menghapus lokasi.');
         }
         toast({ title: "Berhasil", description: "Lokasi dan semua spot di dalamnya berhasil dihapus." });
-        refreshLocations();
+        onDataChange();
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Gagal', description: error.message });
     }
   };
-
-  if (isProfileLoading || loading) {
-     return (
-       <div className="space-y-4">
-          <div className="flex justify-end mb-4">
-              <Skeleton className="h-10 w-32" />
-          </div>
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-      </div>
-     );
-  }
 
   if (userProfile?.role !== 'admin') {
     return (
