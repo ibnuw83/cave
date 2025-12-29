@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Location } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -19,26 +19,26 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useUser, useAuth } from "@/firebase";
+import { useAuth, useCollection, useUser } from "@/firebase";
+import { collection } from "firebase/firestore";
+import { useFirestore } from "@/firebase/provider";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useRouter } from "next/navigation";
 
-export default function LocationsClient({ 
-    initialLocations,
-    onEdit,
-    onAdd,
-    onDataChange,
-}: { 
-    initialLocations: Location[],
-    onEdit: (location: Location) => void,
-    onAdd: () => void,
-    onDataChange: () => void,
- }) {
+export default function LocationsClient() {
   const { userProfile } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
+  const router = useRouter();
   const { toast } = useToast();
 
+  const locationsRef = userProfile?.role === 'admin' ? collection(firestore, 'locations') : null;
+  const { data: locations, isLoading } = useCollection<Location>(locationsRef);
+
   const sortedLocations = useMemo(() => {
-    return [...initialLocations].sort((a,b) => a.name.localeCompare(b.name));
-  }, [initialLocations]);
+    if (!locations) return [];
+    return [...locations].sort((a,b) => a.name.localeCompare(b.name));
+  }, [locations]);
 
   const handleDelete = async (id: string) => {
     if (!auth.currentUser) {
@@ -56,30 +56,43 @@ export default function LocationsClient({
             throw new Error(errorData.error || 'Gagal menghapus lokasi.');
         }
         toast({ title: "Berhasil", description: "Lokasi dan semua spot di dalamnya berhasil dihapus." });
-        onDataChange();
+        // The useCollection hook will automatically update the UI
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Gagal', description: error.message });
     }
   };
 
-  if (userProfile?.role !== 'admin') {
+  const handleEdit = (location: Location) => {
+    router.push(`/admin/locations/${location.id}`);
+  };
+
+  const handleAdd = () => {
+    router.push('/admin/locations/new');
+  }
+
+  if (isLoading) {
     return (
-      <p className="text-center text-muted-foreground py-12">
-        Anda tidak memiliki akses ke halaman ini.
-      </p>
+       <div className="space-y-4">
+          <div className="flex justify-end mb-4">
+              <Skeleton className="h-10 w-32" />
+          </div>
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+      </div>
     );
   }
-  
+
   return (
     <div>
       <div className="flex justify-end mb-4">
-        <Button onClick={onAdd}>
+        <Button onClick={handleAdd}>
           <Plus className="mr-2 h-4 w-4" /> Tambah Lokasi
         </Button>
       </div>
 
       <div className="space-y-4">
-          {sortedLocations.map((location) => (
+          {(sortedLocations || []).map((location) => (
           <Card key={location.id}>
               <CardHeader>
               <div className="flex justify-between items-start">
@@ -93,7 +106,7 @@ export default function LocationsClient({
                   </CardDescription>
                   </div>
                   <div className="flex gap-2">
-                  <Button variant="outline" size="icon" onClick={() => onEdit(location)}>
+                  <Button variant="outline" size="icon" onClick={() => handleEdit(location)}>
                       <Edit className="h-4 w-4" />
                   </Button>
                   <AlertDialog>

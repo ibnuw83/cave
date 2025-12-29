@@ -1,71 +1,38 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Location } from '@/lib/types';
 import { LocationForm } from '../location-form';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { useFirestore, useUser } from '@/firebase';
+import { useDoc } from '@/firebase/firestore/use-doc';
 
 export default function LocationEditPage() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
-  const [location, setLocation] = useState<Location | null>(null);
-  const [loading, setLoading] = useState(true);
-  const auth = useAuth();
+  const { userProfile } = useUser();
+  const firestore = useFirestore();
 
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const isNew = id === 'new';
 
-  useEffect(() => {
-    if (isNew) {
-      setLoading(false);
-      return;
-    }
-    
-    if (!auth.currentUser) return;
-
-    async function fetchLocation() {
-      try {
-        const token = await auth.currentUser!.getIdToken();
-        const response = await fetch(`/api/admin/locations/${id}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!response.ok) {
-            if (response.status === 404) {
-                toast({ variant: 'destructive', title: 'Tidak Ditemukan', description: `Lokasi dengan ID ${id} tidak ada.` });
-                router.push('/admin/locations');
-            } else {
-                throw new Error('Gagal mengambil data lokasi');
-            }
-            return;
-        }
-        const loc = await response.json();
-        setLocation(loc);
-      } catch (error) {
-        toast({ variant: 'destructive', title: 'Gagal Memuat', description: 'Gagal mengambil data lokasi.' });
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchLocation();
-  }, [id, isNew, router, toast, auth.currentUser]);
+  const locationRef = userProfile?.role === 'admin' && !isNew ? doc(firestore, 'locations', id) : null;
+  const { data: location, isLoading: loading } = useDoc<Location>(locationRef);
 
   const handleSave = () => {
     toast({ title: 'Berhasil', description: `Lokasi telah ${isNew ? 'dibuat' : 'diperbarui'}.` });
     router.push('/admin/locations');
-    router.refresh(); // Force a refresh to update the list
   };
 
   const handleCancel = () => {
     router.push('/admin/locations');
   };
 
-  if (loading) {
+  if (loading && !isNew) {
     return (
         <div className="p-4 md:p-8">
             <header className="mb-8">
@@ -87,7 +54,7 @@ export default function LocationEditPage() {
   return (
     <div className="p-4 md:p-8">
       <LocationForm 
-        location={location} 
+        location={isNew ? null : location} 
         onSave={handleSave} 
         onCancel={handleCancel} 
       />

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Location, Spot } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -11,39 +11,30 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { SpotForm } from "./spot-form";
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useCollection } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { useFirestore } from '@/firebase/provider';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export default function SpotsClient({ 
-    initialLocations, 
-    initialSpots,
-    onDataChange
-}: {
-    initialLocations: Location[],
-    initialSpots: Spot[],
-    onDataChange: () => void,
-}) {
+export default function SpotsClient() {
   const { userProfile } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState<Spot | null>(null);
   const [filterLocationId, setFilterLocationId] = useState<string>('all');
   const { toast } = useToast();
-  
-  // The component now receives data as props, so no internal loading state is needed.
-  // The parent (spots/page.tsx) handles fetching.
 
-  useEffect(() => {
-    // If the form is closed, we tell the parent to refetch data.
-    if (!isFormOpen) {
-        onDataChange();
-    }
-  }, [isFormOpen, onDataChange]);
+  const locationsRef = userProfile?.role === 'admin' ? collection(firestore, 'locations') : null;
+  const spotsRef = userProfile?.role === 'admin' ? collection(firestore, 'spots') : null;
+  
+  const { data: initialLocations, isLoading: locationsLoading } = useCollection<Location>(locationsRef);
+  const { data: initialSpots, isLoading: spotsLoading } = useCollection<Spot>(spotsRef);
 
   const handleFormSuccess = () => {
     toast({ title: "Berhasil", description: `Spot telah ${selectedSpot ? 'diperbarui' : 'ditambahkan'}.` });
     setIsFormOpen(false);
     setSelectedSpot(null);
-    // onDataChange is called by the useEffect above when isFormOpen becomes false
   };
 
   const openForm = (spot: Spot | null) => {
@@ -64,13 +55,13 @@ export default function SpotsClient({
         throw new Error(errorData.error || 'Gagal menghapus spot.');
       }
       toast({ title: "Berhasil", description: "Spot berhasil dihapus." });
-      onDataChange(); // Refresh data
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Gagal', description: error.message });
     }
   };
 
   const filteredSpots = useMemo(() => {
+    if (!initialSpots) return [];
     const spotsToSort = [...initialSpots];
     if (filterLocationId === 'all') {
       return spotsToSort.sort((a, b) => a.order - b.order);
@@ -81,19 +72,26 @@ export default function SpotsClient({
 
 
   const getLocationName = (locationId: string) => {
+    if (!initialLocations) return 'Memuat...';
     return initialLocations.find(l => l.id === locationId)?.name || 'Lokasi tidak ditemukan';
   };
 
-  if (userProfile?.role !== 'admin') {
-    return (
-      <p className="text-center text-muted-foreground py-12">
-        Anda tidak memiliki akses ke halaman ini.
-      </p>
-    );
+  if (locationsLoading || spotsLoading) {
+      return (
+        <div className="space-y-4">
+            <div className="flex justify-between items-center mb-4 gap-2">
+                <Skeleton className="h-10 w-full md:w-[280px]" />
+                <Skeleton className="h-10 w-28 md:w-36" />
+            </div>
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+        </div>
+      );
   }
 
   if (isFormOpen) {
-    return <SpotForm spot={selectedSpot} locations={initialLocations} allSpots={initialSpots || []} onSave={handleFormSuccess} onCancel={() => { setIsFormOpen(false); setSelectedSpot(null); }} />;
+    return <SpotForm spot={selectedSpot} locations={initialLocations || []} allSpots={initialSpots || []} onSave={handleFormSuccess} onCancel={() => { setIsFormOpen(false); setSelectedSpot(null); }} />;
   }
 
   return (
@@ -105,7 +103,7 @@ export default function SpotsClient({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Semua Lokasi</SelectItem>
-            {initialLocations.map((location) => (
+            {(initialLocations || []).map((location) => (
               <SelectItem key={location.id} value={location.id}>{location.name}</SelectItem>
             ))}
           </SelectContent>

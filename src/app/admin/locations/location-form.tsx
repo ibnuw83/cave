@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -13,6 +14,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/firebase';
 import { AdminMiniMapEditor } from './admin-mini-map-editor';
+import { doc, setDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
+import { useFirestore } from '@/firebase/provider';
 
 const locationSchema = z.object({
   name: z.string().min(1, { message: 'Nama lokasi tidak boleh kosong.' }),
@@ -33,6 +36,7 @@ interface LocationFormProps {
 export function LocationForm({ location, onSave, onCancel }: LocationFormProps) {
   const { toast } = useToast();
   const auth = useAuth();
+  const firestore = useFirestore();
 
   const form = useForm<LocationFormValues>({
     resolver: zodResolver(locationSchema),
@@ -57,24 +61,28 @@ export function LocationForm({ location, onSave, onCancel }: LocationFormProps) 
       return;
     }
   
-    const url = location ? `/api/admin/locations/${location.id}` : '/api/admin/locations';
-    const method = location ? 'PUT' : 'POST';
-
     try {
-       const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(values),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Gagal menyimpan lokasi.');
+      let savedLocation;
+      if (location) {
+        // Update existing location
+        const docRef = doc(firestore, 'locations', location.id);
+        const dataToUpdate = {
+          ...values,
+          updatedAt: serverTimestamp(),
+        };
+        await setDoc(docRef, dataToUpdate, { merge: true });
+        savedLocation = { ...location, ...dataToUpdate };
+      } else {
+        // Create new location
+        const dataToSave = {
+          ...values,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          miniMap: { nodes: [], edges: [] },
+        };
+        const docRef = await addDoc(collection(firestore, 'locations'), dataToSave);
+        savedLocation = { id: docRef.id, ...dataToSave } as Location;
       }
-      
-      const savedLocation = await response.json();
       onSave(savedLocation);
 
     } catch (error: any) {

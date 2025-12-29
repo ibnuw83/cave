@@ -6,9 +6,12 @@ import { Mountain, MapPin, Users, Info } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useEffect, useState } from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useAuth } from '@/firebase';
+import { useMemo } from 'react';
+import { useCollection, useUser } from '@/firebase';
+import { useFirestore } from '@/firebase/provider';
+import { collection } from 'firebase/firestore';
+import { Location, Spot, UserProfile } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Stat {
   title: string;
@@ -19,54 +22,24 @@ interface Stat {
 }
 
 export default function AdminDashboard() {
-  const auth = useAuth();
-  const [counts, setCounts] = useState({ locations: '...', spots: '...', users: '...' });
+  const { userProfile } = useUser();
+  const firestore = useFirestore();
 
-  useEffect(() => {
-    const fetchCounts = async () => {
-      try {
-        if (!auth.currentUser) {
-          throw new Error("Pengguna tidak terautentikasi.");
-        }
-        
-        const token = await auth.currentUser.getIdToken();
-        const headers = { 'Authorization': `Bearer ${token}` };
+  const locationsRef = userProfile?.role === 'admin' ? collection(firestore, 'locations') : null;
+  const spotsRef = userProfile?.role === 'admin' ? collection(firestore, 'spots') : null;
+  const usersRef = userProfile?.role === 'admin' ? collection(firestore, 'users') : null;
 
-        const [locationsRes, spotsRes, usersRes] = await Promise.all([
-          fetch('/api/admin/locations', { headers }),
-          fetch('/api/admin/spots', { headers }),
-          fetch('/api/admin/users', { headers }),
-        ]);
+  const { data: locations, isLoading: locationsLoading } = useCollection<Location>(locationsRef);
+  const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(spotsRef);
+  const { data: users, isLoading: usersLoading } = useCollection<UserProfile>(usersRef);
 
-        if (!locationsRes.ok || !spotsRes.ok || !usersRes.ok) {
-            throw new Error("Gagal mengambil sebagian atau semua data dasbor.");
-        }
+  const isLoading = locationsLoading || spotsLoading || usersLoading;
 
-        const locations = await locationsRes.json();
-        const spots = await spotsRes.json();
-        const users = await usersRes.json();
-
-        setCounts({
-          locations: locations.length.toString(),
-          spots: spots.length.toString(),
-          users: users.length.toString(),
-        });
-      } catch (error: any) {
-        console.error("Gagal mengambil jumlah dasbor admin:", error);
-        setCounts({ locations: 'N/A', spots: 'N/A', users: 'N/A' });
-      }
-    };
-
-    if (auth.currentUser) {
-        fetchCounts();
-    }
-  }, [auth.currentUser]);
-
-  const stats: Stat[] = [
-    { title: 'Total Lokasi', value: counts.locations, icon: <Mountain className="h-6 w-6" />, href: '/admin/locations', color: 'bg-blue-900/50 text-blue-100' },
-    { title: 'Total Spot', value: counts.spots, icon: <MapPin className="h-6 w-6" />, href: '/admin/spots', color: 'bg-green-900/50 text-green-100' },
-    { title: 'Total Pengguna', value: counts.users, icon: <Users className="h-6 w-6" />, href: '/admin/users', color: 'bg-yellow-900/50 text-yellow-100' },
-  ];
+  const stats: Stat[] = useMemo(() => [
+    { title: 'Total Lokasi', value: isLoading ? '...' : (locations?.length ?? 0).toString(), icon: <Mountain className="h-6 w-6" />, href: '/admin/locations', color: 'bg-blue-900/50 text-blue-100' },
+    { title: 'Total Spot', value: isLoading ? '...' : (spots?.length ?? 0).toString(), icon: <MapPin className="h-6 w-6" />, href: '/admin/spots', color: 'bg-green-900/50 text-green-100' },
+    { title: 'Total Pengguna', value: isLoading ? '...' : (users?.length ?? 0).toString(), icon: <Users className="h-6 w-6" />, href: '/admin/users', color: 'bg-yellow-900/50 text-yellow-100' },
+  ], [isLoading, locations, spots, users]);
 
   return (
     <div className="p-4 md:p-8">
@@ -78,15 +51,19 @@ export default function AdminDashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {stats.map((stat) => (
           <Card key={stat.title} className={cn('border-none hover:scale-105 transition-transform', stat.color)}>
-            <Link href={stat.href}>
+             <Link href={stat.href}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
                 {stat.icon}
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{stat.value}</div>
+                {isLoading ? (
+                  <Skeleton className="h-8 w-16" />
+                ) : (
+                  <div className="text-3xl font-bold">{stat.value}</div>
+                )}
               </CardContent>
-            </Link>
+             </Link>
           </Card>
         ))}
       </div>
