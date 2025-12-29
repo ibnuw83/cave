@@ -72,7 +72,10 @@ export function useCollection<T = any>(
       return;
     }
 
-    setIsLoading(true);
+    // Fix: Prevent infinite loop by only setting loading if it's not already true.
+    if (!isLoading) {
+      setIsLoading(true);
+    }
     setError(null);
 
     // Directly use targetRefOrQuery as it's assumed to be the final query
