@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth, useFirestore } from '@/firebase/provider';
+import { useAuth, useFirestore } from '@/app/layout'; // Corrected import path
 import { User, onIdTokenChanged } from 'firebase/auth';
 import { UserProfile } from '@/lib/types';
 import { getUserProfileClient } from '@/lib/firestore-client';

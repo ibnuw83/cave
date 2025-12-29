@@ -4,14 +4,15 @@
 import './globals.css';
 import Script from 'next/script';
 import React, { createContext, useContext, ReactNode, useMemo, useEffect } from 'react';
-import { FirebaseApp } from 'firebase/app';
-import { Firestore } from 'firebase/firestore';
-import { Auth } from 'firebase/auth';
-import { initializeFirebase } from '@/firebase/init';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { getFirestore, Firestore } from 'firebase/firestore';
+import { getAuth, Auth } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
+
+// --- Start of Consolidated Firebase Logic ---
 
 interface FirebaseServices {
   firebaseApp: FirebaseApp;
@@ -21,6 +22,39 @@ interface FirebaseServices {
 }
 
 const FirebaseContext = createContext<FirebaseServices | null>(null);
+
+function initializeFirebase(): FirebaseServices {
+  const firebaseConfig = {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+  };
+
+  const isConfigured = !!(firebaseConfig.apiKey && firebaseConfig.authDomain && firebaseConfig.projectId);
+
+  if (typeof window === 'undefined') {
+    return { isConfigured: false } as any;
+  }
+
+  if (!isConfigured) {
+    console.error("Firebase config is not valid. Check your environment variables.");
+    return { isConfigured: false } as any;
+  }
+
+  const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+
+  return {
+    firebaseApp: app,
+    firestore: getFirestore(app),
+    auth: getAuth(app),
+    isConfigured,
+  };
+}
+
 
 function FirebaseErrorListener() {
   const { toast } = useToast();
@@ -68,6 +102,32 @@ const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   );
 };
 
+// Export hooks for convenience
+export const useFirebase = (): FirebaseServices => {
+  const context = useContext(FirebaseContext);
+  if (!context) {
+    throw new Error('useFirebase must be used within a FirebaseProvider.');
+  }
+  return context;
+};
+
+export const useAuth = (): Auth => {
+  const { auth } = useFirebase();
+  return auth;
+};
+
+export const useFirestore = (): Firestore => {
+  const { firestore } = useFirebase();
+  return firestore;
+};
+
+export const useFirebaseApp = (): FirebaseApp => {
+  const { firebaseApp } = useFirebase();
+  return firebaseApp;
+};
+
+// --- End of Consolidated Firebase Logic ---
+
 
 export default function RootLayout({
   children,
@@ -109,27 +169,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-// Export hooks for convenience
-export const useFirebase = (): FirebaseServices => {
-  const context = useContext(FirebaseContext);
-  if (!context) {
-    throw new Error('useFirebase must be used within a FirebaseProvider.');
-  }
-  return context;
-};
-
-export const useAuth = (): Auth => {
-  const { auth } = useFirebase();
-  return auth;
-};
-
-export const useFirestore = (): Firestore => {
-  const { firestore } = useFirebase();
-  return firestore;
-};
-
-export const useFirebaseApp = (): FirebaseApp => {
-  const { firebaseApp } = useFirebase();
-  return firebaseApp;
-};
