@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Spot } from '@/lib/types';
 import LockedScreen from '@/app/components/locked-screen';
@@ -11,10 +11,10 @@ import PanoramaViewer from '@/components/viewer-panorama';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ServerCrash, Info } from 'lucide-react';
-import { useUser } from '@/firebase';
-import { getSpotClient, getSpotsForLocation } from '@/lib/firestore-client';
+import { useUser, useDoc, useCollection, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { doc, collection, query, where, orderBy } from 'firebase/firestore';
 
 function SpotPageFallback() {
     return <Skeleton className="w-screen h-screen" />;
@@ -23,69 +23,39 @@ function SpotPageFallback() {
 export default function SpotPage() {
   const params = useParams();
   const router = useRouter();
-  const { userProfile, isUserLoading, isProfileLoading } = useUser();
-  
-  const [spot, setSpot] = useState<Spot | null>(null);
-  const [allSpotsInLocation, setAllSpotsInLocation] = useState<Spot[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { userProfile, isUserLoading } = useUser();
+  const firestore = useFirestore();
+
   const [vrMode, setVrMode] = useState(false);
   
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
+
+  const spotRef = useMemo(() => id ? doc(firestore, 'spots', id) : null, [id, firestore]);
+  const { data: spot, isLoading: isSpotLoading, error: spotError } = useDoc<Spot>(spotRef);
+  
+  const spotsQuery = useMemo(() => spot ? query(collection(firestore, 'spots'), where('locationId', '==', spot.locationId), orderBy('order', 'asc')) : null, [spot, firestore]);
+  const { data: allSpotsInLocation, isLoading: areSpotsLoading, error: spotsError } = useCollection<Spot>(spotsQuery);
+  
+  const isLoading = isUserLoading || isSpotLoading || (spot && areSpotsLoading);
+  
   const role = userProfile?.role ?? 'free';
   const isPro = role.startsWith('pro') || role === 'vip' || role === 'admin';
-
-  useEffect(() => {
-    if (!id) {
-      setError("ID Spot tidak valid.");
-      setLoading(false);
-      return;
-    }
-    
-    // Don't fetch until we know the user's role
-    if (isUserLoading || isProfileLoading) return;
-
-    async function fetchData() {
-        setLoading(true);
-        setError(null);
-        try {
-            const spotData = await getSpotClient(id);
-            if (!spotData) {
-                setError("Spot tidak ditemukan.");
-                setLoading(false);
-                return;
-            }
-            
-            const allSpots = await getSpotsForLocation(spotData.locationId);
-            setSpot(spotData);
-            setAllSpotsInLocation(allSpots);
-
-        } catch (err) {
-            console.error(err);
-            setError("Gagal memuat data spot. Silakan coba lagi.");
-        } finally {
-            setLoading(false);
-        }
-    }
-    
-    fetchData();
-
-  }, [id, isUserLoading, isProfileLoading]);
 
   const goToSpot = (spotId: string) => {
     router.push(`/spot/${spotId}`);
   };
 
-  if (loading || isUserLoading || isProfileLoading) return <SpotPageFallback />;
+  if (isLoading) return <SpotPageFallback />;
   
-  if (error) {
+  const anyError = spotError || spotsError;
+  if (anyError) {
      return (
       <div className="h-screen w-screen flex items-center justify-center p-4 bg-background">
         <Alert variant="destructive" className="w-full max-w-lg">
           <ServerCrash className="h-4 w-4" />
           <AlertTitle>Gagal Memuat</AlertTitle>
           <AlertDescription>
-            {error}
+            {anyError.message || 'Terjadi kesalahan saat memuat data spot.'}
             <Button variant="link" asChild className="mt-2 block p-0">
                 <Link href="/">Kembali ke Halaman Utama</Link>
             </Button>
@@ -118,7 +88,7 @@ export default function SpotPage() {
 
   const viewerKey = `viewer-${spot.id}`;
 
-  const sortedSpots = allSpotsInLocation.sort((a, b) => a.order - b.order);
+  const sortedSpots = allSpotsInLocation ? [...allSpotsInLocation].sort((a, b) => a.order - b.order) : [];
 
   if (spot.viewType === 'panorama') {
     return (
@@ -151,5 +121,3 @@ export default function SpotPage() {
     </HybridViewer>
   );
 }
-
-    

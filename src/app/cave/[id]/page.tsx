@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -13,11 +13,11 @@ import { Lock, ChevronLeft, Download, WifiOff, Loader2, Sparkles, Info, ServerCr
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { saveLocationForOffline, isLocationAvailableOffline } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@/firebase';
+import { useUser, useDoc, useCollection, useFirestore } from '@/firebase';
 import AdBanner from '@/app/components/AdBanner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { getLocationClient, getSpotsForLocation } from '@/lib/firestore-client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { doc, collection, query, where, orderBy } from 'firebase/firestore';
 
 declare global {
   interface Window {
@@ -113,67 +113,30 @@ function CavePageFallback() {
 export default function CavePage() {
   const params = useParams();
   const router = useRouter();
-  const { userProfile, isUserLoading, isProfileLoading } = useUser();
+  const { userProfile, isUserLoading } = useUser();
   const { toast } = useToast();
+  const firestore = useFirestore();
 
-  const [location, setLocation] = useState<Location | null>(null);
-  const [spots, setSpots] = useState<Spot[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  const [isOffline, setIsOffline] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
-  
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
+
+  const locationRef = useMemo(() => id ? doc(firestore, 'locations', id) : null, [id, firestore]);
+  const spotsQuery = useMemo(() => id ? query(collection(firestore, 'spots'), where('locationId', '==', id), orderBy('order', 'asc')) : null, [id, firestore]);
+
+  const { data: location, isLoading: isLocationLoading, error: locationError } = useDoc<Location>(locationRef);
+  const { data: spots, isLoading: areSpotsLoading, error: spotsError } = useCollection<Spot>(spotsQuery);
+  
+  // Combine all loading states
+  const isLoading = isUserLoading || isLocationLoading || areSpotsLoading;
 
   const role = userProfile?.role ?? 'free';
   const isPro = role.startsWith('pro') || role === 'vip' || role === 'admin';
   const isAdmin = role === 'admin';
 
-  useEffect(() => {
-    if (!id) {
-        setError("ID Lokasi tidak valid.");
-        setLoading(false);
-        return;
-    }
+  // These states are for client-side actions (downloading, offline status)
+  const [isOffline, setIsOffline] = React.useState(false);
+  const [isDownloading, setIsDownloading] = React.useState(false);
 
-    async function fetchData() {
-        setLoading(true);
-        setError(null);
-        try {
-            const locData = await getLocationClient(id);
-            if (!locData) {
-                setError("Lokasi tidak ditemukan.");
-                setLoading(false);
-                return;
-            }
-
-            // Optimization: If location is not active and user is not admin, stop here.
-            if (!locData.isActive && !isAdmin) {
-                setError("Lokasi ini tidak tersedia saat ini.");
-                setLocation(locData); // Still set location to show the inactive banner
-                setSpots([]);
-                setLoading(false);
-                return;
-            }
-
-            const spotsData = await getSpotsForLocation(id);
-            setLocation(locData);
-            setSpots(spotsData);
-        } catch (err) {
-            console.error(err);
-            setError("Gagal memuat data lokasi. Silakan coba lagi.");
-        } finally {
-            setLoading(false);
-        }
-    }
-    
-    if(!isUserLoading && !isProfileLoading) {
-      fetchData();
-    }
-  }, [id, isAdmin, isUserLoading, isProfileLoading]);
-
-  useEffect(() => {
+  React.useEffect(() => {
     if (location) {
       isLocationAvailableOffline(location.id).then(setIsOffline);
     }
@@ -195,7 +158,7 @@ export default function CavePage() {
     }
   };
   
-  const sortedSpots = useMemo(() => [...spots].sort((a, b) => a.order - b.order), [spots]);
+  const sortedSpots = useMemo(() => spots ? [...spots].sort((a, b) => a.order - b.order) : [], [spots]);
   const showAds = !isPro;
   
   const handleStartMission = () => {
@@ -211,16 +174,17 @@ export default function CavePage() {
     }
   };
   
-  if (loading) return <CavePageFallback />;
+  if (isLoading) return <CavePageFallback />;
 
-  if (!location) {
+  const anyError = locationError || spotsError;
+  if (anyError || !location) {
      return (
       <div className="container mx-auto flex min-h-screen max-w-5xl items-center justify-center p-4">
         <Alert variant="destructive" className="w-full max-w-lg">
           <ServerCrash className="h-4 w-4" />
           <AlertTitle>Gagal Memuat atau Tidak Ditemukan</AlertTitle>
           <AlertDescription>
-            {error || 'Lokasi yang Anda cari tidak ada atau terjadi kesalahan.'}
+            {anyError?.message || 'Lokasi yang Anda cari tidak ada atau terjadi kesalahan.'}
             <Button variant="link" asChild className="mt-2 block p-0">
                 <Link href="/">Kembali ke Halaman Utama</Link>
             </Button>
@@ -230,15 +194,15 @@ export default function CavePage() {
     );
   }
 
-  // Handle case where location exists but there was an error fetching spots (e.g., inactive)
-  if (error && location) {
+  // Handle inactive location for non-admins
+  if (!location.isActive && !isAdmin) {
     return (
       <div className="container mx-auto flex min-h-screen max-w-5xl items-center justify-center p-4">
         <Alert variant="destructive" className="w-full max-w-lg">
           <ServerCrash className="h-4 w-4" />
           <AlertTitle>Lokasi Tidak Tersedia</AlertTitle>
           <AlertDescription>
-            {error}
+            Lokasi ini tidak tersedia saat ini.
             <Button variant="link" asChild className="mt-2 block p-0">
                 <Link href="/">Kembali ke Halaman Utama</Link>
             </Button>
@@ -247,6 +211,7 @@ export default function CavePage() {
       </div>
     );
   }
+
 
   return (
     <div className="container mx-auto min-h-screen max-w-5xl p-4 md:p-8">
@@ -298,7 +263,7 @@ export default function CavePage() {
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <div>
-                                    <Button onClick={handleDownload} disabled={isDownloading || isOffline} variant="outline">
+                                    <Button onClick={handleDownload} disabled={isDownloading || isOffline || !spots} variant="outline">
                                         {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : isOffline ? <WifiOff className="mr-2 h-4 w-4"/> : <Download className="mr-2 h-4 w-4" />}
                                         {isOffline ? 'Tersimpan' : 'Simpan Offline'}
                                     </Button>
@@ -345,8 +310,3 @@ export default function CavePage() {
     </div>
   );
 }
-
-    
-
-    
-

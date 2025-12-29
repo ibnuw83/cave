@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -63,8 +64,6 @@ export function useCollection<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
-    let isCancelled = false;
-    
     if (!targetRefOrQuery) {
       setData(null);
       setIsLoading(false);
@@ -72,16 +71,12 @@ export function useCollection<T = any>(
       return;
     }
 
-    if (!isLoading) {
-      setIsLoading(true);
-    }
+    setIsLoading(true);
     setError(null);
 
-    // Directly use targetRefOrQuery as it's assumed to be the final query
     const unsubscribe = onSnapshot(
       targetRefOrQuery,
       (snapshot: QuerySnapshot<DocumentData>) => {
-        if (isCancelled) return;
         const results: ResultItemType[] = [];
         for (const doc of snapshot.docs) {
           results.push({ ...(doc.data() as T), id: doc.id });
@@ -91,7 +86,6 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (err: FirestoreError) => {
-        if (isCancelled) return;
         // This logic extracts the path from either a ref or a query
         const path: string =
           targetRefOrQuery.type === 'collection'
@@ -103,23 +97,16 @@ export function useCollection<T = any>(
           path,
         })
         
-        // When a permission error occurs on the client for a non-admin,
-        // it's better to just show an empty/null state rather than crashing.
-        // We still log the error and emit it globally for the toast.
         console.warn(contextualError.message);
         setError(err);
-        setData(null); // Set data to null to clear the view
+        setData(null);
         setIsLoading(false);
 
-        // trigger global error propagation for toast notifications
         errorEmitter.emit('permission-error', contextualError);
       }
     );
 
-    return () => {
-      isCancelled = true;
-      unsubscribe();
-    };
+    return () => unsubscribe();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetRefOrQuery?.toString()]);
   
