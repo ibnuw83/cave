@@ -55,8 +55,7 @@ export const useUser = (): UserContextValue => {
 };
 
 const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const auth = useAuth();
-  const db = useFirestore();
+  const { auth, firestore } = useFirebase();
 
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -67,7 +66,7 @@ const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const fetchUserProfile = useCallback(async (firebaseUser: User) => {
     setIsProfileLoading(true);
     try {
-      const profile = await getUserProfileClient(db, firebaseUser.uid);
+      const profile = await getUserProfileClient(firestore, firebaseUser.uid);
       if (profile) {
         setUserProfile(profile);
       } else {
@@ -82,7 +81,7 @@ const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     } finally {
       setIsProfileLoading(false);
     }
-  }, [auth, db]);
+  }, [auth, firestore]);
 
   useEffect(() => {
     const unsub = onIdTokenChanged(auth, async (firebaseUser) => {
@@ -91,8 +90,17 @@ const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
         setUser(null);
         setUserProfile(null);
         setIsProfileLoading(false);
+        const response = await fetch('/api/logout', { method: 'POST' });
+        if (!response.ok) {
+          console.error("Failed to clear session cookie on logout.");
+        }
       } else {
         setUser(firebaseUser);
+        const token = await firebaseUser.getIdToken();
+        await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
         await fetchUserProfile(firebaseUser);
       }
     });
