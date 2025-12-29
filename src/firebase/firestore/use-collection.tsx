@@ -72,7 +72,9 @@ export function useCollection<T = any>(
       return;
     }
 
-    setIsLoading(true);
+    if (!isLoading) {
+      setIsLoading(true);
+    }
     setError(null);
 
     // Directly use targetRefOrQuery as it's assumed to be the final query
@@ -118,7 +120,8 @@ export function useCollection<T = any>(
       isCancelled = true;
       unsubscribe();
     };
-  }, []); // Changed dependency array to empty to run only once
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetRefOrQuery?.toString()]);
   
   return { data, isLoading, error };
 }

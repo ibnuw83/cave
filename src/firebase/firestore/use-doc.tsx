@@ -45,7 +45,7 @@ export function useDoc<T = any>(
   type StateDataType = WithId<T> | null;
 
   const [data, setData] = useState<StateDataType>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true); // Start as true
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
@@ -98,7 +98,9 @@ export function useDoc<T = any>(
       isCancelled = true;
       unsubscribe();
     };
-  }, []); // Changed dependency array to empty to run only once
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [memoizedDocRef?.path]); 
 
   return { data, isLoading, error };
 }
+
