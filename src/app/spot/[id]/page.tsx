@@ -33,7 +33,7 @@ export default function SpotPage() {
   const spotRef = useMemo(() => id ? doc(firestore, 'spots', id) : null, [id, firestore]);
   const { data: spot, isLoading: isSpotLoading, error: spotError } = useDoc<Spot>(spotRef);
   
-  const spotsQuery = useMemo(() => spot ? query(collection(firestore, 'spots'), where('locationId', '==', spot.locationId), orderBy('order', 'asc')) : null, [spot, firestore]);
+  const spotsQuery = useMemo(() => spot ? query(collection(firestore, 'spots'), where('locationId', '==', spot.locationId)) : null, [spot, firestore]);
   const { data: allSpotsInLocation, isLoading: areSpotsLoading, error: spotsError } = useCollection<Spot>(spotsQuery);
   
   const isLoading = isUserLoading || isSpotLoading || (spot && areSpotsLoading);
@@ -121,3 +121,5 @@ export default function SpotPage() {
     </HybridViewer>
   );
 }
+
+    

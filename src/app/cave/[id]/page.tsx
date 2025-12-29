@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useMemo } from 'react';
@@ -120,7 +119,7 @@ export default function CavePage() {
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
 
   const locationRef = useMemo(() => id ? doc(firestore, 'locations', id) : null, [id, firestore]);
-  const spotsQuery = useMemo(() => id ? query(collection(firestore, 'spots'), where('locationId', '==', id), orderBy('order', 'asc')) : null, [id, firestore]);
+  const spotsQuery = useMemo(() => id ? query(collection(firestore, 'spots'), where('locationId', '==', id)) : null, [id, firestore]);
 
   const { data: location, isLoading: isLocationLoading, error: locationError } = useDoc<Location>(locationRef);
   const { data: spots, isLoading: areSpotsLoading, error: spotsError } = useCollection<Spot>(spotsQuery);
@@ -310,3 +309,5 @@ export default function CavePage() {
     </div>
   );
 }
+
+    
