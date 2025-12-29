@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -6,7 +7,7 @@ import { Spot } from '@/lib/types';
 import LockedScreen from '@/app/components/locked-screen';
 import SpotPlayerUI from '@/app/components/spot-player-ui';
 import HybridViewer from '@/app/components/hybrid-viewer';
-import PanoramaViewer from '@/app/components/viewer-panorama';
+import PanoramaViewer from '@/components/viewer-panorama';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ServerCrash, Info } from 'lucide-react';
@@ -43,18 +44,6 @@ export default function SpotPage() {
   const goToSpot = (spotId: string) => {
     router.push(`/spot/${spotId}`);
   };
-
-  useEffect(() => {
-    if (isLoading) return;
-    if (spotError) return;
-    if (!spot) return;
-
-    if (spot.isPro && !isPro) {
-      // Redirect to locked screen logic, handled by JSX below
-    } else {
-      console.log(`Viewing spot: ${spot.title}`);
-    }
-  }, [spot, isPro, isLoading, spotError, router]);
 
   if (isLoading) return <SpotPageFallback />;
   
@@ -132,5 +121,3 @@ export default function SpotPage() {
     </HybridViewer>
   );
 }
-
-    
