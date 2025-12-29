@@ -1,6 +1,7 @@
 import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';
 import Script from 'next/script';
+import { Toaster } from '@/components/ui/toaster';
 
 export default function RootLayout({
   children,
@@ -28,22 +29,16 @@ export default function RootLayout({
         {adSenseClientId && (
           <Script
             async
-            src={`https://www.googletagmanager.com/gtag/js?id=${adSenseClientId}`}
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adSenseClientId}`}
+            crossOrigin="anonymous"
             strategy="afterInteractive"
           />
         )}
-        <Script id="gtag-init" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '${adSenseClientId}');
-          `}
-        </Script>
       </head>
       <body className="font-body antialiased">
         <FirebaseClientProvider>
           {children}
+          <Toaster />
         </FirebaseClientProvider>
       </body>
     </html>

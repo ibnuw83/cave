@@ -17,8 +17,14 @@ async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
 
   try {
     const decodedToken = await auth.verifyIdToken(idToken);
+    
+    // Check for custom claim first. This is faster and more secure.
+    if (decodedToken.role === 'admin') {
+      return decodedToken;
+    }
+    
+    // Fallback to checking Firestore (useful if claims haven't propagated)
     const userDoc = await db.collection('users').doc(decodedToken.uid).get();
-
     if (userDoc.exists && userDoc.data()?.role === 'admin') {
       return decodedToken;
     }
@@ -35,8 +41,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Akses ditolak.' }, { status: 403 });
     }
   
+    const services = safeGetAdminApp();
+    if (!services) {
+      return NextResponse.json({ error: 'Admin SDK tidak dikonfigurasi.' }, { status: 500 });
+    }
+  
     try {
-      await seedInitialData();
+      await seedInitialData(services.db);
       return NextResponse.json({ message: 'Data awal berhasil diisi.' });
 
     } catch (err: any) {

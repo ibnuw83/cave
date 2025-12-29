@@ -5,7 +5,7 @@ import { safeGetAdminApp } from '@/firebase/admin';
 export async function POST(req: NextRequest) {
   const services = safeGetAdminApp();
   if (!services) return NextResponse.json({ error: 'Konfigurasi server tidak tersedia.' }, { status: 500 });
-  const { auth } = services;
+  const { auth, db } = services;
 
   const authorization = req.headers.get('Authorization');
   if (authorization?.startsWith('Bearer ')) {
@@ -13,6 +13,18 @@ export async function POST(req: NextRequest) {
     const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
 
     try {
+      // Verify token before creating a session cookie
+      const decodedToken = await auth.verifyIdToken(idToken);
+      
+      // Get role from Firestore to set custom claim
+      const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+      const role = userDoc.data()?.role || 'free';
+      
+      // Set custom claim if it doesn't exist
+      if (decodedToken.role !== role) {
+        await auth.setCustomUserClaims(decodedToken.uid, { role: role });
+      }
+
       const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
       cookies().set('__session', sessionCookie, { maxAge: expiresIn, httpOnly: true, secure: true, path: '/' });
       return NextResponse.json({ status: 'success' });

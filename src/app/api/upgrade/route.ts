@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
         
         // This is important to ensure the client gets the new role claim quickly.
         // The client must force-refresh its token after this call succeeds.
-        await auth.setCustomUserClaims(decodedToken.uid, { role: tierId });
+        await auth.setCustomUserClaims(decodedToken.uid, { ...decodedToken, role: tierId });
 
         return NextResponse.json({ message: 'Peran pengguna berhasil diperbarui.' });
 

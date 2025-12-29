@@ -26,17 +26,16 @@ export function safeGetAdminApp(): { auth: admin.auth.Auth; db: admin.firestore.
 
   // Otherwise, initialize the app.
   try {
-    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-
-    if (!projectId) {
-      throw new Error("NEXT_PUBLIC_FIREBASE_PROJECT_ID is not set in the environment variables.");
+    if (!serviceAccount) {
+      console.warn('[Firebase Admin] Service account key is not set. Admin features will be unavailable.');
+      return null;
     }
     
     // In a Google Cloud environment (like App Hosting), initializing without arguments
     // automatically uses the project's service account credentials.
     // For local dev or other deployment environments (Vercel, Netlify), it needs the service account key.
     const app = admin.initializeApp(
-        serviceAccount ? { credential: admin.credential.cert(serviceAccount) } : {}
+        { credential: admin.credential.cert(serviceAccount) }
     );
     
     services = { auth: admin.auth(app), db: admin.firestore(app) };
