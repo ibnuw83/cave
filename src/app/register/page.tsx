@@ -46,6 +46,7 @@ export default function RegisterPage() {
   }, [user, userProfile, isUserLoading, isProfileLoading, router]);
 
   useEffect(() => {
+    if (!db) return;
     getKioskSettings(db).then(setSettings);
   }, [db]);
 

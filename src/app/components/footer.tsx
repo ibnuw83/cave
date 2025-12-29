@@ -16,6 +16,7 @@ export default function Footer() {
   const db = useFirestore();
 
   useEffect(() => {
+    if (!db) return;
     getKioskSettings(db).then(s => {
       setSettings(s);
       setLoading(false);

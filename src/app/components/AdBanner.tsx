@@ -19,6 +19,7 @@ const AdBanner = () => {
   const db = useFirestore();
 
   useEffect(() => {
+    if (!db) return;
     getKioskSettings(db)
       .then((settings) => {
         if (settings?.adsense) {

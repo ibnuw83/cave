@@ -18,7 +18,7 @@ import {
   signInWithEmailAndPassword,
   sendPasswordResetEmail as firebaseSendPasswordResetEmail,
 } from 'firebase/auth';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
 
 const loginSchema = z.object({
@@ -30,6 +30,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const auth = useAuth();
+  const db = useFirestore();
   const { user, userProfile, isUserLoading, isProfileLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
@@ -48,8 +49,9 @@ export default function LoginPage() {
   }, [user, userProfile, isUserLoading, isProfileLoading, router]);
 
   useEffect(() => {
-    getKioskSettings().then(setSettings);
-  }, []);
+    if (!db) return;
+    getKioskSettings(db).then(setSettings);
+  }, [db]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),

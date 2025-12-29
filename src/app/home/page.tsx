@@ -169,6 +169,7 @@ export default function HomePage() {
   
   useEffect(() => {
     const fetchData = async () => {
+      if (!db) return;
       setIsLoading(true);
       try {
           const [locsData, settingsData] = await Promise.all([
