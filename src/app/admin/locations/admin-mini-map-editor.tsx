@@ -34,6 +34,10 @@ export function AdminMiniMapEditor({
     debounce(async (newMap: Location['miniMap']) => {
       setIsSaving(true);
       try {
+        // Add a check to ensure newMap is not undefined
+        if (!newMap) {
+          throw new Error("Cannot save an undefined map.");
+        }
         await updateDoc(doc(db, 'locations', locationId), {
           'miniMap.nodes': newMap.nodes,
           'miniMap.edges': newMap.edges,
@@ -51,6 +55,7 @@ export function AdminMiniMapEditor({
   );
 
   function updateNodePosition(id: string, x: number, y: number) {
+    if (!map) return;
     const newMap = {
       ...map,
       nodes: map.nodes.map(n =>
