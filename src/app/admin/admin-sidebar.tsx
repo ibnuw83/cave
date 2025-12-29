@@ -49,6 +49,7 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
   const { toast } = useToast();
 
   const isSubPage = pathname !== '/admin';
+  const pageTitle = isSubPage ? pathname.split('/').at(-1)?.replace(/-/g, ' ')?.replace(/\b\w/g, l => l.toUpperCase()) : 'Dashboard';
 
   useEffect(() => {
     // Kiosk settings are not critical, so we don't need to fetch them in a blocking way
@@ -105,7 +106,7 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
           </div>
         )}
         <h2 className="text-lg font-bold text-center truncate flex-1 mx-4">
-          {isSubPage ? pathname.split('/').pop()?.replace('-', ' ')?.replace(/\b\w/g, l => l.toUpperCase()) : 'Dashboard'}
+          {pageTitle}
         </h2>
         
         <Sheet open={isProfileSheetOpen} onOpenChange={setProfileSheetOpen}>

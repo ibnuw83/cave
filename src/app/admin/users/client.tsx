@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -22,11 +23,10 @@ export default function UsersClient() {
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
-  const { user: currentUser, refreshUserProfile } = useUser();
+  const { user: currentUser } = useUser();
   const [isFormOpen, setIsFormOpen] = useState(false);
   
   // This hook will only run after AdminLayout confirms the user is an admin.
-  // The query will therefore be valid from the first execution.
   const usersRef = collection(firestore, 'users');
   const { data: users, isLoading } = useCollection<UserProfile>(usersRef);
 
@@ -54,6 +54,8 @@ export default function UsersClient() {
     if (newRole === 'admin') {
         const ok = confirm('Yakin ingin menjadikan pengguna ini sebagai ADMIN? Tindakan ini memberikan akses penuh ke panel admin.');
         if (!ok) {
+            // Re-fetch to revert visual state if user cancels confirm dialog
+            // Note: This is a simple way; a more robust solution might involve optimistic UI state management
             return;
         }
     }
@@ -82,7 +84,7 @@ export default function UsersClient() {
         // The useCollection hook will automatically update the UI
     } catch (error: any) {
        toast({ variant: 'destructive', title: 'Gagal', description: error.message });
-       // Re-fetch to revert visual state on error
+       // The hook will eventually get the correct state from Firestore, reverting the UI.
     } finally {
         setLoadingStates((prev) => ({ ...prev, [uid]: false }));
     }
