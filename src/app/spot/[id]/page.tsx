@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Spot } from '@/lib/types';
 import LockedScreen from '@/app/components/locked-screen';
@@ -11,10 +11,10 @@ import PanoramaViewer from '@/components/viewer-panorama';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ServerCrash, Info } from 'lucide-react';
-import { useUser, useDoc, useCollection, useFirestore } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { doc, collection, query, where, orderBy } from 'firebase/firestore';
+import { getSpotClient, getSpotsForLocation } from '@/lib/firestore-client';
 
 function SpotPageFallback() {
     return <Skeleton className="w-screen h-screen" />;
@@ -30,13 +30,36 @@ export default function SpotPage() {
   
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
 
-  const spotRef = useMemo(() => id ? doc(firestore, 'spots', id) : null, [id, firestore]);
-  const { data: spot, isLoading: isSpotLoading, error: spotError } = useDoc<Spot>(spotRef);
+  const [spot, setSpot] = useState<Spot | null>(null);
+  const [allSpotsInLocation, setAllSpotsInLocation] = useState<Spot[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+
+    async function fetchSpotData() {
+      try {
+        setLoading(true);
+        const spotData = await getSpotClient(firestore, id);
+        if (spotData) {
+          setSpot(spotData);
+          const otherSpots = await getSpotsForLocation(firestore, spotData.locationId);
+          setAllSpotsInLocation(otherSpots);
+        } else {
+          setError('Spot tidak ditemukan.');
+        }
+      } catch (err: any) {
+        setError(err.message || 'Gagal memuat data spot.');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchSpotData();
+  }, [id, firestore]);
+
   
-  const spotsQuery = useMemo(() => spot ? query(collection(firestore, 'spots'), where('locationId', '==', spot.locationId)) : null, [spot, firestore]);
-  const { data: allSpotsInLocation, isLoading: areSpotsLoading, error: spotsError } = useCollection<Spot>(spotsQuery);
-  
-  const isLoading = isUserLoading || isSpotLoading || (spot && areSpotsLoading);
+  const isLoading = isUserLoading || loading;
   
   const role = userProfile?.role ?? 'free';
   const isPro = role.startsWith('pro') || role === 'vip' || role === 'admin';
@@ -47,15 +70,14 @@ export default function SpotPage() {
 
   if (isLoading) return <SpotPageFallback />;
   
-  const anyError = spotError || spotsError;
-  if (anyError) {
+  if (error) {
      return (
       <div className="h-screen w-screen flex items-center justify-center p-4 bg-background">
         <Alert variant="destructive" className="w-full max-w-lg">
           <ServerCrash className="h-4 w-4" />
           <AlertTitle>Gagal Memuat</AlertTitle>
           <AlertDescription>
-            {anyError.message || 'Terjadi kesalahan saat memuat data spot.'}
+            {error}
             <Button variant="link" asChild className="mt-2 block p-0">
                 <Link href="/">Kembali ke Halaman Utama</Link>
             </Button>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,10 +6,9 @@ import { Mountain, MapPin, Users, Gem, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useMemo } from 'react';
-import { useCollection } from '@/firebase';
+import { useMemo, useState, useEffect } from 'react';
 import { useFirestore } from '@/firebase/provider';
-import { collection } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { Location, Spot, UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -23,22 +23,45 @@ interface Stat {
 export default function AdminDashboard() {
   const firestore = useFirestore();
 
-  // AdminLayout ensures these only run for admins
-  const locationsRef = collection(firestore, 'locations');
-  const spotsRef = collection(firestore, 'spots');
-  const usersRef = collection(firestore, 'users');
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [spots, setSpots] = useState<Spot[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const { data: locations, isLoading: locationsLoading } = useCollection<Location>(locationsRef);
-  const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(spotsRef);
-  const { data: users, isLoading: usersLoading } = useCollection<UserProfile>(usersRef);
+  useEffect(() => {
+    const locationsRef = collection(firestore, 'locations');
+    const spotsRef = collection(firestore, 'spots');
+    const usersRef = collection(firestore, 'users');
 
-  const isLoading = locationsLoading || spotsLoading || usersLoading;
+    const unsubLocations = onSnapshot(locationsRef, (snapshot) => {
+      setLocations(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Location)));
+    });
+
+    const unsubSpots = onSnapshot(spotsRef, (snapshot) => {
+      setSpots(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Spot)));
+    });
+
+    const unsubUsers = onSnapshot(usersRef, (snapshot) => {
+      setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile)));
+    });
+
+    // Determine loading state
+    const timer = setTimeout(() => setIsLoading(false), 1000); // Give a bit of time for initial fetch
+
+    return () => {
+      unsubLocations();
+      unsubSpots();
+      unsubUsers();
+      clearTimeout(timer);
+    };
+  }, [firestore]);
+
 
   const stats: Stat[] = useMemo(() => [
-    { title: 'Total Lokasi', value: isLoading ? '...' : (locations?.length ?? 0).toString(), icon: <Mountain className="h-6 w-6" />, href: '/admin/locations', color: 'bg-blue-900/50 text-blue-100' },
-    { title: 'Total Spot', value: isLoading ? '...' : (spots?.length ?? 0).toString(), icon: <MapPin className="h-6 w-6" />, href: '/admin/spots', color: 'bg-green-900/50 text-green-100' },
-    { title: 'Total Pengguna', value: isLoading ? '...' : (users?.length ?? 0).toString(), icon: <Users className="h-6 w-6" />, href: '/admin/users', color: 'bg-yellow-900/50 text-yellow-100' },
-  ], [isLoading, locations, spots, users]);
+    { title: 'Total Lokasi', value: (locations?.length ?? 0).toString(), icon: <Mountain className="h-6 w-6" />, href: '/admin/locations', color: 'bg-blue-900/50 text-blue-100' },
+    { title: 'Total Spot', value: (spots?.length ?? 0).toString(), icon: <MapPin className="h-6 w-6" />, href: '/admin/spots', color: 'bg-green-900/50 text-green-100' },
+    { title: 'Total Pengguna', value: (users?.length ?? 0).toString(), icon: <Users className="h-6 w-6" />, href: '/admin/users', color: 'bg-yellow-900/50 text-yellow-100' },
+  ], [locations, spots, users]);
 
   return (
     <div className="p-4 md:p-8">

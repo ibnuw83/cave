@@ -22,19 +22,29 @@ import { deletePricingTier } from '@/lib/firestore-client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PricingTierForm } from './tier-form';
 import { Badge } from '@/components/ui/badge';
-import { useUser, useCollection, useFirestore } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 
 export default function AdminPricingPage() {
-  const { userProfile } = useUser();
   const firestore = useFirestore();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedTier, setSelectedTier] = useState<PricingTier | null>(null);
   const { toast } = useToast();
 
-  const tiersQuery = query(collection(firestore, 'pricingTiers'), orderBy('order'));
-  const { data: tiers, isLoading } = useCollection<PricingTier>(tiersQuery);
+  const [tiers, setTiers] = useState<PricingTier[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const tiersQuery = query(collection(firestore, 'pricingTiers'), orderBy('order'));
+    const unsubscribe = onSnapshot(tiersQuery, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PricingTier));
+      setTiers(data);
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
+  }, [firestore]);
+
 
   const handleFormSuccess = () => {
     toast({ title: 'Berhasil', description: `Paket harga telah ${selectedTier ? 'diperbarui' : 'ditambahkan'}.` });

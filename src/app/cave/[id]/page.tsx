@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -12,11 +12,11 @@ import { Lock, ChevronLeft, Download, WifiOff, Loader2, Sparkles, Info, ServerCr
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { saveLocationForOffline, isLocationAvailableOffline } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useDoc, useCollection, useFirestore } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import AdBanner from '@/app/components/AdBanner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { doc, collection, query, where, orderBy } from 'firebase/firestore';
+import { getLocationClient, getSpotsForLocation } from '@/lib/firestore-client';
 
 declare global {
   interface Window {
@@ -118,14 +118,39 @@ export default function CavePage() {
 
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
 
-  const locationRef = useMemo(() => id ? doc(firestore, 'locations', id) : null, [id, firestore]);
-  const spotsQuery = useMemo(() => id ? query(collection(firestore, 'spots'), where('locationId', '==', id)) : null, [id, firestore]);
+  const [location, setLocation] = useState<Location | null>(null);
+  const [spots, setSpots] = useState<Spot[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const { data: location, isLoading: isLocationLoading, error: locationError } = useDoc<Location>(locationRef);
-  const { data: spots, isLoading: areSpotsLoading, error: spotsError } = useCollection<Spot>(spotsQuery);
-  
-  // Combine all loading states
-  const isLoading = isUserLoading || isLocationLoading || areSpotsLoading;
+  useEffect(() => {
+    if (!id) return;
+
+    async function fetchData() {
+      try {
+        setLoading(true);
+        const [locData, spotsData] = await Promise.all([
+          getLocationClient(firestore, id),
+          getSpotsForLocation(firestore, id),
+        ]);
+
+        if (!locData) {
+          setError('Lokasi tidak ditemukan.');
+        } else {
+          setLocation(locData);
+          setSpots(spotsData);
+        }
+
+      } catch (err: any) {
+        setError(err.message || 'Gagal memuat data.');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [id, firestore]);
+
+  const isLoading = loading || isUserLoading;
 
   const role = userProfile?.role ?? 'free';
   const isPro = role.startsWith('pro') || role === 'vip' || role === 'admin';
@@ -175,15 +200,14 @@ export default function CavePage() {
   
   if (isLoading) return <CavePageFallback />;
 
-  const anyError = locationError || spotsError;
-  if (anyError || !location) {
+  if (error || !location) {
      return (
       <div className="container mx-auto flex min-h-screen max-w-5xl items-center justify-center p-4">
         <Alert variant="destructive" className="w-full max-w-lg">
           <ServerCrash className="h-4 w-4" />
           <AlertTitle>Gagal Memuat atau Tidak Ditemukan</AlertTitle>
           <AlertDescription>
-            {anyError?.message || 'Lokasi yang Anda cari tidak ada atau terjadi kesalahan.'}
+            {error || 'Lokasi yang Anda cari tidak ada atau terjadi kesalahan.'}
             <Button variant="link" asChild className="mt-2 block p-0">
                 <Link href="/">Kembali ke Halaman Utama</Link>
             </Button>

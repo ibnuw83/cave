@@ -8,7 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { doc, getDoc } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
-import { useDoc } from '@/firebase/firestore/use-doc';
+import { useEffect, useState } from 'react';
+import { getLocationClient } from '@/lib/firestore-client';
 
 export default function LocationEditPage() {
   const router = useRouter();
@@ -20,8 +21,18 @@ export default function LocationEditPage() {
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const isNew = id === 'new';
 
-  const locationRef = userProfile?.role === 'admin' && !isNew ? doc(firestore, 'locations', id) : null;
-  const { data: location, isLoading: loading } = useDoc<Location>(locationRef);
+  const [location, setLocation] = useState<Location | null>(null);
+  const [loading, setLoading] = useState(!isNew);
+
+  useEffect(() => {
+    if(userProfile?.role === 'admin' && !isNew) {
+      getLocationClient(firestore, id).then(data => {
+        setLocation(data);
+        setLoading(false);
+      });
+    }
+  }, [userProfile, isNew, firestore, id]);
+
 
   const handleSave = () => {
     toast({ title: 'Berhasil', description: `Lokasi telah ${isNew ? 'dibuat' : 'diperbarui'}.` });

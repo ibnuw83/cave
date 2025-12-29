@@ -14,12 +14,12 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Trash2, Plus, GripVertical, Loader2, Download, WifiOff, ArrowRight, Monitor, MessageSquare, Power, PowerOff, Send, Radio, Facebook, Instagram, Twitter, CreditCard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { saveKioskSettings, setKioskControl } from '@/lib/firestore-client';
+import { getKioskSettings, saveKioskSettings, setKioskControl, getSpotsForLocation as getAllSpots } from '@/lib/firestore-client';
 import Link from 'next/link';
 import { isLocationAvailableOffline, saveLocationForOffline } from '@/lib/offline';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useCollection, useDoc, useFirestore, useUser } from '@/firebase';
-import { collection, doc, Timestamp } from 'firebase/firestore';
+import { useUser, useFirestore } from '@/firebase';
+import { collection, doc, Timestamp, onSnapshot } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { formatDistanceToNow } from 'date-fns';
@@ -98,11 +98,31 @@ function KioskRemoteControl({ allSpots }: { allSpots: Spot[] }) {
   const firestore = useFirestore();
   const { userProfile } = useUser();
 
-  const devicesRef = userProfile?.role === 'admin' ? collection(firestore, 'kioskDevices') : null;
-  const controlRef = userProfile?.role === 'admin' ? doc(firestore, 'kioskControl', 'global') : null;
+  const [devices, setDevices] = useState<KioskDevice[]>([]);
+  const [controlState, setControlState] = useState<{enabled: boolean, message?: string, forceReload?: boolean}>({ enabled: true });
+  const [devicesLoading, setDevicesLoading] = useState(true);
+  const [controlLoading, setControlLoading] = useState(true);
 
-  const { data: devices, isLoading: devicesLoading } = useCollection<KioskDevice>(devicesRef);
-  const { data: controlState, isLoading: controlLoading } = useDoc<{enabled: boolean, message?: string, forceReload?: boolean}>(controlRef);
+  useEffect(() => {
+    if (userProfile?.role !== 'admin') return;
+    const devicesRef = collection(firestore, 'kioskDevices');
+    const unsubDevices = onSnapshot(devicesRef, (snapshot) => {
+      setDevices(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as KioskDevice)));
+      setDevicesLoading(false);
+    });
+
+    const controlRef = doc(firestore, 'kioskControl', 'global');
+    const unsubControl = onSnapshot(controlRef, (snapshot) => {
+      if(snapshot.exists()) {
+        setControlState(snapshot.data() as any);
+      }
+      setControlLoading(false);
+    });
+    return () => {
+      unsubDevices();
+      unsubControl();
+    }
+  }, [firestore, userProfile]);
 
   const controlForm = useForm<RemoteControlFormValues>({
     resolver: zodResolver(remoteControlSchema),
@@ -213,11 +233,24 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
   const [isOffline, setIsOffline] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const spotsRef = userProfile?.role === 'admin' ? collection(firestore, 'spots') : null;
-  const settingsRef = userProfile?.role === 'admin' ? doc(firestore, 'kioskSettings', 'main') : null;
+  const [spots, setSpots] = useState<Spot[]>([]);
+  const [kioskSettings, setKioskSettings] = useState<KioskSettings | null>(null);
+  const [spotsLoading, setSpotsLoading] = useState(true);
+  const [settingsLoading, setSettingsLoading] = useState(true);
 
-  const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(spotsRef);
-  const { data: kioskSettings, isLoading: settingsLoading } = useDoc<KioskSettings>(settingsRef);
+  useEffect(() => {
+    if(userProfile?.role !== 'admin') return;
+
+    getAllSpots(firestore).then(data => {
+      setSpots(data);
+      setSpotsLoading(false);
+    });
+
+    getKioskSettings(firestore).then(data => {
+      setKioskSettings(data);
+      setSettingsLoading(false);
+    });
+  }, [firestore, userProfile]);
   
   const globalForm = useForm<GlobalSettingsFormValues>({
     resolver: zodResolver(globalSettingsSchema),

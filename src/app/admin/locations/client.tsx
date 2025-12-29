@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Location } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -18,8 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useCollection } from '@/firebase';
-import { collection, deleteDoc, doc } from "firebase/firestore";
+import { collection, deleteDoc, doc, onSnapshot } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
@@ -29,9 +28,18 @@ export default function LocationsClient() {
   const router = useRouter();
   const { toast } = useToast();
 
-  // AdminLayout ensures this only runs for admins.
-  const locationsRef = collection(firestore, 'locations');
-  const { data: locations, isLoading } = useCollection<Location>(locationsRef);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const locationsRef = collection(firestore, 'locations');
+    const unsubscribe = onSnapshot(locationsRef, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Location));
+      setLocations(data);
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
+  }, [firestore]);
 
   const sortedLocations = useMemo(() => {
     if (!locations) return [];
@@ -42,7 +50,7 @@ export default function LocationsClient() {
     try {
         await deleteDoc(doc(firestore, 'locations', id));
         toast({ title: "Berhasil", description: "Lokasi berhasil dihapus." });
-        // The useCollection hook will automatically update the UI
+        // The onSnapshot hook will automatically update the UI
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Gagal', description: error.message });
     }

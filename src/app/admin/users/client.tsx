@@ -1,20 +1,20 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { UserProfile } from '@/lib/types';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Trash2, UserPlus } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useUser, useCollection, useFirestore } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { UserForm } from './user-form';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { collection, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 
 export default function UsersClient() {
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
@@ -23,8 +23,19 @@ export default function UsersClient() {
   const { user: currentUser } = useUser();
   const [isFormOpen, setIsFormOpen] = useState(false);
   
-  const usersRef = collection(firestore, 'users');
-  const { data: users, isLoading } = useCollection<UserProfile>(usersRef);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const usersRef = collection(firestore, 'users');
+    const unsubscribe = onSnapshot(usersRef, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
+      setUsers(data);
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
+  }, [firestore]);
+
 
   const sortedUsers = useMemo(() => {
     if (!users) return [];

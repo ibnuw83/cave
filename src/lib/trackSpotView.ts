@@ -5,22 +5,22 @@ import {
   increment,
   setDoc,
   serverTimestamp,
+  type Firestore,
 } from 'firebase/firestore';
-import { initializeFirebase } from '@/firebase';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
-const { firestore: db } = initializeFirebase();
 
 const THROTTLE_INTERVAL_MS = 5 * 60 * 1000; // 5 menit
 
 /**
  * Melacak penayangan spot di mode kios dengan menambah (increment)
  * jumlah penayangan di koleksi kioskStats, dengan throttling.
+ * @param db Instance Firestore yang akan digunakan.
  * @param locationId ID dari lokasi.
  * @param spotId ID dari spot yang dilihat.
  */
-export function trackSpotView(locationId: string, spotId: string) {
+export function trackSpotView(db: Firestore, locationId: string, spotId: string) {
   // Hanya berjalan di browser
   if (typeof window === 'undefined' || !window.localStorage) {
     return;

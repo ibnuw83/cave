@@ -1,7 +1,6 @@
 import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';
 import Script from 'next/script';
-import { Toaster } from '@/components/ui/toaster';
 
 export default function RootLayout({
   children,
@@ -38,7 +37,6 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <FirebaseClientProvider>
           {children}
-          <Toaster />
         </FirebaseClientProvider>
       </body>
     </html>

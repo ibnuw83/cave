@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -21,6 +20,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
+import { getKioskSettings } from '@/lib/firestore-client';
+import { useFirestore } from '@/firebase/provider';
 
 function AdminNavLink({ href, icon, label, color, activeColor }: { href: string; icon: React.ReactNode; label: string; color: string; activeColor: string; }) {
   const pathname = usePathname();
@@ -44,6 +45,7 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
   const [settings, setSettings] = useState<KioskSettings | null>(null);
   const [isProfileSheetOpen, setProfileSheetOpen] = useState(false);
   const auth = useAuth();
+  const db = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
@@ -52,9 +54,8 @@ export default function AdminSidebar({ user, userProfile }: { user: User; userPr
   const pageTitle = isSubPage ? pathname.split('/').at(-1)?.replace(/-/g, ' ')?.replace(/\b\w/g, l => l.toUpperCase()) : 'Dashboard';
 
   useEffect(() => {
-    // Kiosk settings are not critical, so we don't need to fetch them in a blocking way
-    // getKioskSettings().then(setSettings);
-  }, []);
+    getKioskSettings(db).then(setSettings);
+  }, [db]);
 
   const handleLogout = async () => {
     try {

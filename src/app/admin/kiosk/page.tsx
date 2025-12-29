@@ -6,19 +6,22 @@ import { Location } from "@/lib/types";
 import { useState, useEffect } from "react";
 import { getLocations } from "@/lib/firestore-client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
-import { useCollection } from "@/firebase";
-import { collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 
 
 export default function KioskSettingsPage() {
-  const { toast } = useToast();
   const firestore = useFirestore();
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  const locationsRef = collection(firestore, 'locations');
-  // Fetch all locations, including inactive ones for the admin
-  const { data: locations, isLoading } = useCollection<Location>(locationsRef);
+  useEffect(() => {
+    // Fetch all locations, including inactive ones for the admin
+    getLocations(firestore, true).then(data => {
+      setLocations(data);
+      setIsLoading(false);
+    });
+  }, [firestore]);
+  
 
   return (
     <div className="p-4 md:p-8">

@@ -28,7 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { clearOfflineCache } from '@/lib/offline';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useFirestore } from '@/firebase';
 import { signOut as firebaseSignOut } from 'firebase/auth';
 import { getLocations, getKioskSettings } from '@/lib/firestore-client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -161,6 +161,7 @@ export default function HomeClient() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [settings, setSettings] = useState<KioskSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const db = useFirestore();
   
   const [heroImage] = useState<PlaceholderImage | null>(() => {
     return placeholderData.placeholderImages.find((img: PlaceholderImage) => img.id === 'hero-main') || null;
@@ -168,11 +169,12 @@ export default function HomeClient() {
   
   useEffect(() => {
     const fetchData = async () => {
+      if (!db) return;
       setIsLoading(true);
       try {
           const [locsData, settingsData] = await Promise.all([
-              getLocations(false), // Fetch only active locations for public view
-              getKioskSettings(),
+              getLocations(db, false), // Fetch only active locations for public view
+              getKioskSettings(db),
           ]);
           setLocations(locsData);
           setSettings(settingsData);
@@ -183,7 +185,7 @@ export default function HomeClient() {
       }
     };
     fetchData();
-  }, []);
+  }, [db]);
   
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">

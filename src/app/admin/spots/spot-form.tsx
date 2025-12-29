@@ -127,7 +127,7 @@ export function SpotForm({ spot, locations, allSpots, onSave, onCancel }: SpotFo
         }
 
         // After saving the spot, update the location's minimap
-        await updateLocationMiniMapWithSpot(savedSpot, spotsInSameLocation);
+        await updateLocationMiniMapWithSpot(firestore, savedSpot, spotsInSameLocation);
         onSave(savedSpot);
 
     } catch (error: any) {
