@@ -12,7 +12,7 @@ async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
   const services = safeGetAdminApp();
   if (!services) return null;
 
-  const { auth, db } = services;
+  const { auth } = services;
 
   const authorization = req.headers.get('Authorization');
   if (!authorization?.startsWith('Bearer ')) return null;
@@ -22,15 +22,8 @@ async function verifyAdmin(req: NextRequest): Promise<DecodedIdToken | null> {
   try {
     const decodedToken = await auth.verifyIdToken(idToken);
     
-    // Check for custom admin claim first. This is the primary and most secure method.
+    // Primary check: custom claim is the source of truth for roles.
     if (decodedToken.role === 'admin') {
-      return decodedToken;
-    }
-
-    // Fallback: check Firestore role if claim is missing (for legacy or flexibility).
-    // This is a secondary check and should not be the primary method.
-    const userDoc = await db.collection('users').doc(decodedToken.uid).get();
-    if (userDoc.exists && userDoc.data()?.role === 'admin') {
       return decodedToken;
     }
     
