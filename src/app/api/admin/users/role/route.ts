@@ -1,4 +1,5 @@
 
+
 import { NextRequest, NextResponse } from 'next/server';
 import { safeGetAdminApp } from '@/firebase/admin';
 import * as admin from 'firebase-admin';
@@ -63,19 +64,15 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Admin tidak dapat mengubah perannya sendiri.' }, { status: 400 });
         }
 
+        // Set custom claims for role-based access in Auth
+        await auth.setCustomUserClaims(uid, { role: role });
+
+        // Update the role in Firestore as well for client-side queries
         const userRef = db.collection('users').doc(uid);
-        
-        // Use a batch to update both Firestore and Auth claims atomically.
-        const batch = db.batch();
-        batch.update(userRef, {
+        await userRef.update({
             role: role,
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
-        
-        // This is important to ensure the client gets the new role claim quickly.
-        await auth.setCustomUserClaims(uid, { role: role });
-        
-        await batch.commit();
 
         return NextResponse.json({ message: `Peran pengguna berhasil diperbarui.` });
 
@@ -84,5 +81,3 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: error.message || 'Gagal memperbarui peran pengguna.' }, { status: 500 });
     }
 }
-
-    

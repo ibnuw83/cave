@@ -18,17 +18,27 @@ export function useUser() {
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [authError, setAuthError] = useState<Error | null>(null);
 
-  const refreshUserProfile = useCallback(async () => {
-    const currentUser = auth.currentUser;
-    if (!currentUser) return;
+  const fetchUserProfile = useCallback(async (firebaseUser: User) => {
     setIsProfileLoading(true);
     try {
-      const profile = await getUserProfileClient(currentUser.uid);
+      let profile = await getUserProfileClient(firebaseUser.uid);
+
+      if (!profile) {
+        // This likely means it's a brand new user.
+        profile = await createUserProfile(firebaseUser);
+        toast({ title: "Selamat Datang 👋", description: "Akun Anda telah berhasil dibuat." });
+      }
+
       setUserProfile(profile);
+    } catch (err) {
+      console.error("Failed to fetch or create user profile:", err);
+      setAuthError(err as Error);
+      await auth.signOut(); // Log out on critical profile error
     } finally {
       setIsProfileLoading(false);
     }
-  }, [auth]);
+  }, [auth, toast]);
+
 
   useEffect(() => {
     const unsub = onIdTokenChanged(auth, async (firebaseUser) => {
@@ -40,30 +50,30 @@ export function useUser() {
         setIsProfileLoading(false);
         return;
       }
-
+      
       setUser(firebaseUser);
-      setIsProfileLoading(true);
+      // Fetch profile immediately. The claims might be stale, but we get basic info.
+      // The crucial part is what happens next.
+      await fetchUserProfile(firebaseUser);
 
-      try {
-        let profile = await getUserProfileClient(firebaseUser.uid);
-
-        if (!profile) {
-          profile = await createUserProfile(firebaseUser);
-          toast({ title: "Selamat Datang 👋" });
-        }
-
-        setUserProfile(profile);
-      } catch (err) {
-        console.error(err);
-        setAuthError(err as Error);
-        await auth.signOut();
-      } finally {
-        setIsProfileLoading(false);
-      }
     });
 
     return () => unsub();
-  }, [auth, toast]);
+  }, [auth, fetchUserProfile]);
+
+
+  const refreshUserProfile = useCallback(async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+    
+    // This is the key: force refresh the token to get latest custom claims
+    await currentUser.getIdToken(true);
+    
+    // After token is refreshed, re-fetch the profile from Firestore
+    await fetchUserProfile(currentUser);
+
+  }, [auth, fetchUserProfile]);
+
 
   return {
     user,
