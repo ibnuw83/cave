@@ -32,17 +32,17 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const auth = useAuth();
-  const { user, isUserLoading } = useUser();
+  const { user, userProfile, isUserLoading, isProfileLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
   const [settings, setSettings] = useState<KioskSettings | null>(null);
 
   useEffect(() => {
-    if(!isUserLoading && user) {
+    if(!isUserLoading && !isProfileLoading && user && userProfile) {
         // User is logged in, redirect them to the home page.
         router.push('/');
     }
-  }, [user, isUserLoading, router]);
+  }, [user, userProfile, isUserLoading, isProfileLoading, router]);
 
   useEffect(() => {
     getKioskSettings().then(setSettings);
@@ -97,8 +97,16 @@ export default function RegisterPage() {
 
   const isSubmitting = form.formState.isSubmitting;
 
-  if(isUserLoading || user) {
+  if(isUserLoading || (user && isProfileLoading)) {
       return (
+         <div className="flex h-screen w-full items-center justify-center bg-background">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      )
+  }
+
+  if (user && userProfile) {
+     return (
          <div className="flex h-screen w-full items-center justify-center bg-background">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>

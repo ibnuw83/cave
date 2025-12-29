@@ -117,7 +117,7 @@ export default function LoginPage() {
 
   // If after all loading, user exists, they are already logged in and being redirected by useEffect.
   // We show a loader here as well to cover the brief period before redirection happens.
-  if(user) {
+  if(user && userProfile) {
       return (
          <div className="flex h-screen w-full items-center justify-center bg-background">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
