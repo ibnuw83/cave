@@ -1,13 +1,12 @@
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mountain, MapPin, Users, Info } from 'lucide-react';
+import { Mountain, MapPin, Users, Gem, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useMemo } from 'react';
-import { useCollection, useUser } from '@/firebase';
+import { useCollection } from '@/firebase';
 import { useFirestore } from '@/firebase/provider';
 import { collection } from 'firebase/firestore';
 import { Location, Spot, UserProfile } from '@/lib/types';
@@ -22,12 +21,12 @@ interface Stat {
 }
 
 export default function AdminDashboard() {
-  const { userProfile } = useUser();
   const firestore = useFirestore();
 
-  const locationsRef = userProfile?.role === 'admin' ? collection(firestore, 'locations') : null;
-  const spotsRef = userProfile?.role === 'admin' ? collection(firestore, 'spots') : null;
-  const usersRef = userProfile?.role === 'admin' ? collection(firestore, 'users') : null;
+  // AdminLayout ensures these only run for admins
+  const locationsRef = collection(firestore, 'locations');
+  const spotsRef = collection(firestore, 'spots');
+  const usersRef = collection(firestore, 'users');
 
   const { data: locations, isLoading: locationsLoading } = useCollection<Location>(locationsRef);
   const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(spotsRef);

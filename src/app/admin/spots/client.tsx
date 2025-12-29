@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Location, Spot } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -11,21 +10,21 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { SpotForm } from "./spot-form";
-import { useUser, useAuth, useCollection } from '@/firebase';
+import { useCollection } from '@/firebase';
 import { collection, deleteDoc, doc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SpotsClient() {
-  const { userProfile } = useUser();
   const firestore = useFirestore();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState<Spot | null>(null);
   const [filterLocationId, setFilterLocationId] = useState<string>('all');
   const { toast } = useToast();
 
-  const locationsRef = userProfile?.role === 'admin' ? collection(firestore, 'locations') : null;
-  const spotsRef = userProfile?.role === 'admin' ? collection(firestore, 'spots') : null;
+  // AdminLayout ensures these only run for admins.
+  const locationsRef = collection(firestore, 'locations');
+  const spotsRef = collection(firestore, 'spots');
   
   const { data: initialLocations, isLoading: locationsLoading } = useCollection<Location>(locationsRef);
   const { data: initialSpots, isLoading: spotsLoading } = useCollection<Spot>(spotsRef);

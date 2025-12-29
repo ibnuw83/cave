@@ -22,42 +22,20 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PricingTierForm } from './tier-form';
 import { Badge } from '@/components/ui/badge';
 import { useUser } from '@/firebase';
+import { useCollection } from '@/firebase/firestore/use-collection';
+import { collection, query, orderBy } from 'firebase/firestore';
+import { useFirestore } from '@/firebase/provider';
 
 export default function AdminPricingPage() {
   const { userProfile } = useUser();
-  const [tiers, setTiers] = useState<PricingTier[]>([]);
-  const [loading, setLoading] = useState(true);
+  const firestore = useFirestore();
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedTier, setSelectedTier] = useState<PricingTier | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchTiers = () => {
-      setLoading(true);
-      getPricingTiers()
-        .then(data => {
-          setTiers(data);
-          setLoading(false);
-        })
-        .catch(() => setLoading(false));
-    };
-
-    if (!isFormOpen && userProfile?.role === 'admin') {
-      fetchTiers();
-    } else if (userProfile?.role !== 'admin') {
-      setLoading(false);
-    }
-  }, [isFormOpen, userProfile]);
-
-  if (userProfile?.role !== 'admin') {
-    return (
-      <div className="p-4 md:p-8">
-        <p className="text-center text-muted-foreground py-12">
-          Anda tidak memiliki akses ke halaman ini.
-        </p>
-      </div>
-    );
-  }
+  const tiersQuery = query(collection(firestore, 'pricingTiers'), orderBy('order'));
+  const { data: tiers, isLoading } = useCollection<PricingTier>(tiersQuery);
 
   const handleFormSuccess = () => {
     toast({ title: 'Berhasil', description: `Paket harga telah ${selectedTier ? 'diperbarui' : 'ditambahkan'}.` });
@@ -73,7 +51,6 @@ export default function AdminPricingPage() {
   const handleDelete = async (id: string) => {
     try {
       await deletePricingTier(id);
-      setTiers(tiers.filter(t => t.id !== id));
       toast({ title: 'Berhasil', description: 'Paket harga berhasil dihapus.' });
     } catch (error) {
       // Error handled by global handler
@@ -109,14 +86,14 @@ export default function AdminPricingPage() {
         </Button>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="space-y-4">
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-32 w-full" />
         </div>
       ) : (
         <div className="space-y-4">
-          {tiers.map(tier => (
+          {(tiers || []).map(tier => (
             <Card key={tier.id}>
               <CardHeader>
                 <div className="flex justify-between items-start">
@@ -166,7 +143,7 @@ export default function AdminPricingPage() {
               </CardContent>
             </Card>
           ))}
-          {tiers.length === 0 && !loading && (
+          {(!tiers || tiers.length === 0) && !isLoading && (
             <p className="text-center text-muted-foreground py-8">Belum ada paket harga yang dibuat.</p>
           )}
         </div>

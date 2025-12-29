@@ -1,4 +1,3 @@
-
 'use client';
 
 import { ReactNode, useEffect } from 'react';
@@ -12,25 +11,32 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const { user, userProfile, isUserLoading, isProfileLoading } = useUser();
   const router = useRouter();
   
+  // Combine loading states
   const isLoading = isUserLoading || isProfileLoading;
-  const role = userProfile?.role ?? 'free';
-  const isAdmin = role === 'admin';
-
+  
   useEffect(() => {
-    if (isLoading) return; // Wait until loading is complete
+    // Wait until all loading is complete before making any decisions
+    if (isLoading) {
+      return;
+    }
 
+    // If loading is done and there's no user, redirect to login
     if (!user) {
       router.replace('/login');
       return;
     }
 
-    if (!isAdmin) {
+    // If loading is done and user is not an admin, redirect to home
+    if (userProfile?.role !== 'admin') {
       router.replace('/');
     }
-  }, [user, isAdmin, isLoading, router]);
+  }, [user, userProfile, isLoading, router]);
 
 
-  if (isLoading || !user || !userProfile || !isAdmin) {
+  // This is the gatekeeper. It shows a full-screen loader until we are certain
+  // about the user's auth state and role. Only when the user is confirmed
+  // to be an admin will it render the actual layout with children.
+  if (isLoading || !user || !userProfile || userProfile.role !== 'admin') {
      return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -38,6 +44,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     );
   }
 
+  // At this point, we are sure the user is a logged-in admin.
   return (
     <div className="md:grid md:grid-cols-[250px_1fr]">
       <AdminSidebar user={user as User} userProfile={userProfile} />

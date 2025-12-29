@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { UserProfile } from '@/lib/types';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -15,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { UserForm } from './user-form';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { collection, doc, updateDoc } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 
 
 export default function UsersClient() {
@@ -23,11 +22,13 @@ export default function UsersClient() {
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
-  const { user: currentUser, userProfile, isProfileLoading, refreshUserProfile } = useUser();
+  const { user: currentUser, refreshUserProfile } = useUser();
   const [isFormOpen, setIsFormOpen] = useState(false);
   
-  const usersRef = userProfile?.role === 'admin' ? collection(firestore, 'users') : null;
-  const { data: users, isLoading: usersLoading } = useCollection<UserProfile>(usersRef);
+  // This hook will only run after AdminLayout confirms the user is an admin.
+  // The query will therefore be valid from the first execution.
+  const usersRef = collection(firestore, 'users');
+  const { data: users, isLoading } = useCollection<UserProfile>(usersRef);
 
   const sortedUsers = useMemo(() => {
     if (!users) return [];
@@ -43,8 +44,6 @@ export default function UsersClient() {
         title: 'Ditolak',
         description: 'Anda tidak dapat mengubah peran akun sendiri.',
       });
-      // This is a visual rollback, the hook will eventually get the real data
-      setTimeout(() => refreshUserProfile(), 100);
       return;
     }
     
@@ -55,11 +54,6 @@ export default function UsersClient() {
     if (newRole === 'admin') {
         const ok = confirm('Yakin ingin menjadikan pengguna ini sebagai ADMIN? Tindakan ini memberikan akses penuh ke panel admin.');
         if (!ok) {
-            // Revert dropdown if canceled
-            setTimeout(() => {
-              const selectTrigger = document.querySelector(`[data-uid="${uid}"]`) as HTMLElement | null;
-              if(selectTrigger) selectTrigger.click(); // Close the select
-            }, 100);
             return;
         }
     }
@@ -89,7 +83,6 @@ export default function UsersClient() {
     } catch (error: any) {
        toast({ variant: 'destructive', title: 'Gagal', description: error.message });
        // Re-fetch to revert visual state on error
-       setTimeout(() => refreshUserProfile(), 100);
     } finally {
         setLoadingStates((prev) => ({ ...prev, [uid]: false }));
     }
@@ -156,8 +149,6 @@ export default function UsersClient() {
     // useCollection will handle the refresh
   };
   
-  const isLoading = isProfileLoading || usersLoading;
-
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -170,15 +161,6 @@ export default function UsersClient() {
       </div>
     );
   }
-
-  if (userProfile?.role !== 'admin') {
-    return (
-      <p className="text-center text-muted-foreground py-12">
-        Anda tidak memiliki akses ke halaman ini.
-      </p>
-    );
-  }
-
 
   return (
     <>
@@ -273,7 +255,7 @@ export default function UsersClient() {
           </CardContent>
         </Card>
       ))}
-       {sortedUsers.length === 0 && !usersLoading && (
+       {sortedUsers.length === 0 && !isLoading && (
         <div className="text-muted-foreground text-sm text-center py-10">
           Tidak ada pengguna untuk ditampilkan.
         </div>
@@ -282,5 +264,3 @@ export default function UsersClient() {
     </>
   );
 }
-
-    

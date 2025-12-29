@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from "react";
@@ -19,19 +18,19 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useCollection, useUser } from '@/firebase';
+import { useCollection } from '@/firebase';
 import { collection, deleteDoc, doc } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 
 export default function LocationsClient() {
-  const { userProfile } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
 
-  const locationsRef = userProfile?.role === 'admin' ? collection(firestore, 'locations') : null;
+  // AdminLayout ensures this only runs for admins.
+  const locationsRef = collection(firestore, 'locations');
   const { data: locations, isLoading } = useCollection<Location>(locationsRef);
 
   const sortedLocations = useMemo(() => {
@@ -125,5 +124,3 @@ export default function LocationsClient() {
     </div>
   );
 }
-
-    

@@ -1,4 +1,3 @@
-
 'use client';
 
 import KioskClient from "./client";
@@ -7,26 +6,18 @@ import { useState, useEffect } from "react";
 import { getLocations } from "@/lib/firestore-client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { useCollection } from "@/firebase";
+import { collection } from "firebase/firestore";
+import { useFirestore } from "@/firebase/provider";
 
-// This page now acts as a client-side container that fetches the initial data needed by the KioskClient.
-// This aligns with the client-side data fetching pattern used across the app.
+
 export default function KioskSettingsPage() {
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const firestore = useFirestore();
   
-  useEffect(() => {
-    getLocations(true) // Fetch all locations, including inactive ones for the admin
-      .then(setLocations)
-      .catch(() => {
-        toast({
-          variant: "destructive",
-          title: "Gagal Memuat",
-          description: "Tidak dapat mengambil daftar lokasi untuk pengaturan kios.",
-        });
-      })
-      .finally(() => setLoading(false));
-  }, [toast]);
+  const locationsRef = collection(firestore, 'locations');
+  // Fetch all locations, including inactive ones for the admin
+  const { data: locations, isLoading } = useCollection<Location>(locationsRef);
 
   return (
     <div className="p-4 md:p-8">
@@ -35,7 +26,7 @@ export default function KioskSettingsPage() {
         <p className="text-muted-foreground">Kelola pengaturan umum aplikasi dan mode kios.</p>
       </header>
       <div className="space-y-8">
-        {loading ? (
+        {isLoading ? (
            <div className="space-y-8">
             <Skeleton className="h-64 w-full" />
             <Skeleton className="h-96 w-full" />
@@ -43,7 +34,7 @@ export default function KioskSettingsPage() {
           </div>
         ) : (
           <KioskClient 
-            initialLocations={locations}
+            initialLocations={locations || []}
           />
         )}
       </div>
