@@ -61,6 +61,7 @@ export interface Spot {
   };
   hotspots?: Hotspot[];
   createdAt?: Timestamp | Date;
+  updatedAt?: Timestamp | Date;
 }
 
 export interface OfflineLocationData {
