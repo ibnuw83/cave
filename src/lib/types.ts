@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import type { Timestamp } from 'firebase/firestore';
@@ -79,7 +80,6 @@ export interface PaymentGatewaySettings {
     provider: 'midtrans' | 'xendit' | 'none';
     mode: 'sandbox' | 'production';
     clientKey?: string;
-    serverKey?: string;
 }
 
 export interface AdSenseSettings {
@@ -115,3 +115,5 @@ export interface PricingTier {
   cta: string;
   order: number;
 }
+
+    

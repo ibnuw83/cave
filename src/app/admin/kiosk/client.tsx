@@ -19,7 +19,7 @@ import { saveKioskSettings, setKioskControl } from '@/lib/firestore-client';
 import Link from 'next/link';
 import { isLocationAvailableOffline, saveLocationForOffline } from '@/lib/offline';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useUser, useFirestore, useDoc, useCollection } from '@/firebase/provider';
+import { useUser, useFirestore } from '@/app/layout';
 import { collection, doc, Timestamp, onSnapshot } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
@@ -27,6 +27,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useCollection, useDoc } from '@/firebase/provider';
 
 const globalSettingsSchema = z.object({
   logoUrl: z.string().url({ message: "URL tidak valid." }).optional().or(z.literal('')),
@@ -67,7 +68,6 @@ const paymentGatewaySchema = z.object({
         provider: z.enum(['midtrans', 'xendit', 'none']),
         mode: z.enum(['sandbox', 'production']),
         clientKey: z.string().optional(),
-        serverKey: z.string().optional(),
     })
 });
 
@@ -97,19 +97,27 @@ interface KioskClientProps {
 function KioskRemoteControl() {
   const { toast } = useToast();
   const firestore = useFirestore();
-  const { userProfile } = useUser(); // Use the hook to get user profile
+  const { userProfile } = useUser();
 
   const [devices, setDevices] = useState<KioskDevice[]>([]);
   const [controlState, setControlState] = useState<{enabled: boolean, message?: string, forceReload?: boolean} | null>(null);
   const [devicesLoading, setDevicesLoading] = useState(true);
   const [controlLoading, setControlLoading] = useState(true);
   
-  const spotsRef = useMemo(() => collection(firestore, 'spots'), [firestore]);
+  const spotsRef = useMemo(() => {
+    if (userProfile?.role === 'admin') {
+      return collection(firestore, 'spots');
+    }
+    return null;
+  }, [userProfile, firestore]);
   const { data: allSpots, isLoading: spotsLoading } = useCollection<Spot>(spotsRef);
 
   useEffect(() => {
-    // Firestore rules now handle security, so we don't need to check userProfile.role here.
-    // If a non-admin tries, the onSnapshot will simply throw a permission error.
+    if (userProfile?.role !== 'admin') {
+        setDevicesLoading(false);
+        setControlLoading(false);
+        return;
+    }
 
     const devicesRef = collection(firestore, 'kioskDevices');
     const devicesUnsub = onSnapshot(devicesRef, (snapshot) => {
@@ -135,7 +143,7 @@ function KioskRemoteControl() {
         devicesUnsub();
         controlUnsub();
     }
-  }, [firestore]);
+  }, [firestore, userProfile]);
 
   const controlForm = useForm<RemoteControlFormValues>({
     resolver: zodResolver(remoteControlSchema),
@@ -166,7 +174,6 @@ function KioskRemoteControl() {
     return allSpots.find(s => s.id === spotId)?.title || 'Spot Tidak Dikenal';
   };
 
-  // We can only render this if the user is an admin.
   if (userProfile?.role !== 'admin') {
       return null;
   }
@@ -289,7 +296,6 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
               provider: 'none',
               mode: 'sandbox',
               clientKey: '',
-              serverKey: '',
           }
       },
   });
@@ -327,7 +333,7 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
             playlist: kioskSettings.playlist || [],
         });
         paymentForm.reset({
-            paymentGateway: kioskSettings.paymentGateway || { provider: 'none', mode: 'sandbox', clientKey: '', serverKey: '' },
+            paymentGateway: kioskSettings.paymentGateway || { provider: 'none', mode: 'sandbox', clientKey: '' },
         });
         adsenseForm.reset({
             adsense: kioskSettings.adsense || { clientId: '', adSlotId: '' },
@@ -858,19 +864,7 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
                           <FormControl>
                               <Input placeholder="Midtrans Client Key / Xendit Public Key" {...field} />
                           </FormControl>
-                          <FormMessage />
-                      </FormItem>
-                      )}
-                  />
-                  <FormField
-                      control={paymentForm.control}
-                      name="paymentGateway.serverKey"
-                      render={({ field }) => (
-                      <FormItem>
-                          <FormLabel>Server Key (Secret)</FormLabel>
-                          <FormControl>
-                              <Input type="password" placeholder="••••••••••••••••••••" {...field} />
-                          </FormControl>
+                          <FormDescription>Kunci ini aman untuk disimpan di sisi klien.</FormDescription>
                           <FormMessage />
                       </FormItem>
                       )}
@@ -934,3 +928,5 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
     </>
   );
 }
+
+    
