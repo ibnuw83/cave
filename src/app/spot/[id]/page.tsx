@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Spot } from '@/lib/types';
 import LockedScreen from '@/app/components/locked-screen';
@@ -12,10 +12,11 @@ import PanoramaViewer from '@/components/viewer-panorama';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ServerCrash, Info } from 'lucide-react';
-import { useUser, useFirestore, useDoc, useCollection } from '@/firebase/provider';
+import { useUser, useFirestore, useDoc } from '@/firebase/provider';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { doc, collection, query, where } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
+import { getSpotsForLocation } from '@/lib/firestore-client';
 
 
 function SpotPageFallback() {
@@ -35,16 +36,24 @@ export default function SpotPage() {
   const spotRef = useMemo(() => id ? doc(firestore, 'spots', id) : null, [id, firestore]);
   const { data: spot, isLoading: isSpotLoading, error: spotError } = useDoc<Spot>(spotRef);
   
-  const spotsQuery = useMemo(() => {
-    if (spot && spot.locationId) {
-      // Remove orderBy from the query to avoid needing a composite index.
-      // Sorting will be handled on the client-side.
-      return query(collection(firestore, 'spots'), where('locationId', '==', spot.locationId));
-    }
-    return null;
-  }, [spot, firestore]);
+  const [allSpotsInLocation, setAllSpotsInLocation] = useState<Spot[]>([]);
+  const [areSpotsLoading, setAreSpotsLoading] = useState(true);
 
-  const { data: allSpotsInLocation, isLoading: areSpotsLoading, error: spotsError } = useCollection<Spot>(spotsQuery);
+  useEffect(() => {
+    if (spot?.locationId) {
+      setAreSpotsLoading(true);
+      getSpotsForLocation(firestore, spot.locationId)
+        .then(spots => {
+          setAllSpotsInLocation(spots);
+          setAreSpotsLoading(false);
+        })
+        .catch(err => {
+          console.error("Failed to fetch spots for location:", err);
+          setAreSpotsLoading(false);
+        });
+    }
+  }, [spot?.locationId, firestore]);
+
   
   const isLoading = isUserLoading || isSpotLoading || (spot && areSpotsLoading);
   
@@ -57,7 +66,7 @@ export default function SpotPage() {
 
   if (isLoading) return <SpotPageFallback />;
   
-  const anyError = spotError || spotsError;
+  const anyError = spotError; // spotsError is now handled internally
   if (anyError) {
      return (
       <div className="h-screen w-screen flex items-center justify-center p-4 bg-background">
