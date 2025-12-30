@@ -12,10 +12,9 @@ import { Switch } from '@/components/ui/switch';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { useAuth } from '@/app/layout';
+import { useAuth, useFirestore } from '@/app/layout';
 import { AdminMiniMapEditor } from './admin-mini-map-editor';
 import { doc, setDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
-import { useFirestore } from '@/app/layout';
 
 const locationSchema = z.object({
   name: z.string().min(1, { message: 'Nama lokasi tidak boleh kosong.' }),

@@ -126,10 +126,11 @@ export default function KiosClient() {
 
   const kioskDeviceRef = useMemo(() => firestore ? doc(firestore, 'kioskDevices', 'kiosk-001') : null, [firestore]);
   const kioskControlRef = useMemo(() => firestore ? doc(firestore, 'kioskControl', 'global') : null, [firestore]);
-  const currentSpotId = useMemo(() => spots.length > 0 ? spots[0]?.id : undefined, [spots]);
+  
+  const [currentSpotIndex, setCurrentSpotIndex] = useState(0);
+  const currentSpot = spots.length > 0 ? spots[currentSpotIndex] : null;
 
-  // These hooks will only run when the refs are not null
-  useKioskHeartbeat(kioskDeviceRef, currentSpotId);
+  useKioskHeartbeat(kioskDeviceRef, currentSpot?.id);
   useKioskControl(kioskControlRef, (ctrl) => {
       // Handle control commands if any
   });
@@ -159,6 +160,8 @@ export default function KiosClient() {
         spots={spots}
         mode={settings.mode || 'loop'}
         kioskId={settings.locationId || 'unknown_kiosk'}
+        currentSpotIndex={currentSpotIndex}
+        setCurrentSpotIndex={setCurrentSpotIndex}
       />
   );
 }

@@ -18,8 +18,8 @@ import { saveKioskSettings, setKioskControl } from '@/lib/firestore-client';
 import Link from 'next/link';
 import { isLocationAvailableOffline, saveLocationForOffline } from '@/lib/offline';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useCollection, useDoc, useFirestore, useUser } from '@/firebase';
-import { collection, doc, Timestamp } from 'firebase/firestore';
+import { useUser, useFirestore } from '@/app/layout';
+import { collection, doc, Timestamp, onSnapshot } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { formatDistanceToNow } from 'date-fns';
@@ -97,19 +97,18 @@ function KioskRemoteControl({ allSpots }: { allSpots: Spot[] }) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { userProfile } = useUser();
+  const [devices, setDevices] = useState<KioskDevice[]>([]);
+  const [controlState, setControlState] = useState<any>(null);
+  const { isLoading: devicesLoading, data: devicesData } = useCollection<KioskDevice>(userProfile?.role === 'admin' ? collection(firestore, 'kioskDevices') : null);
+  const { isLoading: controlLoading, data: controlData } = useDoc<{enabled: boolean, message?: string, forceReload?: boolean}>(userProfile?.role === 'admin' ? doc(firestore, 'kioskControl', 'global') : null);
 
-  const devicesRef = userProfile?.role === 'admin' ? collection(firestore, 'kioskDevices') : null;
-  const controlRef = userProfile?.role === 'admin' ? doc(firestore, 'kioskControl', 'global') : null;
-
-  const { data: devices, isLoading: devicesLoading } = useCollection<KioskDevice>(devicesRef);
-  const { data: controlState, isLoading: controlLoading } = useDoc<{enabled: boolean, message?: string, forceReload?: boolean}>(controlRef);
 
   const controlForm = useForm<RemoteControlFormValues>({
     resolver: zodResolver(remoteControlSchema),
     defaultValues: { message: '' },
   });
 
-  const isKioskEnabled = controlState?.enabled ?? true;
+  const isKioskEnabled = controlData?.enabled ?? true;
 
   const handleToggleKiosk = (enabled: boolean) => {
     setKioskControl(firestore, { enabled });
@@ -140,9 +139,9 @@ function KioskRemoteControl({ allSpots }: { allSpots: Spot[] }) {
               <div className="space-y-4">
                   <h4 className="font-semibold text-sm">Perangkat Aktif</h4>
                   {devicesLoading ? <Skeleton className="h-16 w-full" /> : (
-                      devices && devices.length > 0 ? (
+                      devicesData && devicesData.length > 0 ? (
                           <div className="border rounded-md divide-y">
-                              {devices.map(device => (
+                              {devicesData.map(device => (
                                   <div key={device.id} className="p-3 flex justify-between items-center">
                                       <div className='flex items-center gap-3'>
                                           <Monitor className="h-5 w-5"/>

@@ -11,10 +11,12 @@ import PanoramaViewer from '@/components/viewer-panorama';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ServerCrash, Info } from 'lucide-react';
-import { useUser, useDoc, useCollection, useFirestore } from '@/firebase';
+import { useUser, useFirestore } from '@/app/layout';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { doc, collection, query, where, orderBy } from 'firebase/firestore';
+import { useDoc, useCollection } from '@/firebase/firestore';
+
 
 function SpotPageFallback() {
     return <Skeleton className="w-screen h-screen" />;
@@ -33,7 +35,7 @@ export default function SpotPage() {
   const spotRef = useMemo(() => id ? doc(firestore, 'spots', id) : null, [id, firestore]);
   const { data: spot, isLoading: isSpotLoading, error: spotError } = useDoc<Spot>(spotRef);
   
-  const spotsQuery = useMemo(() => spot ? query(collection(firestore, 'spots'), where('locationId', '==', spot.locationId)) : null, [spot, firestore]);
+  const spotsQuery = useMemo(() => spot ? query(collection(firestore, 'spots'), where('locationId', '==', spot.locationId), orderBy('order')) : null, [spot, firestore]);
   const { data: allSpotsInLocation, isLoading: areSpotsLoading, error: spotsError } = useCollection<Spot>(spotsQuery);
   
   const isLoading = isUserLoading || isSpotLoading || (spot && areSpotsLoading);

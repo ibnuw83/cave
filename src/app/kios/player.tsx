@@ -43,11 +43,12 @@ interface Props {
   spots: (Spot & { duration: number })[];
   mode: KioskSettings['mode'];
   kioskId: string;
+  currentSpotIndex: number;
+  setCurrentSpotIndex: (index: number) => void;
 }
 
-export default function KioskPlayer({ spots, mode, kioskId }: Props) {
+export default function KioskPlayer({ spots, mode, kioskId, currentSpotIndex, setCurrentSpotIndex }: Props) {
   const db = useFirestore();
-  const [index, setIndex] = useState(0);
   const [progress, setProgress] = useState(100);
   const timerRef = useRef<number | null>(null);
   const progressTimerRef = useRef<number | null>(null);
@@ -63,12 +64,10 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
     [spots, mode]
   );
 
-  const current = playlist.length > 0 ? playlist[index] : null;
+  const current = playlist.length > 0 ? playlist[currentSpotIndex] : null;
   
-  const kioskDeviceRef = doc(db, 'kioskDevices', 'kiosk-001');
-  const kioskControlRef = doc(db, 'kioskControl', 'global');
+  const kioskControlRef = useMemo(() => db ? doc(db, 'kioskControl', 'global') : null, [db]);
 
-  useKioskHeartbeat(kioskDeviceRef, current?.id);
   useKioskControl(kioskControlRef, (ctrl) => { 
     if (typeof ctrl.enabled === 'boolean') setKioskEnabled(ctrl.enabled);
     if (typeof ctrl.message === 'string') setKioskMsg(ctrl.message);
@@ -85,10 +84,10 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
   const changeSpot = useCallback(() => {
      setIsFading(true);
       setTimeout(() => {
-        setIndex((prev) => (prev + 1) % playlist.length);
+        setCurrentSpotIndex((prev) => (prev + 1) % playlist.length);
         setIsFading(false);
       }, 500); // Wait for fade out
-  }, [playlist.length]);
+  }, [playlist.length, setCurrentSpotIndex]);
 
 
   useEffect(() => {
@@ -119,7 +118,7 @@ export default function KioskPlayer({ spots, mode, kioskId }: Props) {
     }, 100);
 
     return clearTimers;
-  }, [index, playlist, current, kioskId, kioskEnabled, changeSpot, db]);
+  }, [currentSpotIndex, playlist, current, kioskId, kioskEnabled, changeSpot, db]);
 
   if (!kioskEnabled) {
     return (

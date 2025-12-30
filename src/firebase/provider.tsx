@@ -1,11 +1,11 @@
+
 'use client';
 
 // Export everything from the layout file now
-export { useAuth, useFirestore, useFirebaseApp, useFirebase } from '@/app/layout';
+export { useAuth, useFirestore, useFirebaseApp, useFirebase, useUser } from '@/app/layout';
 
 // Export hooks and utilities
 export * from './errors';
 export * from './error-emitter';
-
-// Keep use-user export for compatibility
-export { useUser } from './auth/use-user';
+export * from './firestore/use-doc';
+export * from './firestore/use-collection';

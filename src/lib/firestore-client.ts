@@ -154,8 +154,8 @@ export async function getSpotsForLocation(db: Firestore, locationId: string): Pr
   }
 }
 
-export async function updateLocationMiniMapWithSpot(firestore: Firestore, spot: Spot, allSpotsInLocation: Spot[]) {
-  const locationRef = doc(firestore, 'locations', spot.locationId);
+export async function updateLocationMiniMapWithSpot(db: Firestore, spot: Spot, allSpotsInLocation: Spot[]) {
+  const locationRef = doc(db, 'locations', spot.locationId);
 
   try {
     const locationSnap = await getDoc(locationRef);
@@ -313,3 +313,4 @@ export async function trackKioskSpotView(db: Firestore, locationId: string, spot
         console.warn(`Failed to track kiosk view for spot ${spotId}:`, error.message);
     }
 }
+

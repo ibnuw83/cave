@@ -19,7 +19,7 @@ import {
   Firestore,
 } from 'firebase/firestore';
 import type { User, Auth } from 'firebase/auth';
-import type { UserProfile, Location, Spot, KioskSettings, PricingTier, CaveMapNode } from '../types';
+import type { UserProfile, Location, Spot, KioskSettings, PricingTier, CaveMapNode } from './types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -101,9 +101,6 @@ export async function updateUserProfile(db: Firestore, uid: string, data: Partia
       throw error;
     }
 }
-
-// This is now deprecated as we use direct client-side updates with rules.
-// export async function updateUserRole(uid: string, role: UserProfile['role']) { ... }
 
 // --- Location Functions ---
 

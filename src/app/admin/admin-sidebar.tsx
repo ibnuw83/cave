@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -9,7 +10,7 @@ import { Mountain, MapPin, Users, Home, LogOut, ArrowLeft, Settings, User as Use
 import { useEffect, useState } from 'react';
 import { KioskSettings, UserProfile } from '@/lib/types';
 import Image from 'next/image';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore } from '@/app/layout';
 import { User, signOut as firebaseSignOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -21,7 +22,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { getKioskSettings } from '@/lib/firestore-client';
-import { useFirestore } from '@/firebase/provider';
 
 function AdminNavLink({ href, icon, label, color, activeColor }: { href: string; icon: React.ReactNode; label: string; color: string; activeColor: string; }) {
   const pathname = usePathname();
