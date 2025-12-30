@@ -82,8 +82,16 @@ export function useCollection<T = any>(
       previousQueryPath.current = null;
       return;
     }
-
-    const currentQueryPath = (targetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
+    
+    // Safely get the path for both CollectionReference and Query
+    let currentQueryPath: string;
+    if (targetRefOrQuery.type === 'collection') {
+        currentQueryPath = (targetRefOrQuery as CollectionReference).path;
+    } else {
+        // This handles the Query case
+        currentQueryPath = (targetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
+    }
+    
     if (previousQueryPath.current === currentQueryPath) {
       // The query itself hasn't changed, so don't re-subscribe.
       return;
