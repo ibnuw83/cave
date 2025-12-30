@@ -72,33 +72,14 @@ export function useCollection<T = any>(
   const [isLoading, setIsLoading] = useState<boolean>(true); // Start as true
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
-  const previousQueryPath = useRef<string | null>(null);
-
   useEffect(() => {
     if (!targetRefOrQuery) {
       setData(null);
       setIsLoading(false);
       setError(null);
-      previousQueryPath.current = null;
       return;
     }
     
-    // Safely get a stable key for both CollectionReference and Query
-    let currentQueryPath: string;
-    if (targetRefOrQuery.type === 'collection') {
-        currentQueryPath = (targetRefOrQuery as CollectionReference).path;
-    } else {
-        // For queries, serialize the official JSON representation to get a stable key.
-        currentQueryPath = JSON.stringify((targetRefOrQuery as Query).toJSON());
-    }
-    
-    if (previousQueryPath.current === currentQueryPath) {
-      // The query itself hasn't changed, so don't re-subscribe.
-      return;
-    }
-    previousQueryPath.current = currentQueryPath;
-
-
     setIsLoading(true);
     setError(null);
 
@@ -118,7 +99,7 @@ export function useCollection<T = any>(
         const path: string =
           targetRefOrQuery.type === 'collection'
             ? (targetRefOrQuery as CollectionReference).path
-            : JSON.stringify((targetRefOrQuery as Query).toJSON()); // Use the same stable key for error reporting
+            : "Complex query"; // Path is not easily accessible on complex queries.
 
         const contextualError = new FirestorePermissionError({
           operation: 'list',
