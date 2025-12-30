@@ -157,22 +157,6 @@ const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isConfigured, setIsConfigured] = useState(true);
 
   useEffect(() => {
-    const required = [
-        "NEXT_PUBLIC_FIREBASE_API_KEY",
-        "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",
-        "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
-        "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET",
-        "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID",
-        "NEXT_PUBLIC_FIREBASE_APP_ID",
-    ];
-    const missing = required.filter((k) => !(process.env as any)[k]);
-    
-    if (missing.length > 0) {
-        console.warn("Missing Firebase ENV vars:", missing);
-        setIsConfigured(false);
-        return;
-    }
-
     const firebaseConfig = {
       apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
       authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -183,12 +167,18 @@ const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
       measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
     };
 
-    const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-    setServices({
-      firebaseApp: app,
-      firestore: getFirestore(app),
-      auth: getAuth(app),
-    });
+    const configured = !!(firebaseConfig.apiKey && firebaseConfig.projectId);
+
+    if (configured) {
+      const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+      setServices({
+        firebaseApp: app,
+        firestore: getFirestore(app),
+        auth: getAuth(app),
+      });
+    } else {
+      setIsConfigured(false);
+    }
   }, []);
 
 
