@@ -26,7 +26,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useCollection, useDoc } from '@/firebase/firestore/use-doc';
+import { useCollection, useDoc } from '@/firebase/firestore/use-collection';
 
 const globalSettingsSchema = z.object({
   logoUrl: z.string().url({ message: "URL tidak valid." }).optional().or(z.literal('')),
@@ -156,7 +156,7 @@ function KioskRemoteControl({ allSpots }: { allSpots: Spot[] }) {
                                       </div>
                                       <div className="text-xs text-muted-foreground flex items-center gap-2">
                                          <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                                         {device.updatedAt ? formatDistanceToNow(new Date(device.updatedAt as any), { addSuffix: true, locale: id }) : 'Baru saja'}
+                                         {device.updatedAt ? formatDistanceToNow(device.updatedAt.toDate(), { addSuffix: true, locale: id }) : 'Baru saja'}
                                       </div>
                                   </div>
                               ))}
