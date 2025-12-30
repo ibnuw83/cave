@@ -19,7 +19,7 @@ import { saveKioskSettings, setKioskControl } from '@/lib/firestore-client';
 import Link from 'next/link';
 import { isLocationAvailableOffline, saveLocationForOffline } from '@/lib/offline';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useUser, useFirestore, useCollection } from '@/firebase/provider';
+import { useUser, useFirestore, useCollection, useDoc } from '@/firebase/provider';
 import { collection, doc, Timestamp, onSnapshot } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
@@ -280,7 +280,7 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
   const settingsRef = useMemo(() => doc(firestore, 'kioskSettings', 'main'), [firestore]);
 
   const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(spotsRef);
-  const { data: kioskSettings, isLoading: settingsLoading } = useCollection<KioskSettings>(settingsRef as any); // cast to any to avoid type issue with useCollection
+  const { data: mainSettings, isLoading: settingsLoading } = useDoc<KioskSettings>(settingsRef);
   
   const globalForm = useForm<GlobalSettingsFormValues>({
     resolver: zodResolver(globalSettingsSchema),
@@ -322,13 +322,6 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
       },
     },
   });
-  
-  const mainSettings = useMemo(() => {
-    if (kioskSettings && kioskSettings.length > 0) {
-      return kioskSettings[0];
-    }
-    return null;
-  }, [kioskSettings]);
 
   useEffect(() => {
     if (mainSettings) {
@@ -948,5 +941,3 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
     </>
   );
 }
-
-    
