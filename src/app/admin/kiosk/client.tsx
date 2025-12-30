@@ -94,7 +94,7 @@ interface KioskClientProps {
 }
 
 
-function KioskRemoteControl({ allSpots }: { allSpots: Spot[] }) {
+function KioskRemoteControl() {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { userProfile } = useUser();
@@ -102,10 +102,16 @@ function KioskRemoteControl({ allSpots }: { allSpots: Spot[] }) {
   const [controlState, setControlState] = useState<{enabled: boolean, message?: string, forceReload?: boolean} | null>(null);
   const [devicesLoading, setDevicesLoading] = useState(true);
   const [controlLoading, setControlLoading] = useState(true);
-
+  
+  const spotsRef = useMemo(() => userProfile?.role === 'admin' ? collection(firestore, 'spots') : null, [userProfile, firestore]);
+  const { data: allSpots, isLoading: spotsLoading } = useCollection<Spot>(spotsRef);
 
   useEffect(() => {
-    if (userProfile?.role !== 'admin') return;
+    if (userProfile?.role !== 'admin') {
+      setDevicesLoading(false);
+      setControlLoading(false);
+      return;
+    };
 
     const devicesRef = collection(firestore, 'kioskDevices');
     const devicesUnsub = onSnapshot(devicesRef, (snapshot) => {
@@ -151,7 +157,12 @@ function KioskRemoteControl({ allSpots }: { allSpots: Spot[] }) {
     toast({ title: "Pesan Terkirim", description: 'Pesan akan ditampilkan di semua kios.' });
   };
   
-  const getSpotTitle = (spotId: string) => allSpots.find(s => s.id === spotId)?.title || 'Unknown Spot';
+  const getSpotTitle = (spotId: string) => {
+    if (!allSpots) return 'Memuat...';
+    return allSpots.find(s => s.id === spotId)?.title || 'Spot Tidak Dikenal';
+  };
+
+  const isLoading = devicesLoading || controlLoading || spotsLoading;
 
   return (
       <Card>
@@ -162,7 +173,7 @@ function KioskRemoteControl({ allSpots }: { allSpots: Spot[] }) {
           <CardContent className="space-y-6">
               <div className="space-y-4">
                   <h4 className="font-semibold text-sm">Perangkat Aktif</h4>
-                  {devicesLoading ? <Skeleton className="h-16 w-full" /> : (
+                  {isLoading ? <Skeleton className="h-16 w-full" /> : (
                       devices && devices.length > 0 ? (
                           <div className="border rounded-md divide-y">
                               {devices.map(device => (
@@ -413,7 +424,7 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
 
   return (
     <>
-      <KioskRemoteControl allSpots={spots || []} />
+      <KioskRemoteControl />
 
       <Form {...globalForm}>
         <form onSubmit={globalForm.handleSubmit(onGlobalSubmit)} className="space-y-8 mt-8">
@@ -914,4 +925,3 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
     </>
   );
 }
-
