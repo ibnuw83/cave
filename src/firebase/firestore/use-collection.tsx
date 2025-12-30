@@ -83,13 +83,13 @@ export function useCollection<T = any>(
       return;
     }
     
-    // Safely get the path for both CollectionReference and Query
+    // Safely get a stable key for both CollectionReference and Query
     let currentQueryPath: string;
     if (targetRefOrQuery.type === 'collection') {
         currentQueryPath = (targetRefOrQuery as CollectionReference).path;
     } else {
-        // This handles the Query case
-        currentQueryPath = (targetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
+        // For queries, serialize the official JSON representation to get a stable key.
+        currentQueryPath = JSON.stringify((targetRefOrQuery as Query).toJSON());
     }
     
     if (previousQueryPath.current === currentQueryPath) {
@@ -118,7 +118,7 @@ export function useCollection<T = any>(
         const path: string =
           targetRefOrQuery.type === 'collection'
             ? (targetRefOrQuery as CollectionReference).path
-            : (targetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString()
+            : JSON.stringify((targetRefOrQuery as Query).toJSON()); // Use the same stable key for error reporting
 
         const contextualError = new FirestorePermissionError({
           operation: 'list',
