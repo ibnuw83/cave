@@ -53,7 +53,7 @@ export function PricingTierForm({ tier, allRoles, onSave, onCancel }: PricingTie
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove } = useFieldArray<TierFormValues>({
     control: form.control,
     name: 'features',
   });
