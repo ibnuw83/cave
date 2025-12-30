@@ -161,16 +161,16 @@ const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
 
     const isConfigured = !!(firebaseConfig.apiKey && firebaseConfig.projectId);
 
-    if (typeof window === 'undefined' || !isConfigured) {
+    if (typeof window === 'undefined') {
       return { isConfigured: false } as any;
     }
-
+    
     const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     return {
       firebaseApp: app,
       firestore: getFirestore(app),
       auth: getAuth(app),
-      isConfigured: true,
+      isConfigured: isConfigured,
     };
   }, []);
 
