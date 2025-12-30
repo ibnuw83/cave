@@ -59,14 +59,19 @@ const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isUserLoading, setIsUserLoading] = useState(true);
-  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [isProfileLoading, setIsProfileLoading] = useState(false); // Default to false
   const [authError, setAuthError] = useState<Error | null>(null);
 
-  const fetchUserProfile = useCallback(async (firebaseUser: User) => {
-    if (!firebaseServices) return;
+  const fetchUserProfile = useCallback(async (firebaseUser: User | null) => {
+    // Only fetch if there is a valid user object.
+    if (!firebaseUser || !firebaseServices) {
+      setUserProfile(null);
+      setIsProfileLoading(false);
+      return;
+    }
+
     setIsProfileLoading(true);
     try {
-      // getUserProfileClient will now create a profile if it doesn't exist.
       const profile = await getUserProfileClient(firebaseServices.firestore, firebaseUser.uid, {
         displayName: firebaseUser.displayName,
         email: firebaseUser.email,
@@ -76,7 +81,6 @@ const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     } catch (err) {
       console.error("Failed to fetch or create user profile:", err);
       setAuthError(err as Error);
-      // DO NOT SIGN OUT here. It can cause logout loops.
     } finally {
       setIsProfileLoading(false);
     }
@@ -88,27 +92,27 @@ const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { auth } = firebaseServices;
 
     const unsub = onIdTokenChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser);
       setIsUserLoading(false);
-      if (!firebaseUser) {
-        setUser(null);
-        setUserProfile(null);
-        setIsProfileLoading(false);
-        const response = await fetch('/api/logout', { method: 'POST' });
-        if (!response.ok) {
-          console.error("Failed to clear session cookie on logout.");
-        }
-      } else {
-        setUser(firebaseUser);
+      
+      // Fetch profile only after user state is confirmed
+      await fetchUserProfile(firebaseUser);
+
+      // Handle session cookie management
+      if (firebaseUser) {
         const token = await firebaseUser.getIdToken();
-        await fetch('/api/login', {
+        fetch('/api/login', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` }
-        });
-        await fetchUserProfile(firebaseUser);
+        }).catch(err => console.error("Session login failed:", err));
+      } else {
+        fetch('/api/logout', { method: 'POST' }).catch(err => console.error("Session logout failed:", err));
       }
     });
+
     return () => unsub();
   }, [firebaseServices, fetchUserProfile]);
+
 
   const refreshUserProfile = useCallback(async () => {
     if (!firebaseServices) return;
