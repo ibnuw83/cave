@@ -183,7 +183,9 @@ export default function CavePage() {
   };
   
   const sortedSpots = useMemo(() => spots ? [...spots].sort((a, b) => a.order - b.order) : [], [spots]);
-  const showAds = !isPro;
+  
+  // Safe logic for showing ads based on user's role and location status.
+  const showAds = role === 'free' && location?.isActive === true;
   
   const handleStartMission = () => {
     const firstAccessibleSpot = sortedSpots.find(s => !s.isPro || isPro);
@@ -304,7 +306,7 @@ export default function CavePage() {
           <p className="text-xs text-muted-foreground -mt-4 mb-8">Mode offline hanya tersedia untuk pengguna PRO & VIP.</p>
         )}
 
-        {showAds && location.isActive && (
+        {showAds && (
             <div className="my-8">
                 <AdBanner />
                 <p className="text-center text-xs text-muted-foreground mt-2">

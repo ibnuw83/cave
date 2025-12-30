@@ -121,7 +121,7 @@ export default function ProfilePage() {
   }
   
   const role = userProfile.role ?? 'free';
-  const isPro = role.startsWith('pro') || role === 'vip' || role === 'admin';
+  const showAds = role === 'free';
 
   const getRoleInfo = (role: UserProfile['role']): { icon: React.ReactNode; label: string; } => {
     switch(role) {
@@ -135,7 +135,6 @@ export default function ProfilePage() {
   }
 
   const roleInfo = getRoleInfo(userProfile.role);
-  const showAds = !isPro;
 
   return (
     <>
@@ -161,7 +160,7 @@ export default function ProfilePage() {
                             </Button>
                         </div>
                         <div className="flex items-center gap-4 mt-2">
-                           <Badge variant={isPro ? 'default' : 'secondary'} className="gap-2">
+                           <Badge variant={role !== 'free' ? 'default' : 'secondary'} className="gap-2">
                                 {roleInfo.icon}
                                 <span className="uppercase">{roleInfo.label}</span>
                             </Badge>
@@ -195,19 +194,7 @@ export default function ProfilePage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {!isPro ? (
-                        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between rounded-lg border bg-card p-4">
-                          <div>
-                            <h3 className="font-semibold text-foreground">Upgrade ke PRO</h3>
-                            <p className="text-muted-foreground text-sm mt-1">
-                                Buka semua fitur eksklusif, termasuk semua spot, mode offline, dan bebas iklan.
-                            </p>
-                          </div>
-                          <Button asChild className="sm:ml-4 flex-shrink-0">
-                            <Link href="/pricing">Lihat Paket</Link>
-                          </Button>
-                        </div>
-                    ) : (
+                    {!showAds ? (
                         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between rounded-lg border bg-card p-4">
                             <div>
                                 <h3 className="font-semibold text-foreground">Kelola Langganan Anda</h3>
@@ -218,6 +205,18 @@ export default function ProfilePage() {
                             <Button asChild variant="outline" className="sm:ml-4 flex-shrink-0">
                                 <Link href="/pricing">Lihat Paket Lain</Link>
                             </Button>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between rounded-lg border bg-card p-4">
+                          <div>
+                            <h3 className="font-semibold text-foreground">Upgrade ke PRO</h3>
+                            <p className="text-muted-foreground text-sm mt-1">
+                                Buka semua fitur eksklusif, termasuk semua spot, mode offline, dan bebas iklan.
+                            </p>
+                          </div>
+                          <Button asChild className="sm:ml-4 flex-shrink-0">
+                            <Link href="/pricing">Lihat Paket</Link>
+                          </Button>
                         </div>
                     )}
                 </CardContent>
