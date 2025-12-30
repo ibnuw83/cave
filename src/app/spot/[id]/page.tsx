@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -11,11 +12,10 @@ import PanoramaViewer from '@/components/viewer-panorama';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ServerCrash, Info } from 'lucide-react';
-import { useUser, useFirestore } from '@/app/layout';
+import { useUser, useFirestore, useDoc, useCollection } from '@/firebase/provider';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { doc, collection, query, where, orderBy } from 'firebase/firestore';
-import { useDoc, useCollection } from '@/firebase/provider';
 
 
 function SpotPageFallback() {
