@@ -12,11 +12,10 @@ import PanoramaViewer from '@/components/viewer-panorama';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ServerCrash, Info } from 'lucide-react';
-import { useUser, useFirestore, useDoc } from '@/firebase/provider';
+import { useUser, useFirestore, useDoc, useCollection } from '@/firebase/provider';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { doc } from 'firebase/firestore';
-import { getSpotsForLocation } from '@/lib/firestore-client';
+import { doc, collection, query, where } from 'firebase/firestore';
 
 
 function SpotPageFallback() {
@@ -36,23 +35,15 @@ export default function SpotPage() {
   const spotRef = useMemo(() => id ? doc(firestore, 'spots', id) : null, [id, firestore]);
   const { data: spot, isLoading: isSpotLoading, error: spotError } = useDoc<Spot>(spotRef);
   
-  const [allSpotsInLocation, setAllSpotsInLocation] = useState<Spot[]>([]);
-  const [areSpotsLoading, setAreSpotsLoading] = useState(true);
-
-  useEffect(() => {
+  // This query will only be created when `spot.locationId` is available, preventing an invalid query.
+  const spotsQuery = useMemo(() => {
     if (spot?.locationId) {
-      setAreSpotsLoading(true);
-      getSpotsForLocation(firestore, spot.locationId)
-        .then(spots => {
-          setAllSpotsInLocation(spots);
-          setAreSpotsLoading(false);
-        })
-        .catch(err => {
-          console.error("Failed to fetch spots for location:", err);
-          setAreSpotsLoading(false);
-        });
+      return query(collection(firestore, 'spots'), where('locationId', '==', spot.locationId));
     }
+    return null;
   }, [spot?.locationId, firestore]);
+
+  const { data: allSpotsInLocation, isLoading: areSpotsLoading } = useCollection<Spot>(spotsQuery);
 
   
   const isLoading = isUserLoading || isSpotLoading || (spot && areSpotsLoading);
@@ -66,7 +57,7 @@ export default function SpotPage() {
 
   if (isLoading) return <SpotPageFallback />;
   
-  const anyError = spotError; // spotsError is now handled internally
+  const anyError = spotError;
   if (anyError) {
      return (
       <div className="h-screen w-screen flex items-center justify-center p-4 bg-background">
