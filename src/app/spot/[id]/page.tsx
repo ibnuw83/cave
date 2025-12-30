@@ -15,7 +15,7 @@ import { useUser, useFirestore } from '@/app/layout';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { doc, collection, query, where, orderBy } from 'firebase/firestore';
-import { useDoc, useCollection } from '@/firebase/firestore/use-doc';
+import { useDoc, useCollection } from '@/firebase/provider';
 
 
 function SpotPageFallback() {
