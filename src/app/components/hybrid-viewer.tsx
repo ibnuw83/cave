@@ -4,7 +4,7 @@
 import { useEffect, useState, ReactNode } from 'react';
 import { detectViewType } from '@/lib/view-type';
 import FlatViewer from './viewer-flat';
-import PanoramaViewer from './viewer-panorama';
+import PanoramaViewer from '@/components/viewer-panorama';
 import { Skeleton } from '@/components/ui/skeleton';
 
 
