@@ -104,15 +104,12 @@ function KioskRemoteControl() {
   const [devicesLoading, setDevicesLoading] = useState(true);
   const [controlLoading, setControlLoading] = useState(true);
   
-  const spotsRef = useMemo(() => userProfile?.role === 'admin' ? collection(firestore, 'spots') : null, [userProfile, firestore]);
+  const spotsRef = useMemo(() => collection(firestore, 'spots'), [firestore]);
   const { data: allSpots, isLoading: spotsLoading } = useCollection<Spot>(spotsRef);
 
   useEffect(() => {
-    if (userProfile?.role !== 'admin') {
-      setDevicesLoading(false);
-      setControlLoading(false);
-      return;
-    };
+    // Firestore rules now handle security, so we don't need to check userProfile.role here.
+    // If a non-admin tries, the onSnapshot will simply throw a permission error.
 
     const devicesRef = collection(firestore, 'kioskDevices');
     const devicesUnsub = onSnapshot(devicesRef, (snapshot) => {
@@ -138,7 +135,7 @@ function KioskRemoteControl() {
         devicesUnsub();
         controlUnsub();
     }
-  }, [userProfile, firestore]);
+  }, [firestore]);
 
   const controlForm = useForm<RemoteControlFormValues>({
     resolver: zodResolver(remoteControlSchema),
@@ -168,6 +165,11 @@ function KioskRemoteControl() {
     if (!allSpots) return 'Memuat...';
     return allSpots.find(s => s.id === spotId)?.title || 'Spot Tidak Dikenal';
   };
+
+  // We can only render this if the user is an admin.
+  if (userProfile?.role !== 'admin') {
+      return null;
+  }
 
   const isLoading = devicesLoading || controlLoading || spotsLoading;
 

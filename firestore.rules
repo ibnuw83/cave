@@ -5,7 +5,8 @@ service cloud.firestore {
 
     // --- Helper Functions ---
     function isAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      // Ensures the user is authenticated and their role in the 'users' collection is 'admin'.
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     function isOwner(userId) {
@@ -48,27 +49,31 @@ service cloud.firestore {
 
     // --- Kiosk-related Collections ---
     match /kioskSettings/{settingId} {
-      allow get, list: if true;
-      allow write: if isAdmin();
+      allow read, write: if isAdmin();
     }
     
     match /kioskDevices/{deviceId} {
-      // Allow any device to write its heartbeat.
-      allow read, write: if true;
+      // Admins can read the status of all devices.
+      allow read: if isAdmin();
+      // Any client (even anonymous kiosks) can write their own heartbeat.
+      allow write: if true;
     }
 
     match /kioskControl/{controlId} {
-      allow read: if true; // Kiosks can read control commands
-      allow write: if isAdmin(); // Admins can write commands
+      // Only admins can write commands.
+      allow write: if isAdmin();
+      // Any client (kiosks) can read control commands.
+      allow read: if true;
     }
 
     match /kioskEvents/{eventId} {
-      // Anyone (especially kiosks) can create events. Events are write-only.
+      // Anyone (especially kiosks) can create events. Events are write-only for security.
       allow create: if true;
       allow read, update, delete: if false;
     }
 
     match /kioskStats/{locationId} {
+      // Anyone can read stats.
       allow read: if true;
       // Allow any client to write stats (throttled on the client-side).
       allow write: if true; 
