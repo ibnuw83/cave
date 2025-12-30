@@ -15,7 +15,7 @@ import { ServerCrash, Info } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useCollection } from '@/firebase/provider';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { doc, collection, query, where, orderBy } from 'firebase/firestore';
+import { doc, collection, query, where } from 'firebase/firestore';
 
 
 function SpotPageFallback() {
@@ -37,7 +37,9 @@ export default function SpotPage() {
   
   const spotsQuery = useMemo(() => {
     if (spot && spot.locationId) {
-      return query(collection(firestore, 'spots'), where('locationId', '==', spot.locationId), orderBy('order'));
+      // Remove orderBy from the query to avoid needing a composite index.
+      // Sorting will be handled on the client-side.
+      return query(collection(firestore, 'spots'), where('locationId', '==', spot.locationId));
     }
     return null;
   }, [spot, firestore]);
@@ -61,7 +63,7 @@ export default function SpotPage() {
       <div className="h-screen w-screen flex items-center justify-center p-4 bg-background">
         <Alert variant="destructive" className="w-full max-w-lg">
           <ServerCrash className="h-4 w-4" />
-          <AlertTitle>Gagal Memuat</AlertTitle>
+          <AlertTitle>Gagal Memuat atau Tidak Ditemukan</AlertTitle>
           <AlertDescription>
             {anyError.message || 'Terjadi kesalahan saat memuat data spot.'}
             <Button variant="link" asChild className="mt-2 block p-0">
@@ -129,5 +131,3 @@ export default function SpotPage() {
     </HybridViewer>
   );
 }
-
-    
