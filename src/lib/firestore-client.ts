@@ -141,7 +141,9 @@ export async function getLocationClient(db: Firestore, id: string): Promise<Loca
 
 export async function getSpotsForLocation(db: Firestore, locationId: string): Promise<Spot[]> {
   const spotsRef = collection(db, 'spots');
-  const q = query(spotsRef, where('locationId', '==', locationId), orderBy('order', 'asc'));
+  // The orderBy clause is removed to prevent requiring a composite index.
+  // Sorting should be handled on the client-side after fetching.
+  const q = query(spotsRef, where('locationId', '==', locationId));
   try {
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Spot));
@@ -313,4 +315,3 @@ export async function trackKioskSpotView(db: Firestore, locationId: string, spot
         console.warn(`Failed to track kiosk view for spot ${spotId}:`, error.message);
     }
 }
-
