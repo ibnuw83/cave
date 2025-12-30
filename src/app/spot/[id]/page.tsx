@@ -14,7 +14,7 @@ import { ServerCrash, Info } from 'lucide-react';
 import { useUser, useFirestore, useDoc } from '@/firebase/provider';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { doc } from 'firebase/firestore';
+import { doc, collection, query, where } from 'firebase/firestore';
 import { getSpotsForLocation } from '@/lib/firestore-client';
 
 
