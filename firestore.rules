@@ -20,7 +20,7 @@ service cloud.firestore {
     }
     
     match /spots/{spotId} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
     
