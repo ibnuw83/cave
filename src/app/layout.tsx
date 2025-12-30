@@ -154,50 +154,28 @@ function FirebaseErrorListener() {
 
 const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [services, setServices] = useState<FirebaseServices | null>(null);
-  const [isConfigured, setIsConfigured] = useState(true);
 
   useEffect(() => {
     const firebaseConfig = {
-      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-      measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+      apiKey: "AIzaSyCtd9HYSC9rbV72CrwJ8jNmpbni4GfQpxo",
+      authDomain: "cave-57567.firebaseapp.com",
+      projectId: "cave-57567",
+      storageBucket: "cave-57567.appspot.com",
+      messagingSenderId: "862428789556",
+      appId: "1:862428789556:web:0941e0856737894942c361",
+      measurementId: "G-7DTNV0C4ZV"
     };
 
-    const configured = !!(firebaseConfig.apiKey && firebaseConfig.projectId);
-
-    if (configured) {
-      const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-      setServices({
-        firebaseApp: app,
-        firestore: getFirestore(app),
-        auth: getAuth(app),
-      });
-    } else {
-      setIsConfigured(false);
-    }
+    const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    setServices({
+      firebaseApp: app,
+      firestore: getFirestore(app),
+      auth: getAuth(app),
+    });
   }, []);
 
 
-  if (!isConfigured) {
-    return (
-      <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#2A2B32', color: '#ACB9C9', minHeight: '100vh', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div>
-          <h1 style={{ fontSize: '24px', color: '#E6B81C' }}>Konfigurasi Firebase Tidak Ditemukan</h1>
-          <p>Aplikasi berjalan, tetapi tidak dapat terhubung ke Firebase.</p>
-          <p>Untuk menggunakan fitur yang memerlukan database, harap atur variabel lingkungan di platform hosting Anda (misalnya, Vercel).</p>
-          <p>Anda perlu mengatur semua variabel yang dimulai dengan `NEXT_PUBLIC_FIREBASE_`.</p>
-          <p>Setelah itu, Anda perlu men-deploy ulang aplikasi agar perubahan tersebut terbaca.</p>
-        </div>
-      </div>
-    );
-  }
-  
   if (!services) {
-    // While services are being initialized, show a loader.
     return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
