@@ -6,7 +6,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Location, Spot, KioskSettings, PaymentGatewaySettings, AdSenseSettings } from '@/lib/types';
+import { Location, Spot, KioskSettings, PaymentGatewaySettings, AdSenseSettings, UserProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -97,7 +97,8 @@ interface KioskClientProps {
 function KioskRemoteControl() {
   const { toast } = useToast();
   const firestore = useFirestore();
-  const { userProfile } = useUser();
+  const { userProfile } = useUser(); // Use the hook to get user profile
+
   const [devices, setDevices] = useState<KioskDevice[]>([]);
   const [controlState, setControlState] = useState<{enabled: boolean, message?: string, forceReload?: boolean} | null>(null);
   const [devicesLoading, setDevicesLoading] = useState(true);
@@ -117,6 +118,9 @@ function KioskRemoteControl() {
     const devicesUnsub = onSnapshot(devicesRef, (snapshot) => {
       setDevices(snapshot.docs.map(d => ({id: d.id, ...d.data()} as KioskDevice)));
       setDevicesLoading(false);
+    }, (error) => {
+        console.error("Error fetching kiosk devices:", error);
+        setDevicesLoading(false);
     });
 
     const controlRef = doc(firestore, 'kioskControl', 'global');
@@ -124,6 +128,9 @@ function KioskRemoteControl() {
         if (snapshot.exists()) {
             setControlState(snapshot.data() as any);
         }
+        setControlLoading(false);
+    }, (error) => {
+        console.error("Error fetching kiosk control:", error);
         setControlLoading(false);
     });
 
