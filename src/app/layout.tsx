@@ -66,18 +66,17 @@ const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     if (!firebaseServices) return;
     setIsProfileLoading(true);
     try {
-      const profile = await getUserProfileClient(firebaseServices.firestore, firebaseUser.uid);
-      if (profile) {
-        setUserProfile(profile);
-      } else {
-        console.error(`Profile not found for UID: ${firebaseUser.uid}. Logging out.`);
-        setAuthError(new Error("User profile does not exist."));
-        await firebaseServices.auth.signOut();
-      }
+      // getUserProfileClient will now create a profile if it doesn't exist.
+      const profile = await getUserProfileClient(firebaseServices.firestore, firebaseUser.uid, {
+        displayName: firebaseUser.displayName,
+        email: firebaseUser.email,
+        photoURL: firebaseUser.photoURL,
+      });
+      setUserProfile(profile);
     } catch (err) {
-      console.error("Failed to fetch user profile:", err);
+      console.error("Failed to fetch or create user profile:", err);
       setAuthError(err as Error);
-      await firebaseServices.auth.signOut();
+      // DO NOT SIGN OUT here. It can cause logout loops.
     } finally {
       setIsProfileLoading(false);
     }

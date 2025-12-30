@@ -25,26 +25,49 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 // --- User Profile Functions ---
 
-export async function getUserProfileClient(db: Firestore, uid: string): Promise<UserProfile | null> {
+/**
+ * Gets a user profile. If it doesn't exist, it creates one.
+ * @param db Firestore instance.
+ * @param uid The user's UID.
+ * @param details Fallback details if creating a new profile.
+ * @returns The user profile.
+ */
+export async function getUserProfileClient(db: Firestore, uid: string, details?: Partial<UserProfile>): Promise<UserProfile> {
   const userRef = doc(db, 'users', uid);
   try {
     const docSnap = await getDoc(userRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
+      // Ensure Timestamps are converted to Dates for client-side consistency
       if (data.updatedAt instanceof Timestamp) {
         data.updatedAt = data.updatedAt.toDate();
       }
       return { id: docSnap.id, ...data } as UserProfile;
+    } else {
+      // Profile doesn't exist, so create it
+      const userProfileData: Omit<UserProfile, 'id' | 'updatedAt'> = {
+        displayName: details?.displayName || details?.email?.split('@')[0] || 'Pengguna Baru',
+        email: details?.email || null,
+        photoURL: details?.photoURL || null,
+        role: 'free',
+        disabled: false,
+      };
+      await setDoc(userRef, { ...userProfileData, updatedAt: serverTimestamp() });
+      return {
+        id: uid,
+        ...userProfileData,
+        updatedAt: new Date(),
+      };
     }
-    return null;
   } catch (error: any) {
-     if (error.code === 'permission-denied') {
-        const permissionError = new FirestorePermissionError({ path: `/users/${uid}`, operation: 'get' });
-        errorEmitter.emit('permission-error', permissionError);
+    if (error.code === 'permission-denied') {
+      const permissionError = new FirestorePermissionError({ path: `/users/${uid}`, operation: 'get' });
+      errorEmitter.emit('permission-error', permissionError);
     }
     throw error;
   }
 }
+
 
 export async function createUserProfile(db: Firestore, user: User, role: UserProfile['role'] = 'free'): Promise<UserProfile> {
     const userRef = doc(db, 'users', user.uid);
