@@ -14,7 +14,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Trash2, Plus, GripVertical, Loader2, Download, WifiOff, ArrowRight, Monitor, MessageSquare, Power, PowerOff, Send, Radio, Facebook, Instagram, Twitter, CreditCard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getKioskSettings, saveKioskSettings, setKioskControl, getSpotsForLocation as getAllSpots } from '@/lib/firestore-client';
+import { saveKioskSettings, setKioskControl } from '@/lib/firestore-client';
 import Link from 'next/link';
 import { isLocationAvailableOffline, saveLocationForOffline } from '@/lib/offline';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -26,6 +26,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useCollection, useDoc } from '@/firebase/firestore/use-doc';
 
 const globalSettingsSchema = z.object({
   logoUrl: z.string().url({ message: "URL tidak valid." }).optional().or(z.literal('')),
@@ -97,39 +98,19 @@ function KioskRemoteControl({ allSpots }: { allSpots: Spot[] }) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { userProfile } = useUser();
+  
+  const devicesRef = useMemo(() => userProfile?.role === 'admin' ? collection(firestore, 'kioskDevices') : null, [userProfile, firestore]);
+  const { isLoading: devicesLoading, data: devicesData } = useCollection<KioskDevice>(devicesRef);
 
-  const [devices, setDevices] = useState<KioskDevice[]>([]);
-  const [controlState, setControlState] = useState<{enabled: boolean, message?: string, forceReload?: boolean}>({ enabled: true });
-  const [devicesLoading, setDevicesLoading] = useState(true);
-  const [controlLoading, setControlLoading] = useState(true);
-
-  useEffect(() => {
-    if (userProfile?.role !== 'admin') return;
-    const devicesRef = collection(firestore, 'kioskDevices');
-    const unsubDevices = onSnapshot(devicesRef, (snapshot) => {
-      setDevices(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as KioskDevice)));
-      setDevicesLoading(false);
-    });
-
-    const controlRef = doc(firestore, 'kioskControl', 'global');
-    const unsubControl = onSnapshot(controlRef, (snapshot) => {
-      if(snapshot.exists()) {
-        setControlState(snapshot.data() as any);
-      }
-      setControlLoading(false);
-    });
-    return () => {
-      unsubDevices();
-      unsubControl();
-    }
-  }, [firestore, userProfile]);
+  const controlRef = useMemo(() => userProfile?.role === 'admin' ? doc(firestore, 'kioskControl', 'global') : null, [userProfile, firestore]);
+  const { isLoading: controlLoading, data: controlData } = useDoc<{enabled: boolean, message?: string, forceReload?: boolean}>(controlRef);
 
   const controlForm = useForm<RemoteControlFormValues>({
     resolver: zodResolver(remoteControlSchema),
     defaultValues: { message: '' },
   });
 
-  const isKioskEnabled = controlState?.enabled ?? true;
+  const isKioskEnabled = controlData?.enabled ?? true;
 
   const handleToggleKiosk = (enabled: boolean) => {
     setKioskControl(firestore, { enabled });
@@ -160,9 +141,9 @@ function KioskRemoteControl({ allSpots }: { allSpots: Spot[] }) {
               <div className="space-y-4">
                   <h4 className="font-semibold text-sm">Perangkat Aktif</h4>
                   {devicesLoading ? <Skeleton className="h-16 w-full" /> : (
-                      devices && devices.length > 0 ? (
+                      devicesData && devicesData.length > 0 ? (
                           <div className="border rounded-md divide-y">
-                              {devices.map(device => (
+                              {devicesData.map(device => (
                                   <div key={device.id} className="p-3 flex justify-between items-center">
                                       <div className='flex items-center gap-3'>
                                           <Monitor className="h-5 w-5"/>
@@ -175,7 +156,7 @@ function KioskRemoteControl({ allSpots }: { allSpots: Spot[] }) {
                                       </div>
                                       <div className="text-xs text-muted-foreground flex items-center gap-2">
                                          <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                                         {device.updatedAt ? formatDistanceToNow(device.updatedAt.toDate(), { addSuffix: true, locale: id }) : 'Baru saja'}
+                                         {device.updatedAt ? formatDistanceToNow(new Date(device.updatedAt as any), { addSuffix: true, locale: id }) : 'Baru saja'}
                                       </div>
                                   </div>
                               ))}
@@ -232,25 +213,12 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
   const { userProfile } = useUser();
   const [isOffline, setIsOffline] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  
+  const spotsRef = useMemo(() => userProfile?.role === 'admin' ? collection(firestore, 'spots') : null, [userProfile, firestore]);
+  const settingsRef = useMemo(() => userProfile?.role === 'admin' ? doc(firestore, 'kioskSettings', 'main') : null, [userProfile, firestore]);
 
-  const [spots, setSpots] = useState<Spot[]>([]);
-  const [kioskSettings, setKioskSettings] = useState<KioskSettings | null>(null);
-  const [spotsLoading, setSpotsLoading] = useState(true);
-  const [settingsLoading, setSettingsLoading] = useState(true);
-
-  useEffect(() => {
-    if(userProfile?.role !== 'admin') return;
-
-    getAllSpots(firestore).then(data => {
-      setSpots(data);
-      setSpotsLoading(false);
-    });
-
-    getKioskSettings(firestore).then(data => {
-      setKioskSettings(data);
-      setSettingsLoading(false);
-    });
-  }, [firestore, userProfile]);
+  const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(spotsRef);
+  const { data: kioskSettings, isLoading: settingsLoading } = useDoc<KioskSettings>(settingsRef);
   
   const globalForm = useForm<GlobalSettingsFormValues>({
     resolver: zodResolver(globalSettingsSchema),
@@ -924,3 +892,5 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
     </>
   );
 }
+
+    
