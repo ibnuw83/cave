@@ -19,7 +19,7 @@ import { saveKioskSettings, setKioskControl } from '@/lib/firestore-client';
 import Link from 'next/link';
 import { isLocationAvailableOffline, saveLocationForOffline } from '@/lib/offline';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useUser, useFirestore } from '@/app/layout';
+import { useUser, useFirestore, useCollection } from '@/firebase/provider';
 import { collection, doc, Timestamp, onSnapshot } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
@@ -27,7 +27,6 @@ import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useCollection, useDoc } from '@/firebase/provider';
 
 const globalSettingsSchema = z.object({
   logoUrl: z.string().url({ message: "URL tidak valid." }).optional().or(z.literal('')),
@@ -125,6 +124,7 @@ function KioskRemoteControl() {
       setDevicesLoading(false);
     }, (error) => {
         console.error("Error fetching kiosk devices:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Gagal memuat perangkat kios.' });
         setDevicesLoading(false);
     });
 
@@ -136,6 +136,7 @@ function KioskRemoteControl() {
         setControlLoading(false);
     }, (error) => {
         console.error("Error fetching kiosk control:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Gagal memuat status kendali.' });
         setControlLoading(false);
     });
 
@@ -143,7 +144,7 @@ function KioskRemoteControl() {
         devicesUnsub();
         controlUnsub();
     }
-  }, [firestore, userProfile]);
+  }, [firestore, userProfile, toast]);
 
   const controlForm = useForm<RemoteControlFormValues>({
     resolver: zodResolver(remoteControlSchema),
@@ -152,21 +153,33 @@ function KioskRemoteControl() {
 
   const isKioskEnabled = controlState?.enabled ?? true;
 
-  const handleToggleKiosk = (enabled: boolean) => {
-    setKioskControl(firestore, { enabled });
-    toast({ title: enabled ? "Kios Diaktifkan" : "Kios Dinonaktifkan", description: 'Perubahan akan diterapkan dalam beberapa detik.' });
+  const handleToggleKiosk = async (enabled: boolean) => {
+    try {
+      await setKioskControl(firestore, { enabled });
+      toast({ title: enabled ? "Kios Diaktifkan" : "Kios Dinonaktifkan", description: 'Perubahan akan diterapkan dalam beberapa detik.' });
+    } catch (e) {
+      // Error is handled by global error emitter
+    }
   };
   
-  const handleReloadKiosk = () => {
+  const handleReloadKiosk = async () => {
     if (confirm('Anda yakin ingin memuat ulang semua kios? Ini akan memulai ulang tayangan di semua perangkat.')) {
-      setKioskControl(firestore, { forceReload: true, ts: Date.now() });
-      toast({ title: "Memuat Ulang Kios", description: 'Perintah telah dikirim.' });
+      try {
+        await setKioskControl(firestore, { forceReload: true, ts: Date.now() });
+        toast({ title: "Memuat Ulang Kios", description: 'Perintah telah dikirim.' });
+      } catch (e) {
+         // Error is handled by global error emitter
+      }
     }
   };
 
-  const onSendMessage = (values: RemoteControlFormValues) => {
-    setKioskControl(firestore, { message: values.message, ts: Date.now() });
-    toast({ title: "Pesan Terkirim", description: 'Pesan akan ditampilkan di semua kios.' });
+  const onSendMessage = async (values: RemoteControlFormValues) => {
+    try {
+      await setKioskControl(firestore, { message: values.message, ts: Date.now() });
+      toast({ title: "Pesan Terkirim", description: 'Pesan akan ditampilkan di semua kios.' });
+    } catch(e) {
+      // Error is handled by global error emitter
+    }
   };
   
   const getSpotTitle = (spotId: string) => {
@@ -263,11 +276,11 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
   const [isOffline, setIsOffline] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   
-  const spotsRef = useMemo(() => userProfile?.role === 'admin' ? collection(firestore, 'spots') : null, [userProfile, firestore]);
-  const settingsRef = useMemo(() => userProfile?.role === 'admin' ? doc(firestore, 'kioskSettings', 'main') : null, [userProfile, firestore]);
+  const spotsRef = useMemo(() => collection(firestore, 'spots'), [firestore]);
+  const settingsRef = useMemo(() => doc(firestore, 'kioskSettings', 'main'), [firestore]);
 
   const { data: spots, isLoading: spotsLoading } = useCollection<Spot>(spotsRef);
-  const { data: kioskSettings, isLoading: settingsLoading } = useDoc<KioskSettings>(settingsRef);
+  const { data: kioskSettings, isLoading: settingsLoading } = useCollection<KioskSettings>(settingsRef as any); // cast to any to avoid type issue with useCollection
   
   const globalForm = useForm<GlobalSettingsFormValues>({
     resolver: zodResolver(globalSettingsSchema),
@@ -310,36 +323,43 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
     },
   });
   
+  const mainSettings = useMemo(() => {
+    if (kioskSettings && kioskSettings.length > 0) {
+      return kioskSettings[0];
+    }
+    return null;
+  }, [kioskSettings]);
+
   useEffect(() => {
-    if (kioskSettings) {
+    if (mainSettings) {
         globalForm.reset({
-            logoUrl: kioskSettings.logoUrl || '',
-            mode: kioskSettings.mode || 'loop',
-            exitPin: kioskSettings.exitPin || '1234',
+            logoUrl: mainSettings.logoUrl || '',
+            mode: mainSettings.mode || 'loop',
+            exitPin: mainSettings.exitPin || '1234',
         });
         heroForm.reset({
-            mainTitle: kioskSettings.mainTitle || '',
-            heroTitle: kioskSettings.heroTitle || '',
-            heroSubtitle: kioskSettings.heroSubtitle || '',
+            mainTitle: mainSettings.mainTitle || '',
+            heroTitle: mainSettings.heroTitle || '',
+            heroSubtitle: mainSettings.heroSubtitle || '',
         });
         footerForm.reset({
-            footerText: kioskSettings.footerText || '',
-            facebookUrl: kioskSettings.facebookUrl || '',
-            instagramUrl: kioskSettings.instagramUrl || '',
-            twitterUrl: kioskSettings.twitterUrl || '',
+            footerText: mainSettings.footerText || '',
+            facebookUrl: mainSettings.facebookUrl || '',
+            instagramUrl: mainSettings.instagramUrl || '',
+            twitterUrl: mainSettings.twitterUrl || '',
         });
         playlistForm.reset({
-            locationId: kioskSettings.locationId || '',
-            playlist: kioskSettings.playlist || [],
+            locationId: mainSettings.locationId || '',
+            playlist: mainSettings.playlist || [],
         });
         paymentForm.reset({
-            paymentGateway: kioskSettings.paymentGateway || { provider: 'none', mode: 'sandbox', clientKey: '' },
+            paymentGateway: mainSettings.paymentGateway || { provider: 'none', mode: 'sandbox', clientKey: '' },
         });
         adsenseForm.reset({
-            adsense: kioskSettings.adsense || { clientId: '', adSlotId: '' },
+            adsense: mainSettings.adsense || { clientId: '', adSlotId: '' },
         });
     }
-  }, [kioskSettings, globalForm, heroForm, footerForm, playlistForm, paymentForm, adsenseForm]);
+  }, [mainSettings, globalForm, heroForm, footerForm, playlistForm, paymentForm, adsenseForm]);
 
   const { fields, append, remove } = useFieldArray({
     control: playlistForm.control,
