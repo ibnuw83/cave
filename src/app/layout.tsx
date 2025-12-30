@@ -13,6 +13,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { UserProfile } from '@/lib/types';
 import { getUserProfileClient } from '@/lib/firestore-client';
+import { Loader2 } from 'lucide-react';
 
 // --- Firebase Service Context ---
 
@@ -20,7 +21,6 @@ interface FirebaseServices {
   firebaseApp: FirebaseApp;
   firestore: Firestore;
   auth: Auth;
-  isConfigured: boolean;
 }
 
 const FirebaseContext = createContext<FirebaseServices | null>(null);
@@ -55,8 +55,7 @@ export const useUser = (): UserContextValue => {
 };
 
 const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { auth, firestore } = useFirebase();
-
+  const firebaseServices = useFirebase();
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isUserLoading, setIsUserLoading] = useState(true);
@@ -64,26 +63,31 @@ const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [authError, setAuthError] = useState<Error | null>(null);
 
   const fetchUserProfile = useCallback(async (firebaseUser: User) => {
+    if (!firebaseServices) return;
     setIsProfileLoading(true);
     try {
-      const profile = await getUserProfileClient(firestore, firebaseUser.uid);
+      const profile = await getUserProfileClient(firebaseServices.firestore, firebaseUser.uid);
       if (profile) {
         setUserProfile(profile);
       } else {
         console.error(`Profile not found for UID: ${firebaseUser.uid}. Logging out.`);
         setAuthError(new Error("User profile does not exist."));
-        await auth.signOut();
+        await firebaseServices.auth.signOut();
       }
     } catch (err) {
       console.error("Failed to fetch user profile:", err);
       setAuthError(err as Error);
-      await auth.signOut();
+      await firebaseServices.auth.signOut();
     } finally {
       setIsProfileLoading(false);
     }
-  }, [auth, firestore]);
+  }, [firebaseServices]);
 
   useEffect(() => {
+    if (!firebaseServices) return;
+    
+    const { auth } = firebaseServices;
+
     const unsub = onIdTokenChanged(auth, async (firebaseUser) => {
       setIsUserLoading(false);
       if (!firebaseUser) {
@@ -105,14 +109,15 @@ const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
       }
     });
     return () => unsub();
-  }, [auth, fetchUserProfile]);
+  }, [firebaseServices, fetchUserProfile]);
 
   const refreshUserProfile = useCallback(async () => {
-    const currentUser = auth.currentUser;
+    if (!firebaseServices) return;
+    const currentUser = firebaseServices.auth.currentUser;
     if (!currentUser) return;
     await currentUser.getIdToken(true);
     await fetchUserProfile(currentUser);
-  }, [auth, fetchUserProfile]);
+  }, [firebaseServices, fetchUserProfile]);
 
   const value = useMemo(() => ({
     user,
@@ -148,7 +153,11 @@ function FirebaseErrorListener() {
 }
 
 const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const services = useMemo(() => {
+  const [services, setServices] = useState<FirebaseServices | null>(null);
+  const [isConfigured, setIsConfigured] = useState(true);
+
+  useEffect(() => {
+    // This effect runs ONLY on the client, after the component has mounted.
     const firebaseConfig = {
       apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
       authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -159,30 +168,41 @@ const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
       measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
     };
 
-    const isConfigured = !!(firebaseConfig.apiKey && firebaseConfig.projectId);
-
-    if (typeof window === 'undefined') {
-      return { isConfigured: false } as any;
-    }
+    const configured = !!(firebaseConfig.apiKey && firebaseConfig.projectId);
     
-    const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-    return {
-      firebaseApp: app,
-      firestore: getFirestore(app),
-      auth: getAuth(app),
-      isConfigured: isConfigured,
-    };
-  }, []);
+    if (configured) {
+      const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+      setServices({
+        firebaseApp: app,
+        firestore: getFirestore(app),
+        auth: getAuth(app),
+      });
+    } else {
+      setIsConfigured(false);
+    }
+  }, []); // Empty dependency array ensures this runs only once on mount.
 
-  if (!services.isConfigured) {
+
+  if (!isConfigured) {
     return (
-      <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#2A2B32', color: '#ACB9C9', minHeight: '100vh' }}>
-        <h1 style={{ fontSize: '24px', color: '#E6B81C' }}>Konfigurasi Firebase Tidak Ditemukan</h1>
-        <p>Aplikasi berjalan, tetapi tidak dapat terhubung ke Firebase.</p>
-        <p>Untuk menggunakan fitur yang memerlukan database, harap atur variabel lingkungan di platform hosting Anda (misalnya, Vercel).</p>
-        <p>Anda perlu mengatur semua variabel yang dimulai dengan `NEXT_PUBLIC_FIREBASE_`.</p>
-        <p>Setelah itu, Anda perlu men-deploy ulang aplikasi agar perubahan tersebut terbaca.</p>
+      <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#2A2B32', color: '#ACB9C9', minHeight: '100vh', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div>
+          <h1 style={{ fontSize: '24px', color: '#E6B81C' }}>Konfigurasi Firebase Tidak Ditemukan</h1>
+          <p>Aplikasi berjalan, tetapi tidak dapat terhubung ke Firebase.</p>
+          <p>Untuk menggunakan fitur yang memerlukan database, harap atur variabel lingkungan di platform hosting Anda (misalnya, Vercel).</p>
+          <p>Anda perlu mengatur semua variabel yang dimulai dengan `NEXT_PUBLIC_FIREBASE_`.</p>
+          <p>Setelah itu, Anda perlu men-deploy ulang aplikasi agar perubahan tersebut terbaca.</p>
+        </div>
       </div>
+    );
+  }
+  
+  if (!services) {
+    // While services are being initialized, show a loader.
+    return (
+        <div className="flex h-screen w-full items-center justify-center bg-background">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
     );
   }
 
