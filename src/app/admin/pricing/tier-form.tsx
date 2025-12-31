@@ -49,7 +49,7 @@ export function PricingTierForm({ tier, allRoles, onSave, onCancel }: PricingTie
       priceDescription: tier?.priceDescription || '',
       cta: tier?.cta || 'Pilih Paket',
       isPopular: tier?.isPopular ?? false,
-      features: tier?.features || [],
+      features: tier?.features || [], // Pastikan ini selalu array
     },
   });
 
@@ -205,7 +205,7 @@ export function PricingTierForm({ tier, allRoles, onSave, onCancel }: PricingTie
                 </div>
               ))}
                <FormMessage>
-                {Array.isArray(form.formState.errors.features) && form.formState.errors.features[fields.length]?.message}
+                 {form.formState.errors.features?.[fields.length]?.message}
               </FormMessage>
             </div>
             <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => append('')}>
@@ -231,3 +231,5 @@ export function PricingTierForm({ tier, allRoles, onSave, onCancel }: PricingTie
     </div>
   );
 }
+
+    
