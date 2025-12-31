@@ -49,7 +49,7 @@ export function PricingTierForm({ tier, allRoles, onSave, onCancel }: PricingTie
       priceDescription: tier?.priceDescription || '',
       cta: tier?.cta || 'Pilih Paket',
       isPopular: tier?.isPopular ?? false,
-      features: tier?.features || [],
+      features: tier?.features || [], // Wajib array kosong jika null
     },
   });
 
@@ -217,8 +217,8 @@ export function PricingTierForm({ tier, allRoles, onSave, onCancel }: PricingTie
               <PlusCircle className="mr-2 h-4 w-4" />
               Tambah Fitur
             </Button>
-             {form.formState.errors.features && (
-                <p className="text-sm font-medium text-destructive mt-2">{form.formState.errors.features.message}</p>
+             {form.formState.errors.features?.root && (
+                <p className="text-sm font-medium text-destructive mt-2">{form.formState.errors.features.root.message}</p>
             )}
           </div>
 
