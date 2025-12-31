@@ -195,23 +195,18 @@ export function PricingTierForm({ tier, allRoles, onSave, onCancel }: PricingTie
             <div className="space-y-2 mt-2">
               {fields.map((field, index) => (
                 <div key={field.id} className="flex items-center gap-2">
-                  <FormField
-                    control={form.control}
-                    name={`features.${index}`}
-                    render={({ field }) => (
-                      <FormItem className="flex-grow">
-                        <FormControl>
-                          <Input placeholder={`Fitur ${index + 1}`} {...field} />
-                        </FormControl>
-                         <FormMessage />
-                      </FormItem>
-                    )}
+                  <Input
+                    placeholder={`Fitur ${index + 1}`}
+                    {...form.register(`features.${index}` as const)}
                   />
                   <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               ))}
+               <FormMessage>
+                {form.formState.errors.features?.[fields.length]?.message}
+              </FormMessage>
             </div>
             <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => append('')}>
               <PlusCircle className="mr-2 h-4 w-4" />
