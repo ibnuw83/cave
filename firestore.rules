@@ -15,17 +15,17 @@ service cloud.firestore {
     
     // --- Publicly Readable Collections ---
     match /locations/{locationId} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
     
     match /spots/{spotId} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
     
     match /pricingTiers/{tierId} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
 
@@ -49,7 +49,9 @@ service cloud.firestore {
 
     // --- Kiosk-related Collections ---
     match /kioskSettings/{settingId} {
-      allow read, write: if isAdmin();
+      // Publicly readable for app configuration (logo, titles), but only writable by admins.
+      allow read: if true;
+      allow write: if isAdmin();
     }
     
     match /kioskDevices/{deviceId} {
