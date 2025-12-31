@@ -28,6 +28,11 @@ async function getSpotAdmin(spotId: string): Promise<Spot | null> {
 
 // This endpoint now returns a complete, playable WAV audio file.
 export async function POST(req: NextRequest) {
+  const services = safeGetAdminApp();
+  if (!services) {
+    return NextResponse.json({ error: 'Konfigurasi server tidak tersedia. Pastikan FIREBASE_SERVICE_ACCOUNT_KEY sudah diatur.' }, { status: 503 });
+  }
+  
   try {
     const { spotId } = await req.json();
     if (!spotId) {
