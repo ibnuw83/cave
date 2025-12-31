@@ -49,11 +49,11 @@ export function PricingTierForm({ tier, allRoles, onSave, onCancel }: PricingTie
       priceDescription: tier?.priceDescription || '',
       cta: tier?.cta || 'Pilih Paket',
       isPopular: tier?.isPopular ?? false,
-      features: tier?.features || [], // Wajib array kosong jika null
+      features: tier?.features || [],
     },
   });
 
-  const { fields, append, remove } = useFieldArray<TierFormValues>({
+  const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'features',
   });
