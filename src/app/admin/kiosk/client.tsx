@@ -284,7 +284,7 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
   
   const globalForm = useForm<GlobalSettingsFormValues>({
     resolver: zodResolver(globalSettingsSchema),
-    defaultValues: { logoUrl: '', mode: 'loop', exitPin: '1234' },
+    defaultValues: { logoUrl: '', mode: 'loop', exitPin: '' },
   });
 
   const heroForm = useForm<HeroSettingsFormValues>({
@@ -328,7 +328,7 @@ export default function KioskClient({ initialLocations }: KioskClientProps) {
         globalForm.reset({
             logoUrl: mainSettings.logoUrl || '',
             mode: mainSettings.mode || 'loop',
-            exitPin: mainSettings.exitPin || '1234',
+            exitPin: mainSettings.exitPin || '',
         });
         heroForm.reset({
             mainTitle: mainSettings.mainTitle || '',

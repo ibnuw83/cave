@@ -14,7 +14,7 @@ import { ServerCrash, Info } from 'lucide-react';
 import { useUser, useFirestore, useDoc } from '@/firebase/provider';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { doc, collection, query, where } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { getSpotsForLocation } from '@/lib/firestore-client';
 
 
@@ -68,43 +68,52 @@ export default function SpotPage() {
     router.push(`/spot/${spotId}`);
   };
 
-  if (isLoading) return <SpotPageFallback />;
-  
-  const anyError = spotError;
-  if (anyError) {
-     return (
-      <div className="h-screen w-screen flex items-center justify-center p-4 bg-background">
-        <Alert variant="destructive" className="w-full max-w-lg">
-          <ServerCrash className="h-4 w-4" />
-          <AlertTitle>Gagal Memuat atau Tidak Ditemukan</AlertTitle>
-          <AlertDescription>
-            {anyError.message || 'Terjadi kesalahan saat memuat data spot.'}
-            <Button variant="link" asChild className="mt-2 block p-0">
-                <Link href="/">Kembali ke Halaman Utama</Link>
-            </Button>
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-  
-  if (!spot) {
+  if (isLoading || !spot) {
+    // Show a fallback while the main spot is loading or if it's not found after loading
+    if (isSpotLoading || isUserLoading) {
+      return <SpotPageFallback />;
+    }
+    
+    // Handle specific errors or not-found case after loading is complete
+    const anyError = spotError;
+    if (anyError) {
       return (
-      <div className="h-screen w-screen flex items-center justify-center p-4 bg-background">
-        <Alert className="w-full max-w-lg">
-          <Info className="h-4 w-4" />
-          <AlertTitle>Tidak Ditemukan</AlertTitle>
-          <AlertDescription>
-            Spot yang Anda cari tidak ada.
-             <Button variant="link" asChild className="mt-2 block p-0">
-                <Link href="/">Kembali ke Halaman Utama</Link>
-            </Button>
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
+        <div className="h-screen w-screen flex items-center justify-center p-4 bg-background">
+          <Alert variant="destructive" className="w-full max-w-lg">
+            <ServerCrash className="h-4 w-4" />
+            <AlertTitle>Gagal Memuat atau Tidak Ditemukan</AlertTitle>
+            <AlertDescription>
+              {anyError.message || 'Terjadi kesalahan saat memuat data spot.'}
+              <Button variant="link" asChild className="mt-2 block p-0">
+                  <Link href="/">Kembali ke Halaman Utama</Link>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
+      );
+    }
 
+    if (!spot) {
+        return (
+        <div className="h-screen w-screen flex items-center justify-center p-4 bg-background">
+          <Alert className="w-full max-w-lg">
+            <Info className="h-4 w-4" />
+            <AlertTitle>Tidak Ditemukan</AlertTitle>
+            <AlertDescription>
+              Spot yang Anda cari tidak ada.
+               <Button variant="link" asChild className="mt-2 block p-0">
+                  <Link href="/">Kembali ke Halaman Utama</Link>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
+      );
+    }
+    
+    // Fallback for initial loading state
+    return <SpotPageFallback />;
+  }
+  
   if (spot.isPro && !isPro) {
     return <LockedScreen spot={spot} />;
   }
