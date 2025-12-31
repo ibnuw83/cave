@@ -59,17 +59,11 @@ const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isUserLoading, setIsUserLoading] = useState(true);
-  const [isProfileLoading, setIsProfileLoading] = useState(false); // Default to false
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [authError, setAuthError] = useState<Error | null>(null);
 
-  const fetchUserProfile = useCallback(async (firebaseUser: User | null) => {
-    // Only fetch if there is a valid user object.
-    if (!firebaseUser || !firebaseServices) {
-      setUserProfile(null);
-      setIsProfileLoading(false);
-      return;
-    }
-
+  const fetchUserProfile = useCallback(async (firebaseUser: User) => {
+    // This function should only be called with a valid user object.
     setIsProfileLoading(true);
     try {
       const profile = await getUserProfileClient(firebaseServices.firestore, firebaseUser.uid, {
@@ -93,21 +87,23 @@ const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
 
     const unsub = onIdTokenChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
-      setIsUserLoading(false);
-      
-      // Fetch profile only after user state is confirmed
-      await fetchUserProfile(firebaseUser);
 
-      // Handle session cookie management
       if (firebaseUser) {
+        // User is logged in, fetch their profile
+        await fetchUserProfile(firebaseUser);
         const token = await firebaseUser.getIdToken();
         fetch('/api/login', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` }
         }).catch(err => console.error("Session login failed:", err));
       } else {
+        // User is logged out
+        setUserProfile(null);
+        setIsProfileLoading(false);
         fetch('/api/logout', { method: 'POST' }).catch(err => console.error("Session logout failed:", err));
       }
+
+      setIsUserLoading(false);
     });
 
     return () => unsub();
