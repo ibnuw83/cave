@@ -49,7 +49,7 @@ export function PricingTierForm({ tier, allRoles, onSave, onCancel }: PricingTie
       priceDescription: tier?.priceDescription || '',
       cta: tier?.cta || 'Pilih Paket',
       isPopular: tier?.isPopular ?? false,
-      features: tier?.features || [],
+      features: tier?.features || [], // Correctly initialize as an array
     },
   });
 
