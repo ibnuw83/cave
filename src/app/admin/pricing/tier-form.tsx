@@ -49,7 +49,7 @@ export function PricingTierForm({ tier, allRoles, onSave, onCancel }: PricingTie
       priceDescription: tier?.priceDescription || '',
       cta: tier?.cta || 'Pilih Paket',
       isPopular: tier?.isPopular ?? false,
-      features: tier?.features || [], // Correctly initialize as an array
+      features: tier?.features || [],
     },
   });
 
@@ -205,7 +205,7 @@ export function PricingTierForm({ tier, allRoles, onSave, onCancel }: PricingTie
                 </div>
               ))}
                <FormMessage>
-                {form.formState.errors.features?.[fields.length]?.message}
+                {Array.isArray(form.formState.errors.features) && form.formState.errors.features[fields.length]?.message}
               </FormMessage>
             </div>
             <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => append('')}>
